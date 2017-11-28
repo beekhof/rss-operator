@@ -17,8 +17,8 @@ package fake
 
 import (
 	clientset "github.com/coreos/etcd-operator/pkg/generated/clientset/versioned"
-	etcdv1beta2 "github.com/coreos/etcd-operator/pkg/generated/clientset/versioned/typed/etcd/v1beta2"
-	fakeetcdv1beta2 "github.com/coreos/etcd-operator/pkg/generated/clientset/versioned/typed/etcd/v1beta2/fake"
+	galerav1alpha1 "github.com/coreos/etcd-operator/pkg/generated/clientset/versioned/typed/galera/v1alpha1"
+	fakegalerav1alpha1 "github.com/coreos/etcd-operator/pkg/generated/clientset/versioned/typed/galera/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -59,12 +59,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// EtcdV1beta2 retrieves the EtcdV1beta2Client
-func (c *Clientset) EtcdV1beta2() etcdv1beta2.EtcdV1beta2Interface {
-	return &fakeetcdv1beta2.FakeEtcdV1beta2{Fake: &c.Fake}
+// GaleraV1alpha1 retrieves the GaleraV1alpha1Client
+func (c *Clientset) GaleraV1alpha1() galerav1alpha1.GaleraV1alpha1Interface {
+	return &fakegalerav1alpha1.FakeGaleraV1alpha1{Fake: &c.Fake}
 }
 
-// Etcd retrieves the EtcdV1beta2Client
-func (c *Clientset) Etcd() etcdv1beta2.EtcdV1beta2Interface {
-	return &fakeetcdv1beta2.FakeEtcdV1beta2{Fake: &c.Fake}
+// Galera retrieves the GaleraV1alpha1Client
+func (c *Clientset) Galera() galerav1alpha1.GaleraV1alpha1Interface {
+	return &fakegalerav1alpha1.FakeGaleraV1alpha1{Fake: &c.Fake}
 }

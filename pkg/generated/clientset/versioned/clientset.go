@@ -16,7 +16,7 @@ limitations under the License.
 package versioned
 
 import (
-	etcdv1beta2 "github.com/coreos/etcd-operator/pkg/generated/clientset/versioned/typed/etcd/v1beta2"
+	galerav1alpha1 "github.com/coreos/etcd-operator/pkg/generated/clientset/versioned/typed/galera/v1alpha1"
 	glog "github.com/golang/glog"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
@@ -25,27 +25,27 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	EtcdV1beta2() etcdv1beta2.EtcdV1beta2Interface
+	GaleraV1alpha1() galerav1alpha1.GaleraV1alpha1Interface
 	// Deprecated: please explicitly pick a version if possible.
-	Etcd() etcdv1beta2.EtcdV1beta2Interface
+	Galera() galerav1alpha1.GaleraV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	etcdV1beta2 *etcdv1beta2.EtcdV1beta2Client
+	galeraV1alpha1 *galerav1alpha1.GaleraV1alpha1Client
 }
 
-// EtcdV1beta2 retrieves the EtcdV1beta2Client
-func (c *Clientset) EtcdV1beta2() etcdv1beta2.EtcdV1beta2Interface {
-	return c.etcdV1beta2
+// GaleraV1alpha1 retrieves the GaleraV1alpha1Client
+func (c *Clientset) GaleraV1alpha1() galerav1alpha1.GaleraV1alpha1Interface {
+	return c.galeraV1alpha1
 }
 
-// Deprecated: Etcd retrieves the default version of EtcdClient.
+// Deprecated: Galera retrieves the default version of GaleraClient.
 // Please explicitly pick a version.
-func (c *Clientset) Etcd() etcdv1beta2.EtcdV1beta2Interface {
-	return c.etcdV1beta2
+func (c *Clientset) Galera() galerav1alpha1.GaleraV1alpha1Interface {
+	return c.galeraV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -64,7 +64,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.etcdV1beta2, err = etcdv1beta2.NewForConfig(&configShallowCopy)
+	cs.galeraV1alpha1, err = galerav1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.etcdV1beta2 = etcdv1beta2.NewForConfigOrDie(c)
+	cs.galeraV1alpha1 = galerav1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -90,7 +90,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.etcdV1beta2 = etcdv1beta2.New(c)
+	cs.galeraV1alpha1 = galerav1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

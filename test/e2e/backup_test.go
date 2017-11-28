@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
 	"github.com/coreos/etcd-operator/pkg/util/awsutil/s3factory"
 	"github.com/coreos/etcd-operator/pkg/util/retryutil"
 	"github.com/coreos/etcd-operator/test/e2e/e2eutil"
@@ -73,12 +73,12 @@ func testEtcdBackupOperatorForS3Backup(t *testing.T) string {
 	if _, err := e2eutil.WaitUntilSizeReached(t, f.CRClient, 3, 6, testEtcd); err != nil {
 		t.Fatalf("failed to create 3 members etcd cluster: %v", err)
 	}
-	eb, err := f.CRClient.EtcdV1beta2().EtcdBackups(f.Namespace).Create(e2eutil.NewS3Backup(testEtcd.Name, os.Getenv("TEST_S3_BUCKET"), os.Getenv("TEST_AWS_SECRET")))
+	eb, err := f.CRClient.GaleraV1alpha1().EtcdBackups(f.Namespace).Create(e2eutil.NewS3Backup(testEtcd.Name, os.Getenv("TEST_S3_BUCKET"), os.Getenv("TEST_AWS_SECRET")))
 	if err != nil {
 		t.Fatalf("failed to create etcd backup cr: %v", err)
 	}
 	defer func() {
-		if err := f.CRClient.EtcdV1beta2().EtcdBackups(f.Namespace).Delete(eb.Name, nil); err != nil {
+		if err := f.CRClient.GaleraV1alpha1().EtcdBackups(f.Namespace).Delete(eb.Name, nil); err != nil {
 			t.Fatalf("failed to delete etcd backup cr: %v", err)
 		}
 	}()
@@ -92,8 +92,8 @@ func testEtcdBackupOperatorForS3Backup(t *testing.T) string {
 		t.Fatalf("failed create s3 client: %v", err)
 	}
 	defer s3cli.Close()
-	err = retryutil.Retry(time.Second, 4, func() (bool, error) {
-		reb, err := f.CRClient.EtcdV1beta2().EtcdBackups(f.Namespace).Get(eb.Name, metav1.GetOptions{})
+	err = retryutil.Retry(time.Second, 120, func() (bool, error) {
+		reb, err := f.CRClient.GaleraV1alpha1().EtcdBackups(f.Namespace).Get(eb.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, fmt.Errorf("failed to retrieve backup CR: %v", err)
 		}
@@ -127,19 +127,19 @@ func testEtcdRestoreOperatorForS3Source(t *testing.T, s3Path string) {
 
 	restoreSource := api.RestoreSource{S3: e2eutil.NewS3RestoreSource(s3Path, os.Getenv("TEST_AWS_SECRET"))}
 	er := e2eutil.NewEtcdRestore("test-etcd-restore-", "3.2.10", 3, restoreSource)
-	er, err := f.CRClient.EtcdV1beta2().EtcdRestores(f.Namespace).Create(er)
+	er, err := f.CRClient.GaleraV1alpha1().EtcdRestores(f.Namespace).Create(er)
 	if err != nil {
 		t.Fatalf("failed to create etcd restore cr: %v", err)
 	}
 	defer func() {
-		if err := f.CRClient.EtcdV1beta2().EtcdRestores(f.Namespace).Delete(er.Name, nil); err != nil {
+		if err := f.CRClient.GaleraV1alpha1().EtcdRestores(f.Namespace).Delete(er.Name, nil); err != nil {
 			t.Fatalf("failed to delete etcd restore cr: %v", err)
 		}
 	}()
 
 	// Verify the EtcdRestore CR status "succeeded=true". In practice the time taken to update is 1 second.
 	err = retryutil.Retry(time.Second, 5, func() (bool, error) {
-		er, err := f.CRClient.EtcdV1beta2().EtcdRestores(f.Namespace).Get(er.Name, metav1.GetOptions{})
+		er, err := f.CRClient.GaleraV1alpha1().EtcdRestores(f.Namespace).Get(er.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, fmt.Errorf("failed to retrieve restore CR: %v", err)
 		}

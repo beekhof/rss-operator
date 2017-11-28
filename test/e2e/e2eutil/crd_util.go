@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
 	"github.com/coreos/etcd-operator/pkg/generated/clientset/versioned"
 	"github.com/coreos/etcd-operator/pkg/util/k8sutil"
 	"github.com/coreos/etcd-operator/pkg/util/retryutil"
@@ -37,7 +37,7 @@ type StorageCheckerOptions struct {
 
 func CreateCluster(t *testing.T, crClient versioned.Interface, namespace string, cl *api.EtcdCluster) (*api.EtcdCluster, error) {
 	cl.Namespace = namespace
-	res, err := crClient.EtcdV1beta2().EtcdClusters(namespace).Create(cl)
+	res, err := crClient.GaleraV1alpha1().EtcdClusters(namespace).Create(cl)
 	if err != nil {
 		return nil, err
 	}
@@ -53,14 +53,14 @@ func UpdateCluster(crClient versioned.Interface, cl *api.EtcdCluster, maxRetries
 func AtomicUpdateClusterCR(crClient versioned.Interface, name, namespace string, maxRetries int, updateFunc k8sutil.EtcdClusterCRUpdateFunc) (*api.EtcdCluster, error) {
 	result := &api.EtcdCluster{}
 	err := retryutil.Retry(1*time.Second, maxRetries, func() (done bool, err error) {
-		etcdCluster, err := crClient.EtcdV1beta2().EtcdClusters(namespace).Get(name, metav1.GetOptions{})
+		etcdCluster, err := crClient.GaleraV1alpha1().EtcdClusters(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
 
 		updateFunc(etcdCluster)
 
-		result, err = crClient.EtcdV1beta2().EtcdClusters(namespace).Update(etcdCluster)
+		result, err = crClient.GaleraV1alpha1().EtcdClusters(namespace).Update(etcdCluster)
 		if err != nil {
 			if apierrors.IsConflict(err) {
 				return false, nil
@@ -74,7 +74,7 @@ func AtomicUpdateClusterCR(crClient versioned.Interface, name, namespace string,
 
 func DeleteCluster(t *testing.T, crClient versioned.Interface, kubeClient kubernetes.Interface, cl *api.EtcdCluster) error {
 	t.Logf("deleting etcd cluster: %v", cl.Name)
-	err := crClient.EtcdV1beta2().EtcdClusters(cl.Namespace).Delete(cl.Name, nil)
+	err := crClient.GaleraV1alpha1().EtcdClusters(cl.Namespace).Delete(cl.Name, nil)
 	if err != nil {
 		return err
 	}

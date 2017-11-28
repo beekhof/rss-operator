@@ -23,7 +23,7 @@ It currently only supports S3 backup for non-TLS etcd cluster.
 For previous backup policy, for example:
 
 ```yaml
-apiVersion: "etcd.database.coreos.com/v1beta2"
+apiVersion: "galera.database.beekhof.net/v1beta2"
 kind: "EtcdCluster"
 metadata:
   name: "example-etcd-cluster"
@@ -39,7 +39,7 @@ spec:
 The equivalent EtcdBackup CR is:
 
 ```yaml
-apiVersion: "etcd.database.coreos.com/v1beta2"
+apiVersion: "galera.database.beekhof.net/v1beta2"
 kind: "EtcdBackup"
 metadata:
   name: example-etcd-cluster-backup
@@ -62,7 +62,7 @@ It currently only supports S3 backup and non-TLS etcd cluster.
 
 For previous restore policy for example:
 ```yaml
-apiVersion: "etcd.database.coreos.com/v1beta2"
+apiVersion: "galera.database.beekhof.net/v1beta2"
 kind: "EtcdCluster"
 metadata:
   name: "restored-etcd-cluster"
@@ -76,7 +76,7 @@ spec:
 The equivalent EtcdRestore CR is:
 
 ```yaml
-apiVersion: "etcd.database.coreos.com/v1beta2"
+apiVersion: "galera.database.beekhof.net/v1beta2"
 kind: "EtcdRestore"
 metadata:
   # an EtcdCluster with the same name will be created

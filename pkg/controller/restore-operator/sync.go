@@ -17,7 +17,7 @@ package controller
 import (
 	"fmt"
 
-	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
 	"github.com/coreos/etcd-operator/pkg/backup/backupapi"
 	"github.com/coreos/etcd-operator/pkg/util/etcdutil"
 	"github.com/coreos/etcd-operator/pkg/util/k8sutil"
@@ -88,7 +88,7 @@ func (r *Restore) reportStatus(rerr error, er *api.EtcdRestore) {
 	} else {
 		er.Status.Succeeded = true
 	}
-	_, err := r.etcdCRCli.EtcdV1beta2().EtcdRestores(r.namespace).Update(er)
+	_, err := r.etcdCRCli.GaleraV1alpha1().EtcdRestores(r.namespace).Update(er)
 	if err != nil {
 		r.logger.Warningf("failed to update status of restore CR %v : (%v)", er.Name, err)
 	}
@@ -146,7 +146,7 @@ func (r *Restore) prepareSeed(er *api.EtcdRestore) (err error) {
 
 	ec.Spec.Paused = true
 	ec.Status.Phase = api.ClusterPhaseRunning
-	ec, err = r.etcdCRCli.EtcdV1beta2().EtcdClusters(r.namespace).Create(ec)
+	ec, err = r.etcdCRCli.GaleraV1alpha1().EtcdClusters(r.namespace).Create(ec)
 	if err != nil {
 		return err
 	}
@@ -155,12 +155,12 @@ func (r *Restore) prepareSeed(er *api.EtcdRestore) (err error) {
 
 	// Retry updating the etcdcluster CR spec.paused=false. The etcd-operator will update the CR once so there needs to be a single retry in case of conflict
 	err = retryutil.Retry(2, 1, func() (bool, error) {
-		ec, err = r.etcdCRCli.EtcdV1beta2().EtcdClusters(r.namespace).Get(clusterName, metav1.GetOptions{})
+		ec, err = r.etcdCRCli.GaleraV1alpha1().EtcdClusters(r.namespace).Get(clusterName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
 		ec.Spec.Paused = false
-		_, err = r.etcdCRCli.EtcdV1beta2().EtcdClusters(r.namespace).Update(ec)
+		_, err = r.etcdCRCli.GaleraV1alpha1().EtcdClusters(r.namespace).Update(ec)
 		if err != nil {
 			if apierrors.IsConflict(err) {
 				return false, nil

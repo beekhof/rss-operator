@@ -20,7 +20,7 @@ package externalversions
 
 import (
 	"fmt"
-	v1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	v1alpha1 "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -51,13 +51,13 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=Etcd, Version=V1beta2
-	case v1beta2.SchemeGroupVersion.WithResource("etcdbackups"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Etcd().V1beta2().EtcdBackups().Informer()}, nil
-	case v1beta2.SchemeGroupVersion.WithResource("etcdclusters"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Etcd().V1beta2().EtcdClusters().Informer()}, nil
-	case v1beta2.SchemeGroupVersion.WithResource("etcdrestores"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Etcd().V1beta2().EtcdRestores().Informer()}, nil
+	// Group=Galera, Version=V1alpha1
+	case v1alpha1.SchemeGroupVersion.WithResource("etcdbackups"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Galera().V1alpha1().EtcdBackups().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("etcdclusters"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Galera().V1alpha1().EtcdClusters().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("etcdrestores"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Galera().V1alpha1().EtcdRestores().Informer()}, nil
 
 	}
 

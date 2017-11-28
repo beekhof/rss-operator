@@ -18,7 +18,7 @@ import (
 	"context"
 	"time"
 
-	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -28,7 +28,7 @@ import (
 
 func (b *Backup) run(ctx context.Context) {
 	source := cache.NewListWatchFromClient(
-		b.backupCRCli.EtcdV1beta2().RESTClient(),
+		b.backupCRCli.GaleraV1alpha1().RESTClient(),
 		api.EtcdBackupResourcePlural,
 		b.namespace,
 		fields.Everything(),

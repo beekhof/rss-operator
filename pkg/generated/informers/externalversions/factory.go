@@ -20,7 +20,7 @@ package externalversions
 
 import (
 	versioned "github.com/coreos/etcd-operator/pkg/generated/clientset/versioned"
-	etcd "github.com/coreos/etcd-operator/pkg/generated/informers/externalversions/etcd"
+	galera "github.com/coreos/etcd-operator/pkg/generated/informers/externalversions/galera"
 	internalinterfaces "github.com/coreos/etcd-operator/pkg/generated/informers/externalversions/internalinterfaces"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -110,9 +110,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Etcd() etcd.Interface
+	Galera() galera.Interface
 }
 
-func (f *sharedInformerFactory) Etcd() etcd.Interface {
-	return etcd.New(f)
+func (f *sharedInformerFactory) Galera() galera.Interface {
+	return galera.New(f)
 }

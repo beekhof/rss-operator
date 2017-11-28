@@ -20,7 +20,7 @@ import (
 	"io"
 	"net/http"
 
-	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
 	"github.com/coreos/etcd-operator/pkg/backup/backupapi"
 	"github.com/coreos/etcd-operator/pkg/backup/reader"
 	"github.com/coreos/etcd-operator/pkg/util/awsutil/s3factory"

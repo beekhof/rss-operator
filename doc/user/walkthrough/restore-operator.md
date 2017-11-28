@@ -46,8 +46,8 @@ Note that currently the etcd-restore-operator only supports restoring from backu
     ```sh
     $ kubectl get crd
     NAME                                       KIND
-    etcdclusters.etcd.database.coreos.com      CustomResourceDefinition.v1beta1.apiextensions.k8s.io
-    etcdrestores.etcd.database.coreos.com      CustomResourceDefinition.v1beta1.apiextensions.k8s.io
+    etcdclusters.galera.database.beekhof.net      CustomResourceDefinition.v1beta1.apiextensions.k8s.io
+    etcdrestores.galera.database.beekhof.net      CustomResourceDefinition.v1beta1.apiextensions.k8s.io
     ```
 
 ### Setup AWS Secret
@@ -92,7 +92,7 @@ sed -e 's|<full-s3-path>|mybucket/v1/default/example-etcd-cluster/3.2.10_0000000
 
     ```sh
     $ kubectl get etcdrestore restored-etcd-cluster -o yaml
-    apiVersion: etcd.database.coreos.com/v1beta2
+    apiVersion: galera.database.beekhof.net/v1beta2
     kind: EtcdRestore
     ...
     status:
@@ -104,7 +104,7 @@ sed -e 's|<full-s3-path>|mybucket/v1/default/example-etcd-cluster/3.2.10_0000000
     ```
     $ kubectl get etcdcluster
     NAME                    KIND
-    restored-etcd-cluster   EtcdCluster.v1beta2.etcd.database.coreos.com
+    restored-etcd-cluster   EtcdCluster.v1beta2.galera.database.beekhof.net
     ```
 
 3. Verify that the etcd-operator scales the cluster to the desired size:

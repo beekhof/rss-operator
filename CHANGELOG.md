@@ -124,7 +124,7 @@ Finally, it is safe to upgrade operator. It's highly recommended to save a backu
 - With k8s 1.7 and onwards TPRs have been deprecated and are replaced with CRD. See the k8s 1.7 [blogpost](http://blog.kubernetes.io/2017/06/kubernetes-1.7-security-hardening-stateful-application-extensibility-updates.html) or [release notes](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md#major-themes) for more details. For this release a live migration of the cluster spec from TPR to CRD is not supported. To preserve the cluster state during the upgrade you will need to create a backup of the cluster and recreate the cluster from the backup after upgrading the operator. See the [upgrade guide](https://github.com/coreos/etcd-operator/blob/master/doc/user/upgrade/upgrade_guide.md) for more detailed steps on how to do that.
 
 - Changes in the cluster object's type metadata:
-  - The `apiVersion` field has been changed from `etcd.coreos.com/v1beta1` to `etcd.database.coreos.com/v1beta2`
+  - The `apiVersion` field has been changed from `etcd.coreos.com/v1beta1` to `galera.database.beekhof.net/v1beta2`
   - The `kind` field has been changed from `Cluster` to `EtcdCluster`
 
 

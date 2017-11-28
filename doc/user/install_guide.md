@@ -21,7 +21,7 @@ etcd operator will automatically create a Kubernetes Custom Resource Definition 
 ```bash
 $ kubectl get customresourcedefinitions
 NAME                                    KIND
-etcdclusters.etcd.database.coreos.com   CustomResourceDefinition.v1beta1.apiextensions.k8s.io
+etcdclusters.galera.database.beekhof.net   CustomResourceDefinition.v1beta1.apiextensions.k8s.io
 ```
 
 ## Uninstall etcd operator

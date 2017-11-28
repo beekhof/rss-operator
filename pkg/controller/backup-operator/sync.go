@@ -15,7 +15,7 @@
 package controller
 
 import (
-	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
 
 	"github.com/sirupsen/logrus"
 )
@@ -80,7 +80,7 @@ func (b *Backup) reportBackupStatus(bs *api.BackupCRStatus, berr error, eb *api.
 		eb.Status.Succeeded = true
 		eb.Status.S3Path = bs.S3Path
 	}
-	_, err := b.backupCRCli.EtcdV1beta2().EtcdBackups(b.namespace).Update(eb)
+	_, err := b.backupCRCli.GaleraV1alpha1().EtcdBackups(b.namespace).Update(eb)
 	if err != nil {
 		b.logger.Warningf("failed to update status of backup CR %v : (%v)", eb.Name, err)
 	}

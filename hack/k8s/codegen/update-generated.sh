@@ -3,7 +3,7 @@
 set -o errexit
 set -o nounset
 set -o pipefail
-
+set -x
 DOCKER_REPO_ROOT="/go/src/github.com/coreos/etcd-operator"
 IMAGE=${IMAGE:-"gcr.io/coreos-k8s-scale-testing/codegen"}
 
@@ -15,6 +15,6 @@ docker run --rm \
   "all" \
   "github.com/coreos/etcd-operator/pkg/generated" \
   "github.com/coreos/etcd-operator/pkg/apis" \
-  "etcd:v1beta2" \
+  "galera:v1alpha1" \
   --go-header-file "./hack/k8s/codegen/boilerplate.go.txt" \
   $@

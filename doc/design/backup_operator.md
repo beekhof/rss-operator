@@ -18,9 +18,9 @@ First, User creates a backup CRD that etcd backup operator will be watching on:
 apiVersion: apiextentions.k8s.io/v1beta2
 kind: CustomResourceDefiniton
 metadata:
-  name: etcdbackups.etcd.database.coreos.com
+  name: etcdbackups.galera.database.beekhof.net
 spec:
-  group: etcd.database.coreos.com
+  group: galera.database.beekhof.net
   version: v1beta2
   Scope: Namespaced
   names: 

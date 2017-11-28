@@ -5,7 +5,7 @@ metadata:
   namespace: <NAMESPACE>
 rules:
 - apiGroups:
-  - etcd.database.coreos.com
+  - galera.database.beekhof.net
   resources:
   - etcdclusters
   - etcdbackups

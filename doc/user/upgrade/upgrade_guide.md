@@ -148,7 +148,7 @@ Kubernetes cluster version must be 1.7+.
 - Recreate the etcd-operator deployment with the `0.5.0` image.
 - Create a new cluster that restores from the backup of the previous cluster. The new cluster CR spec should look as follows:
 ```
-apiVersion: "etcd.database.coreos.com/v1beta2"
+apiVersion: "galera.database.beekhof.net/v1beta2"
 kind: "EtcdCluster"
 metadata:
   name: <cluster-name>

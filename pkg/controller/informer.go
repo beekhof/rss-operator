@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
 	"github.com/coreos/etcd-operator/pkg/util/probe"
 
 	"k8s.io/apimachinery/pkg/fields"
@@ -53,7 +53,7 @@ func (c *Controller) Start() error {
 
 func (c *Controller) run() {
 	source := cache.NewListWatchFromClient(
-		c.Config.EtcdCRCli.EtcdV1beta2().RESTClient(),
+		c.Config.EtcdCRCli.GaleraV1alpha1().RESTClient(),
 		api.EtcdClusterResourcePlural,
 		c.Config.Namespace,
 		fields.Everything())

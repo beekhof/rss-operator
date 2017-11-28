@@ -19,7 +19,7 @@ import (
 	"math/rand"
 	"testing"
 
-	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
 	"github.com/coreos/etcd-operator/test/e2e/e2eutil"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,7 +64,7 @@ func TestResize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testClus, err = testF.CRClient.EtcdV1beta2().EtcdClusters(testF.KubeNS).Get(testClus.Name, metav1.GetOptions{})
+	testClus, err = testF.CRClient.GaleraV1alpha1().EtcdClusters(testF.KubeNS).Get(testClus.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

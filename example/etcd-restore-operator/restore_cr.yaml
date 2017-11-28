@@ -1,4 +1,4 @@
-apiVersion: "etcd.database.coreos.com/v1beta2"
+apiVersion: "galera.database.beekhof.net/v1beta2"
 kind: "EtcdRestore"
 metadata:
   # An EtcdCluster with the same name will be created

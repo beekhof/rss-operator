@@ -4,7 +4,7 @@ metadata:
   name: <ROLE_NAME>
 rules:
 - apiGroups:
-  - etcd.database.coreos.com
+  - galera.database.beekhof.net
   resources:
   - etcdclusters
   - etcdbackups
