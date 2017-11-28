@@ -53,7 +53,7 @@ const (
 
 type clusterEvent struct {
 	typ     clusterEventType
-	cluster *api.EtcdCluster
+	cluster *api.GaleraCluster
 }
 
 type Config struct {
@@ -70,7 +70,7 @@ type Cluster struct {
 
 	config Config
 
-	cluster *api.EtcdCluster
+	cluster *api.GaleraCluster
 
 	// in memory state of the cluster
 	// status is the source of truth after Cluster struct is materialized.
@@ -90,7 +90,7 @@ type Cluster struct {
 	eventsCli corev1.EventInterface
 }
 
-func New(config Config, cl *api.EtcdCluster) *Cluster {
+func New(config Config, cl *api.GaleraCluster) *Cluster {
 	lg := logrus.WithField("pkg", "cluster").WithField("cluster-name", cl.Name)
 	var debugLogger *debug.DebugLogger
 	if cl.Spec.SelfHosted != nil {
@@ -360,7 +360,7 @@ func (c *Cluster) bootstrap() error {
 	return c.startSeedMember()
 }
 
-func (c *Cluster) Update(cl *api.EtcdCluster) {
+func (c *Cluster) Update(cl *api.GaleraCluster) {
 	c.send(&clusterEvent{
 		typ:     eventModifyCluster,
 		cluster: cl,
@@ -446,7 +446,7 @@ func (c *Cluster) updateCRStatus() error {
 
 	newCluster := c.cluster
 	newCluster.Status = c.status
-	newCluster, err := c.config.EtcdCRCli.GaleraV1alpha1().EtcdClusters(c.cluster.Namespace).Update(c.cluster)
+	newCluster, err := c.config.EtcdCRCli.GaleraV1alpha1().GaleraClusters(c.cluster.Namespace).Update(c.cluster)
 	if err != nil {
 		return fmt.Errorf("failed to update CR status: %v", err)
 	}
@@ -472,7 +472,7 @@ func (c *Cluster) reportFailedStatus() {
 			return false, nil
 		}
 
-		cl, err := c.config.EtcdCRCli.GaleraV1alpha1().EtcdClusters(c.cluster.Namespace).
+		cl, err := c.config.EtcdCRCli.GaleraV1alpha1().GaleraClusters(c.cluster.Namespace).
 			Get(c.cluster.Name, metav1.GetOptions{})
 		if err != nil {
 			// Update (PUT) will return conflict even if object is deleted since we have UID set in object.

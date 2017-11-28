@@ -1,4 +1,4 @@
-// Copyright 2017 The etcd-operator Authors
+// Copyright 2017 The galera-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,14 +51,14 @@ type ClusterStatus struct {
 	// Size is the current size of the cluster
 	Size int `json:"size"`
 
-	// ServiceName is the LB service for accessing etcd nodes.
+	// ServiceName is the LB service for accessing galera nodes.
 	ServiceName string `json:"serviceName,omitempty"`
 
-	// ClientPort is the port for etcd client to access.
-	// It's the same on client LB service and etcd nodes.
+	// ClientPort is the port for galera client to access.
+	// It's the same on client LB service and galera nodes.
 	ClientPort int `json:"clientPort,omitempty"`
 
-	// Members are the etcd members in the cluster
+	// Members are the galera members in the cluster
 	Members MembersStatus `json:"members"`
 	// CurrentVersion is the current cluster version
 	CurrentVersion string `json:"currentVersion"`
@@ -67,7 +67,7 @@ type ClusterStatus struct {
 	TargetVersion string `json:"targetVersion"`
 }
 
-// ClusterCondition represents one current condition of an etcd cluster.
+// ClusterCondition represents one current condition of an galera cluster.
 // A condition might not show up if it is not happening.
 // For example, if a cluster is not upgrading, the Upgrading condition would not show up.
 // If a cluster is upgrading and encountered a problem that prevents the upgrade,
@@ -88,10 +88,10 @@ type ClusterCondition struct {
 }
 
 type MembersStatus struct {
-	// Ready are the etcd members that are ready to serve requests
-	// The member names are the same as the etcd pod names
+	// Ready are the galera members that are ready to serve requests
+	// The member names are the same as the galera pod names
 	Ready []string `json:"ready,omitempty"`
-	// Unready are the etcd members not ready to serve requests
+	// Unready are the galera members not ready to serve requests
 	Unready []string `json:"unready,omitempty"`
 }
 

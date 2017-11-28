@@ -54,11 +54,11 @@ func (c *Controller) Start() error {
 func (c *Controller) run() {
 	source := cache.NewListWatchFromClient(
 		c.Config.EtcdCRCli.GaleraV1alpha1().RESTClient(),
-		api.EtcdClusterResourcePlural,
+		api.GaleraClusterResourcePlural,
 		c.Config.Namespace,
 		fields.Everything())
 
-	_, informer := cache.NewIndexerInformer(source, &api.EtcdCluster{}, 0, cache.ResourceEventHandlerFuncs{
+	_, informer := cache.NewIndexerInformer(source, &api.GaleraCluster{}, 0, cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.onAddEtcdClus,
 		UpdateFunc: c.onUpdateEtcdClus,
 		DeleteFunc: c.onDeleteEtcdClus,
@@ -80,23 +80,24 @@ func (c *Controller) initResource() error {
 }
 
 func (c *Controller) onAddEtcdClus(obj interface{}) {
-	c.syncEtcdClus(obj.(*api.EtcdCluster))
+	c.logger.Errorf("beekhof: Creating a new cluster", err)
+	c.syncEtcdClus(obj.(*api.GaleraCluster))
 }
 
 func (c *Controller) onUpdateEtcdClus(oldObj, newObj interface{}) {
-	c.syncEtcdClus(newObj.(*api.EtcdCluster))
+	c.syncEtcdClus(newObj.(*api.GaleraCluster))
 }
 
 func (c *Controller) onDeleteEtcdClus(obj interface{}) {
-	clus, ok := obj.(*api.EtcdCluster)
+	clus, ok := obj.(*api.GaleraCluster)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			panic(fmt.Sprintf("unknown object from EtcdCluster delete event: %#v", obj))
+			panic(fmt.Sprintf("unknown object from GaleraCluster delete event: %#v", obj))
 		}
-		clus, ok = tombstone.Obj.(*api.EtcdCluster)
+		clus, ok = tombstone.Obj.(*api.GaleraCluster)
 		if !ok {
-			panic(fmt.Sprintf("Tombstone contained object that is not an EtcdCluster: %#v", obj))
+			panic(fmt.Sprintf("Tombstone contained object that is not an GaleraCluster: %#v", obj))
 		}
 	}
 	ev := &Event{
@@ -112,7 +113,7 @@ func (c *Controller) onDeleteEtcdClus(obj interface{}) {
 	pt.stop()
 }
 
-func (c *Controller) syncEtcdClus(clus *api.EtcdCluster) {
+func (c *Controller) syncEtcdClus(clus *api.GaleraCluster) {
 	ev := &Event{
 		Type:   kwatch.Added,
 		Object: clus,

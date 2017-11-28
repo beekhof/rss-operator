@@ -107,13 +107,13 @@ func (f *Framework) setup() error {
 		return fmt.Errorf("failed to setup etcd operator: %v", err)
 	}
 	logrus.Info("etcd operator created successfully")
-	err := f.SetupEtcdBackupOperator()
+	err := f.SetupGaleraBackupOperator()
 	if err != nil {
 		return fmt.Errorf("failed to create etcd backup operator: %v", err)
 	}
 	logrus.Info("etcd backup operator created successfully")
 
-	err = f.SetupEtcdRestoreOperatorAndService()
+	err = f.SetupGaleraRestoreOperatorAndService()
 	if err != nil {
 		return err
 	}
@@ -211,8 +211,8 @@ func (f *Framework) deleteOperatorCompletely(name string) error {
 	return nil
 }
 
-// SetupEtcdBackupOperator creates a etcd backup operator pod with name as "etcd-backup-operator".
-func (f *Framework) SetupEtcdBackupOperator() error {
+// SetupGaleraBackupOperator creates a etcd backup operator pod with name as "etcd-backup-operator".
+func (f *Framework) SetupGaleraBackupOperator() error {
 	cmd := []string{"/usr/local/bin/etcd-backup-operator"}
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -251,8 +251,8 @@ func (f *Framework) SetupEtcdBackupOperator() error {
 	return nil
 }
 
-// SetupEtcdRestoreOperatorAndService creates an etcd restore operator pod and the restore operator service.
-func (f *Framework) SetupEtcdRestoreOperatorAndService() error {
+// SetupGaleraRestoreOperatorAndService creates an etcd restore operator pod and the restore operator service.
+func (f *Framework) SetupGaleraRestoreOperatorAndService() error {
 	cmd := []string{"/usr/local/bin/etcd-restore-operator"}
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{

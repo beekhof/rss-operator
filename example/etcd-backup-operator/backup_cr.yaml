@@ -1,5 +1,5 @@
-apiVersion: "galera.database.beekhof.net/v1beta2"
-kind: "EtcdBackup"
+apiVersion: "galera.database.beekhof.net/v1alpha1"
+kind: "GaleraBackup"
 metadata:
   name: example-etcd-cluster-backup
 spec:

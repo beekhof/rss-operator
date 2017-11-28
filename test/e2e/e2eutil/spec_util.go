@@ -20,10 +20,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewCluster(genName string, size int) *api.EtcdCluster {
-	return &api.EtcdCluster{
+func NewCluster(genName string, size int) *api.GaleraCluster {
+	return &api.GaleraCluster{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       api.EtcdClusterResourceKind,
+			Kind:       api.GaleraClusterResourceKind,
 			APIVersion: api.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -35,11 +35,11 @@ func NewCluster(genName string, size int) *api.EtcdCluster {
 	}
 }
 
-// NewS3Backup creates a EtcdBackup object using clusterName.
-func NewS3Backup(clusterName, bucket, secret string) *api.EtcdBackup {
-	return &api.EtcdBackup{
+// NewS3Backup creates a GaleraBackup object using clusterName.
+func NewS3Backup(clusterName, bucket, secret string) *api.GaleraBackup {
+	return &api.GaleraBackup{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       api.EtcdBackupResourceKind,
+			Kind:       api.GaleraBackupResourceKind,
 			APIVersion: api.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -66,11 +66,11 @@ func NewS3RestoreSource(path, awsSecret string) *api.S3RestoreSource {
 	}
 }
 
-// NewEtcdRestore returns an EtcdRestore CR with the specified RestoreSource
-func NewEtcdRestore(restoreName, version string, size int, restoreSource api.RestoreSource) *api.EtcdRestore {
-	return &api.EtcdRestore{
+// NewGaleraRestore returns an GaleraRestore CR with the specified RestoreSource
+func NewGaleraRestore(restoreName, version string, size int, restoreSource api.RestoreSource) *api.GaleraRestore {
+	return &api.GaleraRestore{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       api.EtcdRestoreResourceKind,
+			Kind:       api.GaleraRestoreResourceKind,
 			APIVersion: api.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -87,12 +87,12 @@ func NewEtcdRestore(restoreName, version string, size int, restoreSource api.Res
 	}
 }
 
-func ClusterWithVersion(cl *api.EtcdCluster, version string) *api.EtcdCluster {
+func ClusterWithVersion(cl *api.GaleraCluster, version string) *api.GaleraCluster {
 	cl.Spec.Version = version
 	return cl
 }
 
-func ClusterWithSelfHosted(cl *api.EtcdCluster, sh *api.SelfHostedPolicy) *api.EtcdCluster {
+func ClusterWithSelfHosted(cl *api.GaleraCluster, sh *api.SelfHostedPolicy) *api.GaleraCluster {
 	cl.Spec.SelfHosted = sh
 	return cl
 }

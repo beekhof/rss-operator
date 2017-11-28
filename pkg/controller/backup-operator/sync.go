@@ -60,7 +60,7 @@ func (b *Backup) processItem(key string) error {
 		return nil
 	}
 
-	eb := obj.(*api.EtcdBackup)
+	eb := obj.(*api.GaleraBackup)
 	// don't process the CR if it has a status since
 	// having a status means that the backup is either made or failed.
 	if eb.Status.Succeeded || len(eb.Status.Reason) != 0 {
@@ -72,7 +72,7 @@ func (b *Backup) processItem(key string) error {
 	return err
 }
 
-func (b *Backup) reportBackupStatus(bs *api.BackupCRStatus, berr error, eb *api.EtcdBackup) {
+func (b *Backup) reportBackupStatus(bs *api.BackupCRStatus, berr error, eb *api.GaleraBackup) {
 	if berr != nil {
 		eb.Status.Succeeded = false
 		eb.Status.Reason = berr.Error()
@@ -80,7 +80,7 @@ func (b *Backup) reportBackupStatus(bs *api.BackupCRStatus, berr error, eb *api.
 		eb.Status.Succeeded = true
 		eb.Status.S3Path = bs.S3Path
 	}
-	_, err := b.backupCRCli.GaleraV1alpha1().EtcdBackups(b.namespace).Update(eb)
+	_, err := b.backupCRCli.GaleraV1alpha1().GaleraBackups(b.namespace).Update(eb)
 	if err != nil {
 		b.logger.Warningf("failed to update status of backup CR %v : (%v)", eb.Name, err)
 	}

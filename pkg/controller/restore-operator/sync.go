@@ -66,11 +66,11 @@ func (r *Restore) processItem(key string) error {
 	if !exists {
 		return nil
 	}
-	return r.handleCR(obj.(*api.EtcdRestore), key)
+	return r.handleCR(obj.(*api.GaleraRestore), key)
 }
 
-// handleCR takes in EtcdRestore CR and prepares the seed so that etcd operator can take over it later.
-func (r *Restore) handleCR(er *api.EtcdRestore, key string) error {
+// handleCR takes in GaleraRestore CR and prepares the seed so that etcd operator can take over it later.
+func (r *Restore) handleCR(er *api.GaleraRestore, key string) error {
 	// don't process the CR if it has a status since
 	// having a status means that the restore is either made or failed.
 	if er.Status.Succeeded || len(er.Status.Reason) != 0 {
@@ -81,14 +81,14 @@ func (r *Restore) handleCR(er *api.EtcdRestore, key string) error {
 	return err
 }
 
-func (r *Restore) reportStatus(rerr error, er *api.EtcdRestore) {
+func (r *Restore) reportStatus(rerr error, er *api.GaleraRestore) {
 	if rerr != nil {
 		er.Status.Succeeded = false
 		er.Status.Reason = rerr.Error()
 	} else {
 		er.Status.Succeeded = true
 	}
-	_, err := r.etcdCRCli.GaleraV1alpha1().EtcdRestores(r.namespace).Update(er)
+	_, err := r.etcdCRCli.GaleraV1alpha1().GaleraRestores(r.namespace).Update(er)
 	if err != nil {
 		r.logger.Warningf("failed to update status of restore CR %v : (%v)", er.Name, err)
 	}
@@ -119,16 +119,16 @@ func (r *Restore) handleErr(err error, key interface{}) {
 }
 
 // prepareSeed creates:
-// - create EtcdCluster CR but spec.paused=true and status.phase="Running"
+// - create GaleraCluster CR but spec.paused=true and status.phase="Running"
 //  - spec.paused=true: keep operator from touching membership
 // 	- status.phase=Running:
 //  	1. expect operator to setup the services
 //  	2. make operator ignore the "create seed member" phase
 // - create seed member that would restore data from backup
-// 	- ownerRef to above EtcdCluster CR
-// - update EtcdCluster CR spec.paused=false
+// 	- ownerRef to above GaleraCluster CR
+// - update GaleraCluster CR spec.paused=false
 // 	- etcd operator should pick up the membership and scale the etcd cluster
-func (r *Restore) prepareSeed(er *api.EtcdRestore) (err error) {
+func (r *Restore) prepareSeed(er *api.GaleraRestore) (err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("prepare seed failed: %v", err)
@@ -139,14 +139,14 @@ func (r *Restore) prepareSeed(er *api.EtcdRestore) (err error) {
 	// Use the restore CR's name as the name of the etcd cluster being restored
 	clusterName := er.Name
 
-	ec := &api.EtcdCluster{
+	ec := &api.GaleraCluster{
 		ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 		Spec:       cs,
 	}
 
 	ec.Spec.Paused = true
 	ec.Status.Phase = api.ClusterPhaseRunning
-	ec, err = r.etcdCRCli.GaleraV1alpha1().EtcdClusters(r.namespace).Create(ec)
+	ec, err = r.etcdCRCli.GaleraV1alpha1().GaleraClusters(r.namespace).Create(ec)
 	if err != nil {
 		return err
 	}
@@ -155,12 +155,12 @@ func (r *Restore) prepareSeed(er *api.EtcdRestore) (err error) {
 
 	// Retry updating the etcdcluster CR spec.paused=false. The etcd-operator will update the CR once so there needs to be a single retry in case of conflict
 	err = retryutil.Retry(2, 1, func() (bool, error) {
-		ec, err = r.etcdCRCli.GaleraV1alpha1().EtcdClusters(r.namespace).Get(clusterName, metav1.GetOptions{})
+		ec, err = r.etcdCRCli.GaleraV1alpha1().GaleraClusters(r.namespace).Get(clusterName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
 		ec.Spec.Paused = false
-		_, err = r.etcdCRCli.GaleraV1alpha1().EtcdClusters(r.namespace).Update(ec)
+		_, err = r.etcdCRCli.GaleraV1alpha1().GaleraClusters(r.namespace).Update(ec)
 		if err != nil {
 			if apierrors.IsConflict(err) {
 				return false, nil

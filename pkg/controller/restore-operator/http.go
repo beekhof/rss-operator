@@ -57,7 +57,7 @@ func (r *Restore) serveBackup(w http.ResponseWriter, req *http.Request) error {
 		return errors.New("restore name is not specified")
 	}
 
-	obj := &api.EtcdRestore{
+	obj := &api.GaleraRestore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      restoreName,
 			Namespace: r.namespace,
@@ -72,7 +72,7 @@ func (r *Restore) serveBackup(w http.ResponseWriter, req *http.Request) error {
 	}
 
 	logrus.Infof("serving backup for restore CR %v", restoreName)
-	cr := v.(*api.EtcdRestore)
+	cr := v.(*api.GaleraRestore)
 	restoreSource := cr.Spec.RestoreSource
 	var backupReader reader.Reader
 	var path string

@@ -30,17 +30,17 @@ import (
 
 // TODO: replace this package with Operator client
 
-// EtcdClusterCRUpdateFunc is a function to be used when atomically
+// GaleraClusterCRUpdateFunc is a function to be used when atomically
 // updating a Cluster CR.
-type EtcdClusterCRUpdateFunc func(*api.EtcdCluster)
+type GaleraClusterCRUpdateFunc func(*api.GaleraCluster)
 
-func GetClusterList(restcli rest.Interface, ns string) (*api.EtcdClusterList, error) {
+func GetClusterList(restcli rest.Interface, ns string) (*api.GaleraClusterList, error) {
 	b, err := restcli.Get().RequestURI(listClustersURI(ns)).DoRaw()
 	if err != nil {
 		return nil, err
 	}
 
-	clusters := &api.EtcdClusterList{}
+	clusters := &api.GaleraClusterList{}
 	if err := json.Unmarshal(b, clusters); err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func GetClusterList(restcli rest.Interface, ns string) (*api.EtcdClusterList, er
 }
 
 func listClustersURI(ns string) string {
-	return fmt.Sprintf("/apis/%s/namespaces/%s/%s", api.SchemeGroupVersion.String(), ns, api.EtcdClusterResourcePlural)
+	return fmt.Sprintf("/apis/%s/namespaces/%s/%s", api.SchemeGroupVersion.String(), ns, api.GaleraClusterResourcePlural)
 }
 
 func CreateCRD(clientset apiextensionsclient.Interface, crdName, rkind, rplural, shortName string) error {

@@ -29,13 +29,13 @@ import (
 func (b *Backup) run(ctx context.Context) {
 	source := cache.NewListWatchFromClient(
 		b.backupCRCli.GaleraV1alpha1().RESTClient(),
-		api.EtcdBackupResourcePlural,
+		api.GaleraBackupResourcePlural,
 		b.namespace,
 		fields.Everything(),
 	)
 
 	b.queue = workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "etcd-backup-operator")
-	b.indexer, b.informer = cache.NewIndexerInformer(source, &api.EtcdBackup{}, 0, cache.ResourceEventHandlerFuncs{
+	b.indexer, b.informer = cache.NewIndexerInformer(source, &api.GaleraBackup{}, 0, cache.ResourceEventHandlerFuncs{
 		AddFunc:    b.onAdd,
 		UpdateFunc: b.onUpdate,
 		DeleteFunc: b.onDelete,

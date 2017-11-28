@@ -6,7 +6,7 @@ etcd backup operator backups the data of a etcd cluster running on [Kubernetes][
 
 ## Getting Started
 
-Try out etcd backup operator by running it on Kubernetes and then create a `EtcdBackup` Custom Resource which contains the targeting etcd cluster and S3 backup config; the etcd backup operator automatically picks up the `EtcdBackup` Custom Resource, retrieves etcd snapshot, and then saves it to S3.
+Try out etcd backup operator by running it on Kubernetes and then create a `GaleraBackup` Custom Resource which contains the targeting etcd cluster and S3 backup config; the etcd backup operator automatically picks up the `GaleraBackup` Custom Resource, retrieves etcd snapshot, and then saves it to S3.
 >Note: The demo uses the `default` namespace.
 
 Prerequisites: 
@@ -16,7 +16,7 @@ Prerequisites:
 ### Deploy etcd backup operator
 
 Create a deployment of etcd backup operator:
-> Note: etcd backup operator creates EtcdBackup CRD automatically
+> Note: etcd backup operator creates GaleraBackup CRD automatically
 
 ```sh
 $ kubectl create -f example/etcd-backup-operator/deployment.yaml
@@ -25,7 +25,7 @@ NAME                                    READY     STATUS    RESTARTS   AGE
 etcd-backup-operator-1102130733-hhgt7   1/1       Running   0          3s
 ```
 
-Verify that the etcd-backup-operator creates EtcdBackup CRD:
+Verify that the etcd-backup-operator creates GaleraBackup CRD:
 
 ```sh
 $ kubectl get crd
@@ -57,9 +57,9 @@ the secret will be used later to save etcd backup into S3.
     kubectl create secret generic aws --from-file=$AWS_DIR/credentials --from-file=$AWS_DIR/config
     ```
 
-### Create EtcdBackup CR
+### Create GaleraBackup CR
 
-Create EtcdBackup CR:
+Create GaleraBackup CR:
 >Note: this example uses S3 Bucket "mybucket" and k8s secret "aws"
 
 ```sh
@@ -71,12 +71,12 @@ sed -e 's/<s3-bucket-name>/mybucket/g' \
 
 ### Verify status
 
-Check the `status` section of the `EtcdBackup` CR:
+Check the `status` section of the `GaleraBackup` CR:
 
 ```
-$ kubectl get EtcdBackup example-etcd-cluster-backup -o yaml
+$ kubectl get GaleraBackup example-etcd-cluster-backup -o yaml
 apiVersion: galera.database.beekhof.net/v1beta2
-kind: EtcdBackup
+kind: GaleraBackup
 ...
 status:
   s3Path: mybucket/v1/default/example-etcd-cluster/3.2.10_0000000000000001_etcd.backup
@@ -89,8 +89,8 @@ This demonstrates etcd backup operator's basic one time backup functionality.
 
 ### Cleanup
 
-Delete the etcd-backup-operator deployment and the `EtcdBackup` CR.
-> Note: Deleting the `EtcdBackup` CR won't delete the backup in S3.
+Delete the etcd-backup-operator deployment and the `GaleraBackup` CR.
+> Note: Deleting the `GaleraBackup` CR won't delete the backup in S3.
 
 ```sh
 kubectl delete etcdbackup example-etcd-cluster-backup

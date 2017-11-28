@@ -22,12 +22,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// When EtcdCluster update event happens, local object ref should be updated.
+// When GaleraCluster update event happens, local object ref should be updated.
 func TestUpdateEventUpdateLocalClusterObj(t *testing.T) {
 	oldVersion := "123"
 	newVersion := "321"
 
-	oldObj := &api.EtcdCluster{
+	oldObj := &api.GaleraCluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: api.SchemeGroupVersion.String(),
 		},

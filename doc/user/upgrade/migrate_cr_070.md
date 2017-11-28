@@ -15,7 +15,7 @@ kubectl get etcdcluster <cluster-name> -o json | \
 	kubectl replace -f -
 ```
 
-## Migrate BackupPolicy to EtcdBackup CR
+## Migrate BackupPolicy to GaleraBackup CR
 
 Read [etcd backup operator doc](../walkthrough/backup-operator.md) for how to save backup for etcd cluster.
 It currently only supports S3 backup for non-TLS etcd cluster.
@@ -36,11 +36,11 @@ spec:
       awsSecret: <aws-secret-name>
 ```
 
-The equivalent EtcdBackup CR is:
+The equivalent GaleraBackup CR is:
 
 ```yaml
 apiVersion: "galera.database.beekhof.net/v1beta2"
-kind: "EtcdBackup"
+kind: "GaleraBackup"
 metadata:
   name: example-etcd-cluster-backup
 spec:

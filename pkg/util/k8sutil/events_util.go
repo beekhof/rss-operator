@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewMemberAddEvent(memberName string, cl *api.EtcdCluster) *v1.Event {
+func NewMemberAddEvent(memberName string, cl *api.GaleraCluster) *v1.Event {
 	event := newClusterEvent(cl)
 	event.Type = v1.EventTypeNormal
 	event.Reason = "New Member Added"
@@ -34,7 +34,7 @@ func NewMemberAddEvent(memberName string, cl *api.EtcdCluster) *v1.Event {
 	return event
 }
 
-func MemberRemoveEvent(memberName string, cl *api.EtcdCluster) *v1.Event {
+func MemberRemoveEvent(memberName string, cl *api.GaleraCluster) *v1.Event {
 	event := newClusterEvent(cl)
 	event.Type = v1.EventTypeNormal
 	event.Reason = "Member Removed"
@@ -42,7 +42,7 @@ func MemberRemoveEvent(memberName string, cl *api.EtcdCluster) *v1.Event {
 	return event
 }
 
-func ReplacingDeadMemberEvent(memberName string, cl *api.EtcdCluster) *v1.Event {
+func ReplacingDeadMemberEvent(memberName string, cl *api.GaleraCluster) *v1.Event {
 	event := newClusterEvent(cl)
 	event.Type = v1.EventTypeNormal
 	event.Reason = "Replacing Dead Member"
@@ -50,7 +50,7 @@ func ReplacingDeadMemberEvent(memberName string, cl *api.EtcdCluster) *v1.Event 
 	return event
 }
 
-func MemberUpgradedEvent(memberName, oldVersion, newVersion string, cl *api.EtcdCluster) *v1.Event {
+func MemberUpgradedEvent(memberName, oldVersion, newVersion string, cl *api.GaleraCluster) *v1.Event {
 	event := newClusterEvent(cl)
 	event.Type = v1.EventTypeNormal
 	event.Reason = "Member Upgraded"
@@ -58,7 +58,7 @@ func MemberUpgradedEvent(memberName, oldVersion, newVersion string, cl *api.Etcd
 	return event
 }
 
-func newClusterEvent(cl *api.EtcdCluster) *v1.Event {
+func newClusterEvent(cl *api.GaleraCluster) *v1.Event {
 	t := time.Now()
 	return &v1.Event{
 		ObjectMeta: metav1.ObjectMeta{
@@ -67,7 +67,7 @@ func newClusterEvent(cl *api.EtcdCluster) *v1.Event {
 		},
 		InvolvedObject: v1.ObjectReference{
 			APIVersion:      api.SchemeGroupVersion.String(),
-			Kind:            api.EtcdClusterResourceKind,
+			Kind:            api.GaleraClusterResourceKind,
 			Name:            cl.Name,
 			Namespace:       cl.Namespace,
 			UID:             cl.UID,

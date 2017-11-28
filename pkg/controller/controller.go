@@ -33,7 +33,7 @@ var initRetryWaitTime = 30 * time.Second
 
 type Event struct {
 	Type   kwatch.EventType
-	Object *api.EtcdCluster
+	Object *api.GaleraCluster
 }
 
 type Controller struct {
@@ -120,9 +120,9 @@ func (c *Controller) makeClusterConfig() cluster.Config {
 }
 
 func (c *Controller) initCRD() error {
-	err := k8sutil.CreateCRD(c.KubeExtCli, api.EtcdClusterCRDName, api.EtcdClusterResourceKind, api.EtcdClusterResourcePlural, "etcd")
+	err := k8sutil.CreateCRD(c.KubeExtCli, api.GaleraClusterCRDName, api.GaleraClusterResourceKind, api.GaleraClusterResourcePlural, "etcd")
 	if err != nil {
 		return fmt.Errorf("failed to create CRD: %v", err)
 	}
-	return k8sutil.WaitCRDReady(c.KubeExtCli, api.EtcdClusterCRDName)
+	return k8sutil.WaitCRDReady(c.KubeExtCli, api.GaleraClusterCRDName)
 }

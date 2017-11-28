@@ -1,4 +1,4 @@
-// Copyright 2017 The etcd-operator Authors
+// Copyright 2017 The galera-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ package v1alpha1
 
 import "errors"
 
-// TLSPolicy defines the TLS policy of an etcd cluster
+// TLSPolicy defines the TLS policy of an galera cluster
 type TLSPolicy struct {
 	// StaticTLS enables user to generate static x509 certificates and keys,
 	// put them into Kubernetes secrets, and specify them into here.
@@ -24,7 +24,7 @@ type TLSPolicy struct {
 }
 
 type StaticTLS struct {
-	// Member contains secrets containing TLS certs used by each etcd member pod.
+	// Member contains secrets containing TLS certs used by each galera member pod.
 	Member *MemberSecret `json:"member,omitempty"`
 	// OperatorSecret is the secret containing TLS certs used by operator to
 	// talk securely to this cluster.
@@ -32,11 +32,11 @@ type StaticTLS struct {
 }
 
 type MemberSecret struct {
-	// PeerSecret is the secret containing TLS certs used by each etcd member pod
-	// for the communication between etcd peers.
+	// PeerSecret is the secret containing TLS certs used by each galera member pod
+	// for the communication between galera peers.
 	PeerSecret string `json:"peerSecret,omitempty"`
-	// ServerSecret is the secret containing TLS certs used by each etcd member pod
-	// for the communication between etcd server and its clients.
+	// ServerSecret is the secret containing TLS certs used by each galera member pod
+	// for the communication between galera server and its clients.
 	ServerSecret string `json:"serverSecret,omitempty"`
 }
 

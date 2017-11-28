@@ -40,11 +40,11 @@ func TestBackupAndRestore(t *testing.T) {
 	if err := verifyAWSEnvVars(); err != nil {
 		t.Fatal(err)
 	}
-	s3Path := testEtcdBackupOperatorForS3Backup(t)
+	s3Path := testGaleraBackupOperatorForS3Backup(t)
 	if len(s3Path) == 0 {
-		t.Fatal("skipping restore test: S3 path not set despite testEtcdBackupOperatorForS3Backup success")
+		t.Fatal("skipping restore test: S3 path not set despite testGaleraBackupOperatorForS3Backup success")
 	}
-	testEtcdRestoreOperatorForS3Source(t, s3Path)
+	testGaleraRestoreOperatorForS3Source(t, s3Path)
 }
 
 func verifyAWSEnvVars() error {
@@ -57,9 +57,9 @@ func verifyAWSEnvVars() error {
 	return nil
 }
 
-// testEtcdBackupOperatorForS3Backup tests if etcd backup operator can save etcd backup to S3.
+// testGaleraBackupOperatorForS3Backup tests if etcd backup operator can save etcd backup to S3.
 // It returns the full S3 path where the backup is saved.
-func testEtcdBackupOperatorForS3Backup(t *testing.T) string {
+func testGaleraBackupOperatorForS3Backup(t *testing.T) string {
 	f := framework.Global
 	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", 3))
 	if err != nil {
@@ -73,12 +73,12 @@ func testEtcdBackupOperatorForS3Backup(t *testing.T) string {
 	if _, err := e2eutil.WaitUntilSizeReached(t, f.CRClient, 3, 6, testEtcd); err != nil {
 		t.Fatalf("failed to create 3 members etcd cluster: %v", err)
 	}
-	eb, err := f.CRClient.GaleraV1alpha1().EtcdBackups(f.Namespace).Create(e2eutil.NewS3Backup(testEtcd.Name, os.Getenv("TEST_S3_BUCKET"), os.Getenv("TEST_AWS_SECRET")))
+	eb, err := f.CRClient.GaleraV1alpha1().GaleraBackups(f.Namespace).Create(e2eutil.NewS3Backup(testEtcd.Name, os.Getenv("TEST_S3_BUCKET"), os.Getenv("TEST_AWS_SECRET")))
 	if err != nil {
 		t.Fatalf("failed to create etcd backup cr: %v", err)
 	}
 	defer func() {
-		if err := f.CRClient.GaleraV1alpha1().EtcdBackups(f.Namespace).Delete(eb.Name, nil); err != nil {
+		if err := f.CRClient.GaleraV1alpha1().GaleraBackups(f.Namespace).Delete(eb.Name, nil); err != nil {
 			t.Fatalf("failed to delete etcd backup cr: %v", err)
 		}
 	}()
@@ -93,7 +93,7 @@ func testEtcdBackupOperatorForS3Backup(t *testing.T) string {
 	}
 	defer s3cli.Close()
 	err = retryutil.Retry(time.Second, 120, func() (bool, error) {
-		reb, err := f.CRClient.GaleraV1alpha1().EtcdBackups(f.Namespace).Get(eb.Name, metav1.GetOptions{})
+		reb, err := f.CRClient.GaleraV1alpha1().GaleraBackups(f.Namespace).Get(eb.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, fmt.Errorf("failed to retrieve backup CR: %v", err)
 		}
@@ -121,25 +121,25 @@ func testEtcdBackupOperatorForS3Backup(t *testing.T) string {
 	return s3Path
 }
 
-// testEtcdRestoreOperatorForS3Source tests if the restore-operator can restore an etcd cluster from an S3 restore source
-func testEtcdRestoreOperatorForS3Source(t *testing.T, s3Path string) {
+// testGaleraRestoreOperatorForS3Source tests if the restore-operator can restore an etcd cluster from an S3 restore source
+func testGaleraRestoreOperatorForS3Source(t *testing.T, s3Path string) {
 	f := framework.Global
 
 	restoreSource := api.RestoreSource{S3: e2eutil.NewS3RestoreSource(s3Path, os.Getenv("TEST_AWS_SECRET"))}
-	er := e2eutil.NewEtcdRestore("test-etcd-restore-", "3.2.10", 3, restoreSource)
-	er, err := f.CRClient.GaleraV1alpha1().EtcdRestores(f.Namespace).Create(er)
+	er := e2eutil.NewGaleraRestore("test-etcd-restore-", "3.2.10", 3, restoreSource)
+	er, err := f.CRClient.GaleraV1alpha1().GaleraRestores(f.Namespace).Create(er)
 	if err != nil {
 		t.Fatalf("failed to create etcd restore cr: %v", err)
 	}
 	defer func() {
-		if err := f.CRClient.GaleraV1alpha1().EtcdRestores(f.Namespace).Delete(er.Name, nil); err != nil {
+		if err := f.CRClient.GaleraV1alpha1().GaleraRestores(f.Namespace).Delete(er.Name, nil); err != nil {
 			t.Fatalf("failed to delete etcd restore cr: %v", err)
 		}
 	}()
 
-	// Verify the EtcdRestore CR status "succeeded=true". In practice the time taken to update is 1 second.
+	// Verify the GaleraRestore CR status "succeeded=true". In practice the time taken to update is 1 second.
 	err = retryutil.Retry(time.Second, 5, func() (bool, error) {
-		er, err := f.CRClient.GaleraV1alpha1().EtcdRestores(f.Namespace).Get(er.Name, metav1.GetOptions{})
+		er, err := f.CRClient.GaleraV1alpha1().GaleraRestores(f.Namespace).Get(er.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, fmt.Errorf("failed to retrieve restore CR: %v", err)
 		}
@@ -155,7 +155,7 @@ func testEtcdRestoreOperatorForS3Source(t *testing.T, s3Path string) {
 	}
 
 	// Verify that the restored etcd cluster scales to 3 ready members
-	restoredCluster := &api.EtcdCluster{
+	restoredCluster := &api.GaleraCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      er.Name,
 			Namespace: f.Namespace,

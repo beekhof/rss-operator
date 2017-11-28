@@ -1,4 +1,4 @@
-// Copyright 2017 The etcd-operator Authors
+// Copyright 2017 The galera-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,28 +21,28 @@ import (
 )
 
 const (
-	EtcdClusterResourceKind   = "EtcdCluster"
-	EtcdClusterResourcePlural = "etcdclusters"
-	groupName                 = "galera.database.beekhof.net"
+	GaleraClusterResourceKind   = "GaleraCluster"
+	GaleraClusterResourcePlural = "galeraclusters"
+	groupName                   = "galera.database.beekhof.net"
 
-	EtcdBackupResourceKind   = "EtcdBackup"
-	EtcdBackupResourcePlural = "etcdbackups"
+	GaleraBackupResourceKind   = "GaleraBackup"
+	GaleraBackupResourcePlural = "galerabackups"
 
-	EtcdRestoreResourceKind   = "EtcdRestore"
-	EtcdRestoreResourcePlural = "etcdrestores"
+	GaleraRestoreResourceKind   = "GaleraRestore"
+	GaleraRestoreResourcePlural = "galerarestores"
 )
 
 var (
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
 	AddToScheme   = SchemeBuilder.AddToScheme
 
-	SchemeGroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha1"}
-	EtcdClusterCRDName = EtcdClusterResourcePlural + "." + groupName
-	EtcdBackupCRDName  = EtcdBackupResourcePlural + "." + groupName
-	EtcdRestoreCRDName = EtcdRestoreResourcePlural + "." + groupName
+	SchemeGroupVersion   = schema.GroupVersion{Group: groupName, Version: "v1alpha1"}
+	GaleraClusterCRDName = GaleraClusterResourcePlural + "." + groupName
+	GaleraBackupCRDName  = GaleraBackupResourcePlural + "." + groupName
+	GaleraRestoreCRDName = GaleraRestoreResourcePlural + "." + groupName
 )
 
-// Resource gets an EtcdCluster GroupResource for a specified resource
+// Resource gets an GaleraCluster GroupResource for a specified resource
 func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }
@@ -50,12 +50,12 @@ func Resource(resource string) schema.GroupResource {
 // addKnownTypes adds the set of types defined in this package to the supplied scheme.
 func addKnownTypes(s *runtime.Scheme) error {
 	s.AddKnownTypes(SchemeGroupVersion,
-		&EtcdCluster{},
-		&EtcdClusterList{},
-		&EtcdBackup{},
-		&EtcdBackupList{},
-		&EtcdRestore{},
-		&EtcdRestoreList{},
+		&GaleraCluster{},
+		&GaleraClusterList{},
+		&GaleraBackup{},
+		&GaleraBackupList{},
+		&GaleraRestore{},
+		&GaleraRestoreList{},
 	)
 	metav1.AddToGroupVersion(s, SchemeGroupVersion)
 	return nil

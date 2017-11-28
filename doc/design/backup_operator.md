@@ -24,7 +24,7 @@ spec:
   version: v1beta2
   Scope: Namespaced
   names: 
-    kind: EtcdBackup
+    kind: GaleraBackup
     plural: etcdbackups
 ```
 
@@ -32,13 +32,13 @@ Then, start the etcd-backup-operator where it does the following:
 
 * checks if CRD exists.
 * watches for new backup CR. 
-* manages backup according to `EtcdBackupSpec`.
+* manages backup according to `GaleraBackupSpec`.
 * reports backup status. 
 
-`EtcdBackupSpec` definition:
+`GaleraBackupSpec` definition:
 
 ```go
-type EtcdBackupSpec struct {
+type GaleraBackupSpec struct {
     // clusterName is the etcd cluster name that needs backup.
     ClusterName string `json:"clusterName,omitempty"`
     // StorageType is the type of backup storage.

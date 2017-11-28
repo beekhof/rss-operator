@@ -64,12 +64,12 @@ func TestResize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testClus, err = testF.CRClient.GaleraV1alpha1().EtcdClusters(testF.KubeNS).Get(testClus.Name, metav1.GetOptions{})
+	testClus, err = testF.CRClient.GaleraV1alpha1().GaleraClusters(testF.KubeNS).Get(testClus.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	updateFunc := func(cl *api.EtcdCluster) {
+	updateFunc := func(cl *api.GaleraCluster) {
 		cl.Spec.Size = 5
 	}
 	_, err = e2eutil.UpdateCluster(testF.CRClient, testClus, 10, updateFunc)

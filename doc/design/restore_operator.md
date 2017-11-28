@@ -42,10 +42,10 @@ type RestoreSpec struct {
 	// Using this spec, restore operator will prepare the seed that
 	// etcd operator will pick up later.
 	EtcdCluster ClusterSpec
-	// EtcdBackup defines the same spec that backup operator uses to save the backup.
+	// GaleraBackup defines the same spec that backup operator uses to save the backup.
 	// Restore operator will have the same logic as backup operator to discover
 	// any existing backups and find the one with largest revision.
-	EtcdBackup EtcdBackupSpec
+	GaleraBackup GaleraBackupSpec
 }
 
 

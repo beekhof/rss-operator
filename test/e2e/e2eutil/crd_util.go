@@ -35,9 +35,9 @@ type StorageCheckerOptions struct {
 	DeletedFromAPI bool
 }
 
-func CreateCluster(t *testing.T, crClient versioned.Interface, namespace string, cl *api.EtcdCluster) (*api.EtcdCluster, error) {
+func CreateCluster(t *testing.T, crClient versioned.Interface, namespace string, cl *api.GaleraCluster) (*api.GaleraCluster, error) {
 	cl.Namespace = namespace
-	res, err := crClient.GaleraV1alpha1().EtcdClusters(namespace).Create(cl)
+	res, err := crClient.GaleraV1alpha1().GaleraClusters(namespace).Create(cl)
 	if err != nil {
 		return nil, err
 	}
@@ -46,21 +46,21 @@ func CreateCluster(t *testing.T, crClient versioned.Interface, namespace string,
 	return res, nil
 }
 
-func UpdateCluster(crClient versioned.Interface, cl *api.EtcdCluster, maxRetries int, updateFunc k8sutil.EtcdClusterCRUpdateFunc) (*api.EtcdCluster, error) {
+func UpdateCluster(crClient versioned.Interface, cl *api.GaleraCluster, maxRetries int, updateFunc k8sutil.GaleraClusterCRUpdateFunc) (*api.GaleraCluster, error) {
 	return AtomicUpdateClusterCR(crClient, cl.Name, cl.Namespace, maxRetries, updateFunc)
 }
 
-func AtomicUpdateClusterCR(crClient versioned.Interface, name, namespace string, maxRetries int, updateFunc k8sutil.EtcdClusterCRUpdateFunc) (*api.EtcdCluster, error) {
-	result := &api.EtcdCluster{}
+func AtomicUpdateClusterCR(crClient versioned.Interface, name, namespace string, maxRetries int, updateFunc k8sutil.GaleraClusterCRUpdateFunc) (*api.GaleraCluster, error) {
+	result := &api.GaleraCluster{}
 	err := retryutil.Retry(1*time.Second, maxRetries, func() (done bool, err error) {
-		etcdCluster, err := crClient.GaleraV1alpha1().EtcdClusters(namespace).Get(name, metav1.GetOptions{})
+		etcdCluster, err := crClient.GaleraV1alpha1().GaleraClusters(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
 
 		updateFunc(etcdCluster)
 
-		result, err = crClient.GaleraV1alpha1().EtcdClusters(namespace).Update(etcdCluster)
+		result, err = crClient.GaleraV1alpha1().GaleraClusters(namespace).Update(etcdCluster)
 		if err != nil {
 			if apierrors.IsConflict(err) {
 				return false, nil
@@ -72,9 +72,9 @@ func AtomicUpdateClusterCR(crClient versioned.Interface, name, namespace string,
 	return result, err
 }
 
-func DeleteCluster(t *testing.T, crClient versioned.Interface, kubeClient kubernetes.Interface, cl *api.EtcdCluster) error {
+func DeleteCluster(t *testing.T, crClient versioned.Interface, kubeClient kubernetes.Interface, cl *api.GaleraCluster) error {
 	t.Logf("deleting etcd cluster: %v", cl.Name)
-	err := crClient.GaleraV1alpha1().EtcdClusters(cl.Namespace).Delete(cl.Name, nil)
+	err := crClient.GaleraV1alpha1().GaleraClusters(cl.Namespace).Delete(cl.Name, nil)
 	if err != nil {
 		return err
 	}

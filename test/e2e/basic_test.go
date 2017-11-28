@@ -68,7 +68,7 @@ func TestPauseControl(t *testing.T) {
 		t.Fatalf("failed to create 3 members etcd cluster: %v", err)
 	}
 
-	updateFunc := func(cl *api.EtcdCluster) {
+	updateFunc := func(cl *api.GaleraCluster) {
 		cl.Spec.Paused = true
 	}
 	if testEtcd, err = e2eutil.UpdateCluster(f.CRClient, testEtcd, 10, updateFunc); err != nil {
@@ -89,7 +89,7 @@ func TestPauseControl(t *testing.T) {
 		t.Fatalf("cluster should not be recovered: control is paused")
 	}
 
-	updateFunc = func(cl *api.EtcdCluster) {
+	updateFunc = func(cl *api.GaleraCluster) {
 		cl.Spec.Paused = false
 	}
 	if testEtcd, err = e2eutil.UpdateCluster(f.CRClient, testEtcd, 10, updateFunc); err != nil {
@@ -126,7 +126,7 @@ func TestEtcdUpgrade(t *testing.T) {
 	}
 
 	targetVersion := "3.2.10"
-	updateFunc := func(cl *api.EtcdCluster) {
+	updateFunc := func(cl *api.GaleraCluster) {
 		cl = e2eutil.ClusterWithVersion(cl, targetVersion)
 	}
 	_, err = e2eutil.UpdateCluster(f.CRClient, testEtcd, 10, updateFunc)

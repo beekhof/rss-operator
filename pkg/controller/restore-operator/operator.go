@@ -69,9 +69,9 @@ func (r *Restore) Start(ctx context.Context) error {
 }
 
 func (r *Restore) initCRD() error {
-	err := k8sutil.CreateCRD(r.kubeExtCli, api.EtcdRestoreCRDName, api.EtcdRestoreResourceKind, api.EtcdRestoreResourcePlural, "")
+	err := k8sutil.CreateCRD(r.kubeExtCli, api.GaleraRestoreCRDName, api.GaleraRestoreResourceKind, api.GaleraRestoreResourcePlural, "")
 	if err != nil {
 		return fmt.Errorf("failed to create CRD: %v", err)
 	}
-	return k8sutil.WaitCRDReady(r.kubeExtCli, api.EtcdRestoreCRDName)
+	return k8sutil.WaitCRDReady(r.kubeExtCli, api.GaleraRestoreCRDName)
 }

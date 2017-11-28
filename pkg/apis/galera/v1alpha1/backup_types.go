@@ -18,18 +18,18 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// EtcdBackupList is a list of EtcdBackup.
-type EtcdBackupList struct {
+// GaleraBackupList is a list of GaleraBackup.
+type GaleraBackupList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
-	Items           []EtcdBackup `json:"items"`
+	Items           []GaleraBackup `json:"items"`
 }
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// EtcdBackup represents a Kubernetes EtcdBackup Custom Resource.
-type EtcdBackup struct {
+// GaleraBackup represents a Kubernetes GaleraBackup Custom Resource.
+type GaleraBackup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 	Spec              BackupSpec     `json:"spec"`
@@ -51,7 +51,7 @@ type BackupStorageSource struct {
 	S3 *S3Source `json:"s3,omitempty"`
 }
 
-// BackupCRStatus represents the status of the EtcdBackup Custom Resource.
+// BackupCRStatus represents the status of the GaleraBackup Custom Resource.
 type BackupCRStatus struct {
 	// Succeeded indicates if the backup has Succeeded.
 	Succeeded bool `json:"succeeded"`
