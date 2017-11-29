@@ -31,6 +31,8 @@ type Member struct {
 	// We know the ID of a member when we get the member information from etcd,
 	// but not from Kubernetes pod list.
 	ID uint64
+	
+	SEQ uint64
 
 	SecurePeer   bool
 	SecureClient bool

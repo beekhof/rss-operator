@@ -15,8 +15,4 @@ limitations under the License.
 */
 package v1alpha1
 
-type GaleraBackupExpansion interface{}
-
 type GaleraClusterExpansion interface{}
-
-type GaleraRestoreExpansion interface{}

@@ -78,34 +78,6 @@ func GetPodNames(pods []*v1.Pod) []string {
 	return res
 }
 
-func makeRestoreInitContainers(backupURL *url.URL, token, baseImage, version string, m *etcdutil.Member) []v1.Container {
-	return []v1.Container{
-		{
-			Name:  "fetch-backup",
-			Image: "tutum/curl",
-			Command: []string{
-				"/bin/sh", "-ec",
-				fmt.Sprintf("curl -o %s %s", backupFile, backupURL.String()),
-			},
-			VolumeMounts: etcdVolumeMounts(),
-		},
-		{
-			Name:  "restore-datadir",
-			Image: ImageName(baseImage, version),
-			Command: []string{
-				"/bin/sh", "-ec",
-				fmt.Sprintf("ETCDCTL_API=3 etcdctl snapshot restore %[1]s"+
-					" --name %[2]s"+
-					" --initial-cluster %[2]s=%[3]s"+
-					" --initial-cluster-token %[4]s"+
-					" --initial-advertise-peer-urls %[3]s"+
-					" --data-dir %[5]s", backupFile, m.Name, m.PeerURL(), token, dataDir),
-			},
-			VolumeMounts: etcdVolumeMounts(),
-		},
-	}
-}
-
 func ImageName(baseImage, version string) string {
 	return fmt.Sprintf("%s:v%v", baseImage, version)
 }
@@ -209,10 +181,6 @@ func newEtcdServiceManifest(svcName, clusterName, clusterIP string, ports []v1.S
 	return svc
 }
 
-func addRecoveryToPod(pod *v1.Pod, token string, m *etcdutil.Member, cs api.ClusterSpec, backupURL *url.URL) {
-	pod.Spec.InitContainers = makeRestoreInitContainers(backupURL, token, cs.BaseImage, cs.Version, m)
-}
-
 func addOwnerRefToObject(o metav1.Object, r metav1.OwnerReference) {
 	o.SetOwnerReferences(append(o.GetOwnerReferences(), r))
 }
@@ -222,9 +190,6 @@ func addOwnerRefToObject(o metav1.Object, r metav1.OwnerReference) {
 func NewSeedMemberPod(clusterName string, ms etcdutil.MemberSet, m *etcdutil.Member, cs api.ClusterSpec, owner metav1.OwnerReference, backupURL *url.URL) *v1.Pod {
 	token := uuid.New()
 	pod := NewEtcdPod(m, ms.PeerURLPairs(), clusterName, "new", token, cs, owner)
-	if backupURL != nil {
-		addRecoveryToPod(pod, token, m, cs, backupURL)
-	}
 	return pod
 }
 

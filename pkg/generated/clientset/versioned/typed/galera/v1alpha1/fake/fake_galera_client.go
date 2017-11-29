@@ -25,16 +25,8 @@ type FakeGaleraV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeGaleraV1alpha1) GaleraBackups(namespace string) v1alpha1.GaleraBackupInterface {
-	return &FakeGaleraBackups{c, namespace}
-}
-
 func (c *FakeGaleraV1alpha1) GaleraClusters(namespace string) v1alpha1.GaleraClusterInterface {
 	return &FakeGaleraClusters{c, namespace}
-}
-
-func (c *FakeGaleraV1alpha1) GaleraRestores(namespace string) v1alpha1.GaleraRestoreInterface {
-	return &FakeGaleraRestores{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

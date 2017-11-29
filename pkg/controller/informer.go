@@ -80,7 +80,7 @@ func (c *Controller) initResource() error {
 }
 
 func (c *Controller) onAddEtcdClus(obj interface{}) {
-	c.logger.Errorf("beekhof: Creating a new cluster", err)
+	c.logger.Errorf("beekhof: Creating a new cluster")
 	c.syncEtcdClus(obj.(*api.GaleraCluster))
 }
 

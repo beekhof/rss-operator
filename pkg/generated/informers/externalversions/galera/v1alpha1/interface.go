@@ -24,12 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// GaleraBackups returns a GaleraBackupInformer.
-	GaleraBackups() GaleraBackupInformer
 	// GaleraClusters returns a GaleraClusterInformer.
 	GaleraClusters() GaleraClusterInformer
-	// GaleraRestores returns a GaleraRestoreInformer.
-	GaleraRestores() GaleraRestoreInformer
 }
 
 type version struct {
@@ -41,17 +37,7 @@ func New(f internalinterfaces.SharedInformerFactory) Interface {
 	return &version{f}
 }
 
-// GaleraBackups returns a GaleraBackupInformer.
-func (v *version) GaleraBackups() GaleraBackupInformer {
-	return &galeraBackupInformer{factory: v.SharedInformerFactory}
-}
-
 // GaleraClusters returns a GaleraClusterInformer.
 func (v *version) GaleraClusters() GaleraClusterInformer {
 	return &galeraClusterInformer{factory: v.SharedInformerFactory}
-}
-
-// GaleraRestores returns a GaleraRestoreInformer.
-func (v *version) GaleraRestores() GaleraRestoreInformer {
-	return &galeraRestoreInformer{factory: v.SharedInformerFactory}
 }

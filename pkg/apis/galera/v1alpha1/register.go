@@ -24,12 +24,6 @@ const (
 	GaleraClusterResourceKind   = "GaleraCluster"
 	GaleraClusterResourcePlural = "galeraclusters"
 	groupName                   = "galera.database.beekhof.net"
-
-	GaleraBackupResourceKind   = "GaleraBackup"
-	GaleraBackupResourcePlural = "galerabackups"
-
-	GaleraRestoreResourceKind   = "GaleraRestore"
-	GaleraRestoreResourcePlural = "galerarestores"
 )
 
 var (
@@ -38,8 +32,6 @@ var (
 
 	SchemeGroupVersion   = schema.GroupVersion{Group: groupName, Version: "v1alpha1"}
 	GaleraClusterCRDName = GaleraClusterResourcePlural + "." + groupName
-	GaleraBackupCRDName  = GaleraBackupResourcePlural + "." + groupName
-	GaleraRestoreCRDName = GaleraRestoreResourcePlural + "." + groupName
 )
 
 // Resource gets an GaleraCluster GroupResource for a specified resource
@@ -52,10 +44,6 @@ func addKnownTypes(s *runtime.Scheme) error {
 	s.AddKnownTypes(SchemeGroupVersion,
 		&GaleraCluster{},
 		&GaleraClusterList{},
-		&GaleraBackup{},
-		&GaleraBackupList{},
-		&GaleraRestore{},
-		&GaleraRestoreList{},
 	)
 	metav1.AddToGroupVersion(s, SchemeGroupVersion)
 	return nil

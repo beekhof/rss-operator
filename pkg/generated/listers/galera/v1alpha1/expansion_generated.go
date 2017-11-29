@@ -18,14 +18,6 @@ limitations under the License.
 
 package v1alpha1
 
-// GaleraBackupListerExpansion allows custom methods to be added to
-// GaleraBackupLister.
-type GaleraBackupListerExpansion interface{}
-
-// GaleraBackupNamespaceListerExpansion allows custom methods to be added to
-// GaleraBackupNamespaceLister.
-type GaleraBackupNamespaceListerExpansion interface{}
-
 // GaleraClusterListerExpansion allows custom methods to be added to
 // GaleraClusterLister.
 type GaleraClusterListerExpansion interface{}
@@ -33,11 +25,3 @@ type GaleraClusterListerExpansion interface{}
 // GaleraClusterNamespaceListerExpansion allows custom methods to be added to
 // GaleraClusterNamespaceLister.
 type GaleraClusterNamespaceListerExpansion interface{}
-
-// GaleraRestoreListerExpansion allows custom methods to be added to
-// GaleraRestoreLister.
-type GaleraRestoreListerExpansion interface{}
-
-// GaleraRestoreNamespaceListerExpansion allows custom methods to be added to
-// GaleraRestoreNamespaceLister.
-type GaleraRestoreNamespaceListerExpansion interface{}

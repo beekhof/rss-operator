@@ -24,9 +24,7 @@ import (
 
 type GaleraV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	GaleraBackupsGetter
 	GaleraClustersGetter
-	GaleraRestoresGetter
 }
 
 // GaleraV1alpha1Client is used to interact with features provided by the galera.database.beekhof.net group.
@@ -34,16 +32,8 @@ type GaleraV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *GaleraV1alpha1Client) GaleraBackups(namespace string) GaleraBackupInterface {
-	return newGaleraBackups(c, namespace)
-}
-
 func (c *GaleraV1alpha1Client) GaleraClusters(namespace string) GaleraClusterInterface {
 	return newGaleraClusters(c, namespace)
-}
-
-func (c *GaleraV1alpha1Client) GaleraRestores(namespace string) GaleraRestoreInterface {
-	return newGaleraRestores(c, namespace)
 }
 
 // NewForConfig creates a new GaleraV1alpha1Client for the given config.

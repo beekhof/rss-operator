@@ -35,57 +35,6 @@ func NewCluster(genName string, size int) *api.GaleraCluster {
 	}
 }
 
-// NewS3Backup creates a GaleraBackup object using clusterName.
-func NewS3Backup(clusterName, bucket, secret string) *api.GaleraBackup {
-	return &api.GaleraBackup{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       api.GaleraBackupResourceKind,
-			APIVersion: api.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: clusterName,
-		},
-		Spec: api.BackupSpec{
-			ClusterName: clusterName,
-			StorageType: api.BackupStorageTypeS3,
-			BackupStorageSource: api.BackupStorageSource{
-				S3: &api.S3Source{
-					S3Bucket:  bucket,
-					AWSSecret: secret,
-				},
-			},
-		},
-	}
-}
-
-// NewS3RestoreSource returns an S3RestoreSource with the specified path and secret
-func NewS3RestoreSource(path, awsSecret string) *api.S3RestoreSource {
-	return &api.S3RestoreSource{
-		Path:      path,
-		AWSSecret: awsSecret,
-	}
-}
-
-// NewGaleraRestore returns an GaleraRestore CR with the specified RestoreSource
-func NewGaleraRestore(restoreName, version string, size int, restoreSource api.RestoreSource) *api.GaleraRestore {
-	return &api.GaleraRestore{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       api.GaleraRestoreResourceKind,
-			APIVersion: api.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: restoreName,
-		},
-		Spec: api.RestoreSpec{
-			ClusterSpec: api.ClusterSpec{
-				BaseImage: "gcr.io/etcd-development/etcd",
-				Size:      size,
-				Version:   version,
-			},
-			RestoreSource: restoreSource,
-		},
-	}
-}
 
 func ClusterWithVersion(cl *api.GaleraCluster, version string) *api.GaleraCluster {
 	cl.Spec.Version = version
