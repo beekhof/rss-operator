@@ -13,7 +13,7 @@ It should print:
 
 ```
 Generating deepcopy funcs
-Generating clientset for galera:v1alpha1 at github.com/coreos/etcd-operator/pkg/generated/clientset
-Generating listers for galera:v1alpha1 at github.com/coreos/etcd-operator/pkg/generated/listers
-Generating informers for galera:v1alpha1 at github.com/coreos/etcd-operator/pkg/generated/informers
+Generating clientset for galera:v1alpha1 at github.com/beekhof/galera-operator/pkg/generated/clientset
+Generating listers for galera:v1alpha1 at github.com/beekhof/galera-operator/pkg/generated/listers
+Generating informers for galera:v1alpha1 at github.com/beekhof/galera-operator/pkg/generated/informers
 ```

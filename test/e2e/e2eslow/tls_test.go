@@ -21,9 +21,9 @@ import (
 	"os"
 	"testing"
 
-	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
-	"github.com/coreos/etcd-operator/test/e2e/e2eutil"
-	"github.com/coreos/etcd-operator/test/e2e/framework"
+	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/galera-operator/test/e2e/e2eutil"
+	"github.com/beekhof/galera-operator/test/e2e/framework"
 )
 
 func TestTLS(t *testing.T) {

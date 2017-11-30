@@ -16,7 +16,7 @@ limitations under the License.
 package fake
 
 import (
-	galerav1alpha1 "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
+	galerav1alpha1 "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

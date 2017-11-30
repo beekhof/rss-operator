@@ -19,9 +19,9 @@ import (
 	"math"
 	"time"
 
-	"github.com/coreos/etcd-operator/pkg/util/etcdutil"
-	"github.com/coreos/etcd-operator/pkg/util/k8sutil"
-	"github.com/coreos/etcd-operator/pkg/util/retryutil"
+	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
+	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
+	"github.com/beekhof/galera-operator/pkg/util/retryutil"
 
 	"github.com/pborman/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

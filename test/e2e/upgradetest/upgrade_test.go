@@ -19,8 +19,8 @@ import (
 	"math/rand"
 	"testing"
 
-	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
-	"github.com/coreos/etcd-operator/test/e2e/e2eutil"
+	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/galera-operator/test/e2e/e2eutil"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

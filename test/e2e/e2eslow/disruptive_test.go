@@ -17,8 +17,8 @@ package e2eslow
 import (
 	"testing"
 
-	"github.com/coreos/etcd-operator/test/e2e/e2eutil"
-	"github.com/coreos/etcd-operator/test/e2e/framework"
+	"github.com/beekhof/galera-operator/test/e2e/e2eutil"
+	"github.com/beekhof/galera-operator/test/e2e/framework"
 )
 
 // restart operator should resume cluster

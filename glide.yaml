@@ -1,4 +1,4 @@
-package: github.com/coreos/etcd-operator
+package: github.com/beekhof/galera-operator
 import:
 - package: k8s.io/client-go
   version: kubernetes-1.8.2

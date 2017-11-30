@@ -21,8 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 
-	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
-	"github.com/coreos/etcd-operator/pkg/cluster"
+	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/galera-operator/pkg/cluster"
 )
 
 func TestHandleClusterEventUpdateFailedCluster(t *testing.T) {

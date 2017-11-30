@@ -24,7 +24,7 @@ bin_dir="$(pwd)/_output/bin"
 mkdir -p ${bin_dir} || true
 
 
-gitHash="github.com/coreos/etcd-operator/version.GitSHA=${GIT_SHA}"
+gitHash="github.com/beekhof/galera-operator/version.GitSHA=${GIT_SHA}"
 
 go_ldflags="-X ${gitHash}"
 

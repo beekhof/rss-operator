@@ -19,10 +19,10 @@ import (
 	"errors"
 	"fmt"
 
-	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
-	"github.com/coreos/etcd-operator/pkg/util/constants"
-	"github.com/coreos/etcd-operator/pkg/util/etcdutil"
-	"github.com/coreos/etcd-operator/pkg/util/k8sutil"
+	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/galera-operator/pkg/util/constants"
+	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
+	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"

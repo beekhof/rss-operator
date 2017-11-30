@@ -5,9 +5,9 @@ This document shows how to safely upgrade the operator to a desired version whil
 ### Backup safety precaution:
 **Note:** Only applies to when upgrading from an etcd operator with version < v0.7.0.
 
-First create a backup of your current cluster before starting the upgrade process. See the [backup service guide](https://github.com/coreos/etcd-operator/blob/v0.6.1/doc/user/backup_service.md) on how to create a backup.
+First create a backup of your current cluster before starting the upgrade process. See the [backup service guide](https://github.com/beekhof/galera-operator/blob/v0.6.1/doc/user/backup_service.md) on how to create a backup.
 
-In the case of an upgrade failure you can restore your cluster to the previous state from the previous backup. See the [spec examples](https://github.com/coreos/etcd-operator/blob/v0.6.1/doc/user/spec_examples.md) on how to do that.
+In the case of an upgrade failure you can restore your cluster to the previous state from the previous backup. See the [spec examples](https://github.com/beekhof/galera-operator/blob/v0.6.1/doc/user/spec_examples.md) on how to do that.
 
 ## v0.6.1 -> v0.7.0
 **Note:** if your cluster specifies either the backup policy or restore policy, then follow the  [migrate CR](./migrate_cr_070.md) guide to update the cluster spec before upgrading the etcd-operator deployment.
@@ -58,7 +58,7 @@ So if your cluster has the above backup policy then do the following steps befor
 
 ### Breaking Change
 
-The v0.6.0 release removes [operator S3 flag](https://github.com/coreos/etcd-operator/blob/v0.5.1/doc/user/backup_config.md#operator-level-configuration).
+The v0.6.0 release removes [operator S3 flag](https://github.com/beekhof/galera-operator/blob/v0.5.1/doc/user/backup_config.md#operator-level-configuration).
 
 **Note:** if your cluster is not using operator S3 flag, then you just need recreate etcd-operator deployment with the `v0.6.0` image.
 
@@ -137,14 +137,14 @@ Kubernetes cluster version must be 1.7+.
 
 ### Steps to upgrade:
 - Create a backup of your current cluster data. See the following guides on how to enable and create backups:
-    - [backup config guide](https://github.com/coreos/etcd-operator/blob/master/doc/user/backup_config.md) to enable backups fro your cluster
-    - [backup service guide](https://github.com/coreos/etcd-operator/blob/master/doc/user/backup_service.md) to create a backup
+    - [backup config guide](https://github.com/beekhof/galera-operator/blob/master/doc/user/backup_config.md) to enable backups fro your cluster
+    - [backup service guide](https://github.com/beekhof/galera-operator/blob/master/doc/user/backup_service.md) to create a backup
 - Delete the cluster TPR object. The etcd-operator will delete all resources(pods, services, deployments) associated with the cluster:
     - `kubectl -n <namespace> delete cluster <cluster-name>`
 - Delete the etcd-operator deployment
 - Delete the TPR
     - `kubectl delete thirdpartyresource cluster.etcd.coreos.com`
-- Replace the existing RBAC rules for the etcd-operator by editing or recreating the `ClusterRole` with the [new rules for CRD](https://github.com/coreos/etcd-operator/blob/master/doc/user/rbac.md#create-clusterrole).
+- Replace the existing RBAC rules for the etcd-operator by editing or recreating the `ClusterRole` with the [new rules for CRD](https://github.com/beekhof/galera-operator/blob/master/doc/user/rbac.md#create-clusterrole).
 - Recreate the etcd-operator deployment with the `0.5.0` image.
 - Create a new cluster that restores from the backup of the previous cluster. The new cluster CR spec should look as follows:
 ```
@@ -165,11 +165,11 @@ spec:
 ```
 The two points of interest in the above CR spec are:
   1. The `apiVersion` and `kind` fields have been changed as mentioned in the `0.5.0` release notes
-  2. The `spec.restore` field needs to be specified according your backup configuration. See [spec examples guide](https://github.com/coreos/etcd-operator/blob/master/doc/user/spec_examples.md#three-members-cluster-that-restores-from-previous-pv-backup) on how to specify the `spec.restore` field for your particular backup configuration.
+  2. The `spec.restore` field needs to be specified according your backup configuration. See [spec examples guide](https://github.com/beekhof/galera-operator/blob/master/doc/user/spec_examples.md#three-members-cluster-that-restores-from-previous-pv-backup) on how to specify the `spec.restore` field for your particular backup configuration.
 
 ## v0.3.x -> v0.4.x
 Upgrade to `v0.4.0` first.
-See the release notes of `v0.4.0` for noticeable changes: https://github.com/coreos/etcd-operator/releases/tag/v0.4.0
+See the release notes of `v0.4.0` for noticeable changes: https://github.com/beekhof/galera-operator/releases/tag/v0.4.0
 
 ## v0.2.x -> v0.3.x
 ### Prerequisite:

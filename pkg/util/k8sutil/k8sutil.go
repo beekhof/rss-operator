@@ -23,9 +23,9 @@ import (
 	"strings"
 	"time"
 
-	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
-	"github.com/coreos/etcd-operator/pkg/util/etcdutil"
-	"github.com/coreos/etcd-operator/pkg/util/retryutil"
+	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
+	"github.com/beekhof/galera-operator/pkg/util/retryutil"
 	"github.com/pborman/uuid"
 
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
@@ -47,7 +47,6 @@ const (
 
 	etcdVolumeMountDir       = "/var/etcd"
 	dataDir                  = etcdVolumeMountDir + "/data"
-	backupFile               = "/var/etcd/latest.backup"
 	etcdVersionAnnotationKey = "etcd.version"
 	peerTLSDir               = "/etc/etcdtls/member/peer-tls"
 	peerTLSVolume            = "member-peer-tls"
@@ -297,7 +296,7 @@ func MustNewKubeClient() kubernetes.Interface {
 
 func InClusterConfig() (*rest.Config, error) {
 	// Work around https://github.com/kubernetes/kubernetes/issues/40973
-	// See https://github.com/coreos/etcd-operator/issues/731#issuecomment-283804819
+	// See https://github.com/beekhof/galera-operator/issues/731#issuecomment-283804819
 	if len(os.Getenv("KUBERNETES_SERVICE_HOST")) == 0 {
 		addrs, err := net.LookupHost("kubernetes.default.svc")
 		if err != nil {

@@ -16,7 +16,7 @@ limitations under the License.
 package versioned
 
 import (
-	galerav1alpha1 "github.com/coreos/etcd-operator/pkg/generated/clientset/versioned/typed/galera/v1alpha1"
+	galerav1alpha1 "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned/typed/galera/v1alpha1"
 	glog "github.com/golang/glog"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"

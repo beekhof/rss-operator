@@ -18,7 +18,7 @@
 ## [Release 0.7.0]
 
 Existing backup and restore features in EtcdCluster API won’t be supported after 0.7.0 release. 
-See [Decoupling Backup and Restore Logic from Etcd Operator](https://github.com/coreos/etcd-operator/issues/1626) for more detail.
+See [Decoupling Backup and Restore Logic from Etcd Operator](https://github.com/beekhof/galera-operator/issues/1626) for more detail.
 
 If applicable then see the [upgrade guide](./doc/user/upgrade/upgrade_guide.md) on how to upgrade from `v0.6.1` to `v0.7.0` .
 
@@ -121,7 +121,7 @@ Finally, it is safe to upgrade operator. It's highly recommended to save a backu
 
 ### Changed
 
-- With k8s 1.7 and onwards TPRs have been deprecated and are replaced with CRD. See the k8s 1.7 [blogpost](http://blog.kubernetes.io/2017/06/kubernetes-1.7-security-hardening-stateful-application-extensibility-updates.html) or [release notes](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md#major-themes) for more details. For this release a live migration of the cluster spec from TPR to CRD is not supported. To preserve the cluster state during the upgrade you will need to create a backup of the cluster and recreate the cluster from the backup after upgrading the operator. See the [upgrade guide](https://github.com/coreos/etcd-operator/blob/master/doc/user/upgrade/upgrade_guide.md) for more detailed steps on how to do that.
+- With k8s 1.7 and onwards TPRs have been deprecated and are replaced with CRD. See the k8s 1.7 [blogpost](http://blog.kubernetes.io/2017/06/kubernetes-1.7-security-hardening-stateful-application-extensibility-updates.html) or [release notes](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md#major-themes) for more details. For this release a live migration of the cluster spec from TPR to CRD is not supported. To preserve the cluster state during the upgrade you will need to create a backup of the cluster and recreate the cluster from the backup after upgrading the operator. See the [upgrade guide](https://github.com/beekhof/galera-operator/blob/master/doc/user/upgrade/upgrade_guide.md) for more detailed steps on how to do that.
 
 - Changes in the cluster object's type metadata:
   - The `apiVersion` field has been changed from `etcd.coreos.com/v1beta1` to `galera.database.beekhof.net/v1beta2`
@@ -132,7 +132,7 @@ Finally, it is safe to upgrade operator. It's highly recommended to save a backu
 
 ### Added
 
-- [GH-1232](https://github.com/coreos/etcd-operator/pull/1232) the operator can now log critical actions like pod creation/deletion to a user specified path via the optional flag `debug-logfile-path`. The logs will only be generated if the cluster is self hosted and the flag is set. This can be used in conjunction with a persistent volume to persist the critical actions to disk for later inspection.
+- [GH-1232](https://github.com/beekhof/galera-operator/pull/1232) the operator can now log critical actions like pod creation/deletion to a user specified path via the optional flag `debug-logfile-path`. The logs will only be generated if the cluster is self hosted and the flag is set. This can be used in conjunction with a persistent volume to persist the critical actions to disk for later inspection.
 
 ### Changed
 
@@ -232,7 +232,7 @@ Existing self hosted etcd cluster MUST be recreated for updating to this release
 - Self-hosted etcd: if `etcd-hosts.checkpoint` file exists under `${datadir}/`,
   etcd pod will restore the hosts mapping from it before etcd bootstraps.
 - Add static TLS support for self-hosted etcd mode.
-- The operator will now post Kubernetes [events](https://kubernetes.io/docs/resources-reference/v1.6/#event-v1-core). To allow this the necessary RBAC rule for the resource `events` must be added to the clusterrole. See the [rbac guide](https://github.com/coreos/etcd-operator/blob/master/doc/user/rbac.md#create-clusterrole) to see how to set up RBAC rules for the operator. If the rbac rule for 'events' is not present then the operator will continue to function normally but will also print out an error message on the failure to post an event.
+- The operator will now post Kubernetes [events](https://kubernetes.io/docs/resources-reference/v1.6/#event-v1-core). To allow this the necessary RBAC rule for the resource `events` must be added to the clusterrole. See the [rbac guide](https://github.com/beekhof/galera-operator/blob/master/doc/user/rbac.md#create-clusterrole) to see how to set up RBAC rules for the operator. If the rbac rule for 'events' is not present then the operator will continue to function normally but will also print out an error message on the failure to post an event.
 - Add revision field in backup status.
 - Support getting a specific backup with verison and revision from the backup service.
 
@@ -258,7 +258,7 @@ Existing self hosted etcd cluster MUST be recreated for updating to this release
 
 ### Upgrade Notice
 
-Check https://github.com/coreos/etcd-operator/blob/master/doc/user/upgrade/upgrade_guide.md#v02x-to-v03x
+Check https://github.com/beekhof/galera-operator/blob/master/doc/user/upgrade/upgrade_guide.md#v02x-to-v03x
 
 ### Added
 
@@ -295,7 +295,7 @@ Check https://github.com/coreos/etcd-operator/blob/master/doc/user/upgrade/upgra
 - PodPolicy provides `EtcdEnv` option to add custom env to the etcd process.
 - PodPolicy provides `Labels` option to add custom labels to the etcd pod.
 - TLS feature: user can now create TLS-secured cluster via operator.
-  See [TLS guide](https://github.com/coreos/etcd-operator/blob/master/doc/user/cluster_tls.md).
+  See [TLS guide](https://github.com/beekhof/galera-operator/blob/master/doc/user/cluster_tls.md).
 
 ### Changed
 

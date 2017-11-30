@@ -107,6 +107,6 @@ Handle failures introduced by this design and not covered with the previous part
 
 ## Related issues
 
-- [Explore Local PV](https://github.com/coreos/etcd-operator/issues/1201)
-- [Persistent/Durable etcd cluster](https://github.com/coreos/etcd-operator/issues/1323)
+- [Explore Local PV](https://github.com/beekhof/galera-operator/issues/1201)
+- [Persistent/Durable etcd cluster](https://github.com/beekhof/galera-operator/issues/1323)
 - [Pod Safety, Consistency Guarantees, and Storage Implications](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/pod-safety.md)

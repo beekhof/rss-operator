@@ -19,9 +19,9 @@ limitations under the License.
 package externalversions
 
 import (
-	versioned "github.com/coreos/etcd-operator/pkg/generated/clientset/versioned"
-	galera "github.com/coreos/etcd-operator/pkg/generated/informers/externalversions/galera"
-	internalinterfaces "github.com/coreos/etcd-operator/pkg/generated/informers/externalversions/internalinterfaces"
+	versioned "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned"
+	galera "github.com/beekhof/galera-operator/pkg/generated/informers/externalversions/galera"
+	internalinterfaces "github.com/beekhof/galera-operator/pkg/generated/informers/externalversions/internalinterfaces"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"

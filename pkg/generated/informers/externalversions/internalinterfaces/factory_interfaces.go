@@ -19,7 +19,7 @@ limitations under the License.
 package internalinterfaces
 
 import (
-	versioned "github.com/coreos/etcd-operator/pkg/generated/clientset/versioned"
+	versioned "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	cache "k8s.io/client-go/tools/cache"
 	time "time"

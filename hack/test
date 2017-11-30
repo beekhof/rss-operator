@@ -114,7 +114,7 @@ function e2eslow_pass {
 	done
 }
 
-# Note: Due to issue https://github.com/coreos/etcd-operator/issues/1252,
+# Note: Due to issue https://github.com/beekhof/galera-operator/issues/1252,
 #   we will run only one jenkins job at a time.
 function e2esh_pass {
 	E2E_TEST_SELECTOR=${E2E_TEST_SELECTOR:-.*}

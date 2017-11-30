@@ -7,14 +7,14 @@ Two cluster owns completely disjoint set of resources, even if they have the sam
 For example, etcd cluster "A" was deleted and later etcd cluster "A" was created again; we think these are two different clusters.
 Thus, the new cluster should not mange the resources from the old one. The old resources should be treated as garbage and to be collected.
 
-As discussed in https://github.com/coreos/etcd-operator/issues/517,
+As discussed in https://github.com/beekhof/galera-operator/issues/517,
 we correlate owner (i.e. cluster) and its resources by making use of `ObjectMeta.OwnerReferences` field.
 
 For etcd pods and services, they will have only one owner -- its managing cluster.
 
 ## GC
 
-Github issue: https://github.com/coreos/etcd-operator/issues/518
+Github issue: https://github.com/beekhof/galera-operator/issues/518
 
 We will talk about two strategies to do GC in the following.
 We are only covering etcd pods, services, although the algorithm applies to more resources.

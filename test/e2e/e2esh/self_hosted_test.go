@@ -20,12 +20,12 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
-	"github.com/coreos/etcd-operator/pkg/util/retryutil"
-	"github.com/coreos/etcd-operator/test/e2e/e2eutil"
-	"github.com/coreos/etcd-operator/test/e2e/framework"
+	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/galera-operator/pkg/util/retryutil"
+	"github.com/beekhof/galera-operator/test/e2e/e2eutil"
+	"github.com/beekhof/galera-operator/test/e2e/framework"
 
-	"github.com/coreos/etcd-operator/pkg/util/k8sutil"
+	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

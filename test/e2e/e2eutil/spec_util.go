@@ -15,7 +15,7 @@
 package e2eutil
 
 import (
-	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
+	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -34,7 +34,6 @@ func NewCluster(genName string, size int) *api.GaleraCluster {
 		},
 	}
 }
-
 
 func ClusterWithVersion(cl *api.GaleraCluster, version string) *api.GaleraCluster {
 	cl.Spec.Version = version

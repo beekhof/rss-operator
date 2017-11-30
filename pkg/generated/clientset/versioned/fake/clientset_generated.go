@@ -16,9 +16,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "github.com/coreos/etcd-operator/pkg/generated/clientset/versioned"
-	galerav1alpha1 "github.com/coreos/etcd-operator/pkg/generated/clientset/versioned/typed/galera/v1alpha1"
-	fakegalerav1alpha1 "github.com/coreos/etcd-operator/pkg/generated/clientset/versioned/typed/galera/v1alpha1/fake"
+	clientset "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned"
+	galerav1alpha1 "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned/typed/galera/v1alpha1"
+	fakegalerav1alpha1 "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned/typed/galera/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

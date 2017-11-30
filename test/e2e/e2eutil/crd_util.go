@@ -18,10 +18,10 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/coreos/etcd-operator/pkg/apis/galera/v1alpha1"
-	"github.com/coreos/etcd-operator/pkg/generated/clientset/versioned"
-	"github.com/coreos/etcd-operator/pkg/util/k8sutil"
-	"github.com/coreos/etcd-operator/pkg/util/retryutil"
+	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/galera-operator/pkg/generated/clientset/versioned"
+	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
+	"github.com/beekhof/galera-operator/pkg/util/retryutil"
 
 	"github.com/aws/aws-sdk-go/service/s3"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
