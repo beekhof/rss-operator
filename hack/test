@@ -3,7 +3,6 @@
 set -o errexit
 set -o nounset
 set -o pipefail
-set -x
 
 # KUBECONFIG can be an empty string and so needs to be explicitly declared to avoid an unbound variable error
 KUBECONFIG=${KUBECONFIG:-""}
