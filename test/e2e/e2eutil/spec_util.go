@@ -40,11 +40,6 @@ func ClusterWithVersion(cl *api.GaleraCluster, version string) *api.GaleraCluste
 	return cl
 }
 
-func ClusterWithSelfHosted(cl *api.GaleraCluster, sh *api.SelfHostedPolicy) *api.GaleraCluster {
-	cl.Spec.SelfHosted = sh
-	return cl
-}
-
 // NameLabelSelector returns a label selector of the form name=<name>
 func NameLabelSelector(name string) map[string]string {
 	return map[string]string{"name": name}

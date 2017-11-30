@@ -96,12 +96,6 @@ type ClusterSpec struct {
 	// Updating Pod does not take effect on any existing galera pods.
 	Pod *PodPolicy `json:"pod,omitempty"`
 
-	// SelfHosted determines if the galera cluster is used for a self-hosted
-	// Kubernetes cluster.
-	//
-	// SelfHosted is a cluster initialization configuration. It cannot be updated.
-	SelfHosted *SelfHostedPolicy `json:"selfHosted,omitempty"`
-
 	// galera cluster TLS configuration
 	TLS *TLSPolicy `json:"TLS,omitempty"`
 }

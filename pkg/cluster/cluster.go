@@ -93,9 +93,7 @@ type Cluster struct {
 func New(config Config, cl *api.GaleraCluster) *Cluster {
 	lg := logrus.WithField("pkg", "cluster").WithField("cluster-name", cl.Name)
 	var debugLogger *debug.DebugLogger
-	if cl.Spec.SelfHosted != nil {
-		debugLogger = debug.New(cl.Name)
-	}
+	debugLogger = debug.New(cl.Name)
 
 	c := &Cluster{
 		logger:      lg,
@@ -172,17 +170,8 @@ func (c *Cluster) prepareSeedMember() error {
 	c.status.SetScalingUpCondition(0, c.cluster.Spec.Size)
 
 	var err error
-	if sh := c.cluster.Spec.SelfHosted; sh != nil {
-		c.logger.Errorf("beekhof: Self hosted seed member")
-		if len(sh.BootMemberClientEndpoint) == 0 {
-			err = c.newSelfHostedSeedMember()
-		} else {
-			err = c.migrateBootMember()
-		}
-	} else {
-		c.logger.Errorf("beekhof: Bootstrap seed member")
-		err = c.bootstrap()
-	}
+	c.logger.Errorf("beekhof: Bootstrap seed member")
+	err = c.bootstrap()
 	if err != nil {
 		return err
 	}
@@ -535,7 +524,7 @@ func (c *Cluster) logSpecUpdate(oldSpec, newSpec api.ClusterSpec) {
 }
 
 func (c *Cluster) isDebugLoggerEnabled() bool {
-	if c.cluster.Spec.SelfHosted != nil && c.debugLogger != nil {
+	if c.debugLogger != nil {
 		return true
 	}
 	return false
