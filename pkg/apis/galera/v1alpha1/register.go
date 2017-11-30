@@ -23,7 +23,7 @@ import (
 const (
 	GaleraClusterResourceKind   = "GaleraCluster"
 	GaleraClusterResourcePlural = "galeraclusters"
-	groupName                   = "galera.database.beekhof.net"
+	groupName                   = "galera.db.beekhof.net"
 )
 
 var (

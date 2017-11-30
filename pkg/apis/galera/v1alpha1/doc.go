@@ -15,5 +15,5 @@ limitations under the License.
 */
 
 // +k8s:deepcopy-gen=package
-// +groupName=galera.database.beekhof.net
+// +groupName=galera.db.beekhof.net
 package v1alpha1

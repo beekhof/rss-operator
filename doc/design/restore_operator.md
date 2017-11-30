@@ -23,9 +23,9 @@ Restore operator API will be exposed as CRD:
 apiVersion: apiextentions.k8s.io/v1beta2
 kind: CustomResourceDefiniton
 metadata:
-  name: etcdrestores.galera.database.beekhof.net
+  name: etcdrestores.galera.db.beekhof.net
 spec:
-  group: galera.database.beekhof.net
+  group: galera.db.beekhof.net
   version: v1beta2
   Scope: Namespaced
   names: 

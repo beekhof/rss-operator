@@ -173,12 +173,14 @@ func (c *Cluster) prepareSeedMember() error {
 
 	var err error
 	if sh := c.cluster.Spec.SelfHosted; sh != nil {
+		c.logger.Errorf("beekhof: Self hosted seed member")
 		if len(sh.BootMemberClientEndpoint) == 0 {
 			err = c.newSelfHostedSeedMember()
 		} else {
 			err = c.migrateBootMember()
 		}
 	} else {
+		c.logger.Errorf("beekhof: Bootstrap seed member")
 		err = c.bootstrap()
 	}
 	if err != nil {

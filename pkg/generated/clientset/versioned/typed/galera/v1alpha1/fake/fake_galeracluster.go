@@ -31,9 +31,9 @@ type FakeGaleraClusters struct {
 	ns   string
 }
 
-var galeraclustersResource = schema.GroupVersionResource{Group: "galera.database.beekhof.net", Version: "v1alpha1", Resource: "galeraclusters"}
+var galeraclustersResource = schema.GroupVersionResource{Group: "galera.db.beekhof.net", Version: "v1alpha1", Resource: "galeraclusters"}
 
-var galeraclustersKind = schema.GroupVersionKind{Group: "galera.database.beekhof.net", Version: "v1alpha1", Kind: "GaleraCluster"}
+var galeraclustersKind = schema.GroupVersionKind{Group: "galera.db.beekhof.net", Version: "v1alpha1", Kind: "GaleraCluster"}
 
 // Get takes name of the galeraCluster, and returns the corresponding galeraCluster object, and an error if there is any.
 func (c *FakeGaleraClusters) Get(name string, options v1.GetOptions) (result *v1alpha1.GaleraCluster, err error) {

@@ -27,7 +27,7 @@ type GaleraV1alpha1Interface interface {
 	GaleraClustersGetter
 }
 
-// GaleraV1alpha1Client is used to interact with features provided by the galera.database.beekhof.net group.
+// GaleraV1alpha1Client is used to interact with features provided by the galera.db.beekhof.net group.
 type GaleraV1alpha1Client struct {
 	restClient rest.Interface
 }

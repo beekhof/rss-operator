@@ -95,7 +95,7 @@ Modify the file and change `size` from 3 to 5.
 
 ```
 $ cat example/example-etcd-cluster.yaml
-apiVersion: "galera.database.beekhof.net/v1beta2"
+apiVersion: "galera.db.beekhof.net/v1beta2"
 kind: "EtcdCluster"
 metadata:
   name: "example-etcd-cluster"
@@ -123,7 +123,7 @@ Similarly we can decrease the size of cluster from 5 back to 3 by changing the s
 
 ```
 $ cat example/example-etcd-cluster.yaml
-apiVersion: "galera.database.beekhof.net/v1beta2"
+apiVersion: "galera.db.beekhof.net/v1beta2"
 kind: "EtcdCluster"
 metadata:
   name: "example-etcd-cluster"
@@ -215,7 +215,7 @@ Have the following yaml file ready:
 
 ```
 $ cat upgrade-example.yaml
-apiVersion: "galera.database.beekhof.net/v1beta2"
+apiVersion: "galera.db.beekhof.net/v1beta2"
 kind: "EtcdCluster"
 metadata:
   name: "example-etcd-cluster"
@@ -247,7 +247,7 @@ Now modify the file `upgrade-example` and change the `version` from 3.1.10 to 3.
 
 ```
 $ cat upgrade-example
-apiVersion: "galera.database.beekhof.net/v1beta2"
+apiVersion: "galera.db.beekhof.net/v1beta2"
 kind: "EtcdCluster"
 metadata:
   name: "example-etcd-cluster"

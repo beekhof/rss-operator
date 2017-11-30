@@ -30,7 +30,7 @@ Verify that the etcd-backup-operator creates GaleraBackup CRD:
 ```sh
 $ kubectl get crd
 NAME                                    KIND
-etcdbackups.galera.database.beekhof.net    CustomResourceDefinition.v1beta1.apiextensions.k8s.io
+etcdbackups.galera.db.beekhof.net    CustomResourceDefinition.v1beta1.apiextensions.k8s.io
 ```
 
 ### Setup AWS Secret
@@ -75,7 +75,7 @@ Check the `status` section of the `GaleraBackup` CR:
 
 ```
 $ kubectl get GaleraBackup example-etcd-cluster-backup -o yaml
-apiVersion: galera.database.beekhof.net/v1beta2
+apiVersion: galera.db.beekhof.net/v1beta2
 kind: GaleraBackup
 ...
 status:
