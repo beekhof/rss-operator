@@ -23,17 +23,10 @@ import (
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 	"github.com/beekhof/galera-operator/pkg/util/retryutil"
 
-	"github.com/aws/aws-sdk-go/service/s3"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
-
-type StorageCheckerOptions struct {
-	S3Cli          *s3.S3
-	S3Bucket       string
-	DeletedFromAPI bool
-}
 
 func CreateCluster(t *testing.T, crClient versioned.Interface, namespace string, cl *api.GaleraCluster) (*api.GaleraCluster, error) {
 	cl.Namespace = namespace

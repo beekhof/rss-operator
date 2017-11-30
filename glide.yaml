@@ -14,16 +14,8 @@ import:
   version: v1.0.0
 - package: github.com/pkg/errors
   version: v0.8.0
-- package: github.com/aws/aws-sdk-go
-  version: v1.10.9
-- package: github.com/coreos/go-semver
-  version: v0.2.0
 - package: github.com/pborman/uuid
   version: v1.0
 - package: github.com/prometheus/client_golang
   version: v0.8.0
-- package: github.com/Azure/azure-sdk-for-go
-  version: v10.3.0-beta
-- package: github.com/Azure/go-autorest
-  version: v8.3.1
 - package: golang.org/x/time
