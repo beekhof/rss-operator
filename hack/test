@@ -9,6 +9,7 @@ KUBECONFIG=${KUBECONFIG:-""}
 
 if [ -z "${PASSES-}" ]; then
 	PASSES="fmt build e2e e2eslow unit"
+	PASSES="fmt build e2e"
 fi
 
 function listPkgs() {

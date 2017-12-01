@@ -27,6 +27,7 @@ import (
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
 	"github.com/beekhof/galera-operator/pkg/util/retryutil"
 	"github.com/pborman/uuid"
+	"github.com/pkg/errors"
 
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	"k8s.io/api/core/v1"
@@ -37,6 +38,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"
+	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" // for gcp auth
 	"k8s.io/client-go/rest"
 )
@@ -377,4 +379,26 @@ func mergeLabels(l1, l2 map[string]string) {
 		}
 		l1[k] = v
 	}
+}
+
+func CreateOrUpdateService(sclient clientv1.ServiceInterface, svc *v1.Service) error {
+	service, err := sclient.Get(svc.Name, metav1.GetOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrap(err, "retrieving service object failed")
+	}
+
+	if apierrors.IsNotFound(err) {
+		_, err = sclient.Create(svc)
+		if err != nil {
+			return errors.Wrap(err, "creating service object failed")
+		}
+	} else {
+		svc.ResourceVersion = service.ResourceVersion
+		_, err := sclient.Update(svc)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return errors.Wrap(err, "updating service object failed")
+		}
+	}
+
+	return nil
 }

@@ -40,7 +40,7 @@ func TestCreateCluster(t *testing.T) {
 		}
 	}()
 
-	if _, err := e2eutil.WaitUntilSizeReached(t, f.CRClient, 3, 12, testEtcd); err != nil {
+	if _, err := e2eutil.WaitUntilSizeReached(t, f.CRClient, 3, 60, testEtcd); err != nil {
 		t.Fatalf("failed to create 3 members etcd cluster: %v", err)
 	}
 }

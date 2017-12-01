@@ -32,6 +32,7 @@ import (
 	"github.com/beekhof/galera-operator/pkg/util/retryutil"
 
 	"github.com/pborman/uuid"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -92,12 +93,9 @@ type Cluster struct {
 
 func New(config Config, cl *api.GaleraCluster) *Cluster {
 	lg := logrus.WithField("pkg", "cluster").WithField("cluster-name", cl.Name)
-	var debugLogger *debug.DebugLogger
-	debugLogger = debug.New(cl.Name)
-
 	c := &Cluster{
 		logger:      lg,
-		debugLogger: debugLogger,
+		debugLogger: debug.New(cl.Name),
 		config:      config,
 		cluster:     cl,
 		eventCh:     make(chan *clusterEvent, 100),
@@ -155,6 +153,22 @@ func (c *Cluster) setup() error {
 	return nil
 }
 
+func (c *Cluster) startGalera() error {
+
+	// Create governing service if it doesn't exist.
+	svcClient := c.config.KubeCli.Core().Services(c.cluster.Namespace)
+	if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.cluster, c.config)); err != nil {
+		return errors.Wrap(err, "synchronizing governing service failed")
+	}
+
+	ruleFileConfigMaps := []*v1.ConfigMap{}
+	_, err := makeStatefulSet(*c.cluster, nil, &c.config, ruleFileConfigMaps)
+	if err != nil {
+		return errors.Wrap(err, "updating statefulset failed")
+	}
+	return nil
+}
+
 func (c *Cluster) create() error {
 	c.status.SetPhase(api.ClusterPhaseCreating)
 
@@ -162,7 +176,7 @@ func (c *Cluster) create() error {
 		return fmt.Errorf("cluster create: failed to update cluster phase (%v): %v", api.ClusterPhaseCreating, err)
 	}
 	c.logClusterCreation()
-
+	c.startGalera()
 	return c.prepareSeedMember()
 }
 
@@ -524,8 +538,5 @@ func (c *Cluster) logSpecUpdate(oldSpec, newSpec api.ClusterSpec) {
 }
 
 func (c *Cluster) isDebugLoggerEnabled() bool {
-	if c.debugLogger != nil {
-		return true
-	}
-	return false
+	return c.debugLogger != nil
 }

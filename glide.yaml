@@ -19,3 +19,4 @@ import:
 - package: github.com/prometheus/client_golang
   version: v0.8.0
 - package: golang.org/x/time
+- package: github.com/blang/semver

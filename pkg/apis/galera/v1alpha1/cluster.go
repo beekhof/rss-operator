@@ -24,8 +24,8 @@ import (
 
 const (
 	// TODO: This is where we put the galera image
-	defaultBaseImage = "gcr.io/etcd-development/etcd"
-	defaultVersion   = "3.2.10"
+	DefaultBaseImage = "gcr.io/etcd-development/etcd"
+	DefaultVersion   = "3.2.10"
 )
 
 var (
@@ -71,6 +71,8 @@ type ClusterSpec struct {
 	// cluster equal to the expected size.
 	// The vaild range of the size is from 1 to 7.
 	Size int `json:"size"`
+	// Number of instances to deploy for a Prometheus deployment.
+	//Replicas *int32 `json:"replicas,omitempty"`
 
 	// BaseImage is the base galera image name that will be used to launch
 	// galera clusters. This is useful for private registries, etc.
@@ -88,6 +90,11 @@ type ClusterSpec struct {
 	// If version is not set, default is "3.2.10".
 	Version string `json:"version,omitempty"`
 
+	// An optional list of references to secrets in the same namespace
+	// to use for pulling prometheus and alertmanager images from registries
+	// see http://kubernetes.io/docs/user-guide/images#specifying-imagepullsecrets-on-a-pod
+	ImagePullSecrets []v1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+
 	// Paused is to pause the control of the operator for the galera cluster.
 	Paused bool `json:"paused,omitempty"`
 
@@ -98,6 +105,38 @@ type ClusterSpec struct {
 
 	// galera cluster TLS configuration
 	TLS *TLSPolicy `json:"TLS,omitempty"`
+
+	// Storage spec to specify how storage shall be used.
+	//Storage *StorageSpec `json:"storage,omitempty"`
+	VolumeClaimTemplate *v1.PersistentVolumeClaim `json:"volumeClaimTemplate,omitempty"`
+
+	// A selector to select which ConfigMaps to mount for loading rule files from.
+	RuleSelector *metav1.LabelSelector `json:"ruleSelector,omitempty"`
+
+	// Define resources requests and limits for single Pods.
+	Resources v1.ResourceRequirements `json:"resources,omitempty"`
+
+	// Define which Nodes the Pods are scheduled on.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// ServiceAccountName is the name of the ServiceAccount to use to run the
+	// Prometheus Pods.
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+
+	// Secrets is a list of Secrets in the same namespace as the Prometheus
+	// object, which shall be mounted into the Prometheus Pods.
+	// The Secrets are mounted into /etc/prometheus/secrets/<secret-name>.
+	// Secrets changes after initial creation of a Prometheus object are not
+	// reflected in the running Pods. To change the secrets mounted into the
+	// Prometheus Pods, the object must be deleted and recreated with the new list
+	// of secrets.
+	Secrets []string `json:"secrets,omitempty"`
+
+	// If specified, the pod's scheduling constraints.
+	Affinity *v1.Affinity `json:"affinity,omitempty"`
+
+	// If specified, the pod's tolerations.
+	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 }
 
 // PodPolicy defines the policy to create pod for the galera container.
@@ -157,11 +196,11 @@ func (c *ClusterSpec) Validate() error {
 // TODO: move this to admission controller
 func (c *ClusterSpec) Cleanup() {
 	if len(c.BaseImage) == 0 {
-		c.BaseImage = defaultBaseImage
+		c.BaseImage = DefaultBaseImage
 	}
 
 	if len(c.Version) == 0 {
-		c.Version = defaultVersion
+		c.Version = DefaultVersion
 	}
 
 	c.Version = strings.TrimLeft(c.Version, "v")

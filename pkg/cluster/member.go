@@ -16,9 +16,7 @@ package cluster
 
 import (
 	"fmt"
-	"strings"
 
-	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
 	"github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/pkg/errors"
