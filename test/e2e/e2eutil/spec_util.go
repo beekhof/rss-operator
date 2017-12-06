@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewCluster(genName string, size int) *api.GaleraCluster {
+func NewCluster(genName string, size int, labels map[string]string, annotations map[string]string) *api.GaleraCluster {
 	return &api.GaleraCluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       api.GaleraClusterResourceKind,
@@ -28,6 +28,8 @@ func NewCluster(genName string, size int) *api.GaleraCluster {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: genName,
+			Labels:       labels,
+			Annotations:  annotations,
 		},
 		Spec: api.ClusterSpec{
 			Size: size,

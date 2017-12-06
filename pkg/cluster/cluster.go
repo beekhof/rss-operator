@@ -65,8 +65,7 @@ type Config struct {
 }
 
 type Cluster struct {
-	logger *logrus.Entry
-	// debug logger for self hosted cluster
+	logger      *logrus.Entry
 	debugLogger *debug.DebugLogger
 
 	config Config
@@ -162,10 +161,28 @@ func (c *Cluster) startGalera() error {
 	}
 
 	ruleFileConfigMaps := []*v1.ConfigMap{}
-	_, err := makeStatefulSet(*c.cluster, nil, &c.config, ruleFileConfigMaps)
+	//ruleFileConfigMaps, err := c.ruleFileConfigMaps(p)
+
+	// Create Secret if it doesn't exist.
+	s, err := makeEmptyConfig(*c.cluster, ruleFileConfigMaps, c.config)
 	if err != nil {
-		return errors.Wrap(err, "updating statefulset failed")
+		return errors.Wrap(err, "generating empty config secret failed")
 	}
+	if _, err := c.config.KubeCli.Core().Secrets(c.cluster.Namespace).Create(s); err != nil && !apierrors.IsAlreadyExists(err) {
+		return errors.Wrap(err, "creating empty config file failed")
+	}
+
+	c.logger.Errorf("beekhof: creating Galera STS")
+	sts, err := makeStatefulSet(*c.cluster, nil, &c.config, ruleFileConfigMaps)
+	if err != nil {
+		return errors.Wrap(err, "creating statefulset definition failed")
+	}
+
+	ssetClient := c.config.KubeCli.AppsV1beta1().StatefulSets(c.cluster.Namespace)
+	if _, err := ssetClient.Create(sts); err != nil {
+		return errors.Wrap(err, "creating statefulset failed")
+	}
+	c.logger.Errorf("beekhof: created Galera STS in %v", c.cluster.Namespace)
 	return nil
 }
 
@@ -176,7 +193,9 @@ func (c *Cluster) create() error {
 		return fmt.Errorf("cluster create: failed to update cluster phase (%v): %v", api.ClusterPhaseCreating, err)
 	}
 	c.logClusterCreation()
-	c.startGalera()
+	if err := c.startGalera(); err != nil {
+		c.logger.Errorf("beekhof: starting sts failed %v", err)
+	}
 	return c.prepareSeedMember()
 }
 

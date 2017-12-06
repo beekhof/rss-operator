@@ -61,8 +61,10 @@ func CreateCRD(clientset apiextensionsclient.Interface, crdName, rkind, rplural,
 			Version: api.SchemeGroupVersion.Version,
 			Scope:   apiextensionsv1beta1.NamespaceScoped,
 			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
-				Plural: rplural,
-				Kind:   rkind,
+				Plural:     rplural,
+				Kind:       rkind,
+				ShortNames: []string{"gcls"},
+				Singular:   "gcl",
 			},
 		},
 	}

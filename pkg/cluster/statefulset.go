@@ -15,8 +15,11 @@
 package cluster
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
-	"path"
+	//	"path"
+	"sort"
 	"strings"
 
 	"k8s.io/api/apps/v1beta1"
@@ -29,11 +32,13 @@ import (
 	//"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
 	//defaultRetention     = "24h"
-	//configMapsFilename   = "configmaps.json"
+	configMapsFilename   = "configmaps.json"
 	governingServiceName = "prometheus-operated"
 	DefaultVersion       = "v2.0.0"
 	configFilename       = "prometheus.yaml"
@@ -45,31 +50,15 @@ const (
 )
 
 var (
-	minSize = 1
-	//managedByOperatorLabel      = "managed-by"
-	//managedByOperatorLabelValue = "prometheus-operator"
-	//managedByOperatorLabels     = map[string]string{
-	//	managedByOperatorLabel: managedByOperatorLabelValue,
-	//}
-	probeTimeoutSeconds int32 = 3
-
-	CompatibilityMatrix = []string{
-		"v1.4.0",
-		"v1.4.1",
-		"v1.5.0",
-		"v1.5.1",
-		"v1.5.2",
-		"v1.5.3",
-		"v1.6.0",
-		"v1.6.1",
-		"v1.6.2",
-		"v1.6.3",
-		"v1.7.0",
-		"v1.7.1",
-		"v1.7.2",
-		"v1.8.0",
-		"v2.0.0",
+	minSize                     = 1
+	managedByOperatorLabel      = "managed-by"
+	managedByOperatorLabelValue = "prometheus-operator"
+	managedByOperatorLabels     = map[string]string{
+		managedByOperatorLabel: managedByOperatorLabelValue,
 	}
+	//probeTimeoutSeconds int32 = 3
+
+	logger = logrus.WithField("pkg", "statefulset")
 )
 
 func mergeLabels(labels map[string]string, otherLabels map[string]string) map[string]string {
@@ -107,7 +96,7 @@ func makeStatefulSet(p api.GaleraCluster, old *v1beta1.StatefulSet, config *Conf
 		p.Spec.Resources.Requests = v1.ResourceList{}
 	}
 	if _, ok := p.Spec.Resources.Requests[v1.ResourceMemory]; !ok {
-		p.Spec.Resources.Requests[v1.ResourceMemory] = resource.MustParse("2Gi")
+		p.Spec.Resources.Requests[v1.ResourceMemory] = resource.MustParse("2M")
 	}
 
 	spec, err := makeStatefulSetSpec(p, config, ruleConfigMaps)
@@ -115,29 +104,21 @@ func makeStatefulSet(p api.GaleraCluster, old *v1beta1.StatefulSet, config *Conf
 		return nil, errors.Wrap(err, "make StatefulSet spec")
 	}
 
-	boolTrue := true
+	logger.Errorf("beekhof: versions: p=%v, pM=%v, sP=%v, p=%v", p.APIVersion, p.TypeMeta.APIVersion, p.Spec.Version, p)
 	statefulset := &v1beta1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels:      mergeLabels(p.Spec.Pod.Labels, p.ObjectMeta.Labels),
-			Name:        prefixedName(p.Name),
-			Annotations: p.ObjectMeta.Annotations,
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         p.APIVersion,
-					BlockOwnerDeletion: &boolTrue,
-					Controller:         &boolTrue,
-					Kind:               p.Kind,
-					Name:               p.Name,
-					UID:                p.UID,
-				},
-			},
+			Labels:          mergeLabels(p.Spec.PodLabels(), p.ObjectMeta.Labels),
+			Name:            prefixedName(p.Name),
+			Annotations:     p.ObjectMeta.Annotations,
+			OwnerReferences: []metav1.OwnerReference{p.AsOwner()},
 		},
 		Spec: *spec,
 	}
+	logger.Errorf("beekhof: created STS: %v", statefulset)
 
-	if p.Spec.ImagePullSecrets != nil && len(p.Spec.ImagePullSecrets) > 0 {
-		statefulset.Spec.Template.Spec.ImagePullSecrets = p.Spec.ImagePullSecrets
-	}
+	// if p.Spec.ImagePullSecrets != nil && len(p.Spec.ImagePullSecrets) > 0 {
+	// 	statefulset.Spec.Template.Spec.ImagePullSecrets = p.Spec.ImagePullSecrets
+	// }
 
 	if p.Spec.VolumeClaimTemplate == nil {
 		statefulset.Spec.Template.Spec.Volumes = append(statefulset.Spec.Template.Spec.Volumes, v1.Volume{
@@ -162,6 +143,7 @@ func makeStatefulSet(p api.GaleraCluster, old *v1beta1.StatefulSet, config *Conf
 		statefulset.Spec.PodManagementPolicy = old.Spec.PodManagementPolicy
 	}
 
+	logger.Errorf("beekhof: final STS: %v", statefulset)
 	return statefulset, nil
 }
 
@@ -187,18 +169,12 @@ func (l *ConfigMapReferenceList) Swap(i, j int) {
 }
 
 func makeStatefulSetService(p *api.GaleraCluster, config Config) *v1.Service {
-	labels := map[string]string{
-		"operated-prometheus": "true",
-	}
-
-	if p.Spec.Pod != nil && p.Spec.Pod.Labels != nil {
-		labels = mergeLabels(p.Spec.Pod.Labels, labels)
-	}
-
 	svc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   governingServiceName,
-			Labels: labels,
+			Name: governingServiceName,
+			Labels: mergeLabels(p.Spec.PodLabels(), map[string]string{
+				"operated-prometheus": "true",
+			}),
 		},
 		Spec: v1.ServiceSpec{
 			ClusterIP: "None",
@@ -232,38 +208,38 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 	var promArgs []string
 	var securityContext v1.PodSecurityContext
 
-	switch version.Major {
-	case 1:
+	// switch version.Major {
+	// case 1:
+	promArgs = append(promArgs,
+		// "-storage.local.retention="+p.Spec.Retention,
+		"-storage.local.num-fingerprint-mutexes=4096",
+		fmt.Sprintf("-storage.local.path=%s", prometheusStorageDir),
+		"-storage.local.chunk-encoding-version=2",
+		fmt.Sprintf("-config.file=%s", prometheusConfFile))
+	// We attempt to specify decent storage tuning flags based on how much the
+	// requested memory can fit. The user has to specify an appropriate buffering
+	// in memory limits to catch increased memory usage during query bursts.
+	// More info: https://prometheus.io/docs/operating/storage/.
+	reqMem := p.Spec.Resources.Requests[v1.ResourceMemory]
+
+	if version.Minor < 6 {
+		// 1024 byte is the fixed chunk size. With increasing number of chunks actually
+		// in memory, overhead owed to their management, higher ingestion buffers, etc.
+		// increases.
+		// We are conservative for now an assume this to be 80% as the Kubernetes environment
+		// generally has a very high time series churn.
+		memChunks := reqMem.Value() / 1024 / 5
+
 		promArgs = append(promArgs,
-			// "-storage.local.retention="+p.Spec.Retention,
-			"-storage.local.num-fingerprint-mutexes=4096",
-			fmt.Sprintf("-storage.local.path=%s", prometheusStorageDir),
-			"-storage.local.chunk-encoding-version=2",
-			fmt.Sprintf("-config.file=%s", prometheusConfFile))
-		// We attempt to specify decent storage tuning flags based on how much the
-		// requested memory can fit. The user has to specify an appropriate buffering
-		// in memory limits to catch increased memory usage during query bursts.
-		// More info: https://prometheus.io/docs/operating/storage/.
-		reqMem := p.Spec.Resources.Requests[v1.ResourceMemory]
-
-		if version.Minor < 6 {
-			// 1024 byte is the fixed chunk size. With increasing number of chunks actually
-			// in memory, overhead owed to their management, higher ingestion buffers, etc.
-			// increases.
-			// We are conservative for now an assume this to be 80% as the Kubernetes environment
-			// generally has a very high time series churn.
-			memChunks := reqMem.Value() / 1024 / 5
-
-			promArgs = append(promArgs,
-				fmt.Sprintf("-storage.local.memory-chunks=%d", memChunks),
-				fmt.Sprintf("-storage.local.max-chunks-to-persist=%d", memChunks/2),
-			)
-		}
-
-		securityContext = v1.PodSecurityContext{}
-	default:
-		return nil, errors.Errorf("unsupported Prometheus major version %s", version)
+			fmt.Sprintf("-storage.local.memory-chunks=%d", memChunks),
+			fmt.Sprintf("-storage.local.max-chunks-to-persist=%d", memChunks/2),
+		)
 	}
+
+	securityContext = v1.PodSecurityContext{}
+	// default:
+	// 	return nil, errors.Errorf("unsupported Prometheus major version %s", version)
+	// }
 
 	// promArgs = append(promArgs, "-web.external-url="+p.Spec.ExternalURL)
 
@@ -280,6 +256,27 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 			Name: "rules",
 			VolumeSource: v1.VolumeSource{
 				EmptyDir: &v1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: "podinfo",
+			VolumeSource: v1.VolumeSource{
+				DownwardAPI: &v1.DownwardAPIVolumeSource{
+					Items: []v1.DownwardAPIVolumeFile{
+						{
+							Path: "labels",
+							FieldRef: &v1.ObjectFieldSelector{
+								FieldPath: "metadata.labels",
+							},
+						},
+						{
+							Path: "annotations",
+							FieldRef: &v1.ObjectFieldSelector{
+								FieldPath: "metadata.annotations",
+							},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -300,6 +297,12 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 			MountPath: prometheusStorageDir,
 			SubPath:   subPathForStorage(p.Spec.VolumeClaimTemplate),
 		},
+		{
+			Name:      "podinfo",
+			ReadOnly:  false,
+			MountPath: "/etc/podinfo",
+			SubPath:   "",
+		},
 	}
 
 	for _, s := range p.Spec.Secrets {
@@ -318,23 +321,21 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 		})
 	}
 
-	webRoutePrefix := "/"
-	var livenessProbeHandler v1.Handler
-	var readinessProbeHandler v1.Handler
-	var livenessProbeInitialDelaySeconds int32
-	livenessProbeHandler = v1.Handler{
-		HTTPGet: &v1.HTTPGetAction{
-			Path: path.Clean(webRoutePrefix + "/-/healthy"),
-			Port: intstr.FromString("web"),
-		},
-	}
-	readinessProbeHandler = v1.Handler{
-		HTTPGet: &v1.HTTPGetAction{
-			Path: path.Clean(webRoutePrefix + "/-/ready"),
-			Port: intstr.FromString("web"),
-		},
-	}
-	livenessProbeInitialDelaySeconds = 30
+	// webRoutePrefix := "/"
+	// var livenessProbeHandler v1.Handler
+	// var readinessProbeHandler v1.Handler
+	// livenessProbeHandler = v1.Handler{
+	// 	HTTPGet: &v1.HTTPGetAction{
+	// 		Path: path.Clean(webRoutePrefix + "/-/healthy"),
+	// 		Port: intstr.FromString("web"),
+	// 	},
+	// }
+	// readinessProbeHandler = v1.Handler{
+	// 	HTTPGet: &v1.HTTPGetAction{
+	// 		Path: path.Clean(webRoutePrefix + "/-/ready"),
+	// 		Port: intstr.FromString("web"),
+	// 	},
+	// }
 
 	podAnnotations := map[string]string{}
 	podLabels := map[string]string{}
@@ -360,7 +361,7 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 		},
 		Template: v1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels:      mergeLabels(p.Spec.Pod.Labels, podLabels),
+				Labels:      mergeLabels(p.Spec.PodLabels(), podLabels),
 				Annotations: podAnnotations,
 			},
 			Spec: v1.PodSpec{
@@ -375,21 +376,21 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 								Protocol:      v1.ProtocolTCP,
 							},
 						},
-						Args:         promArgs,
+						// Args:         promArgs,
 						VolumeMounts: promVolumeMounts,
-						LivenessProbe: &v1.Probe{
-							Handler:             livenessProbeHandler,
-							InitialDelaySeconds: livenessProbeInitialDelaySeconds,
-							PeriodSeconds:       5,
-							TimeoutSeconds:      probeTimeoutSeconds,
-							FailureThreshold:    10,
-						},
-						ReadinessProbe: &v1.Probe{
-							Handler:          readinessProbeHandler,
-							TimeoutSeconds:   probeTimeoutSeconds,
-							PeriodSeconds:    5,
-							FailureThreshold: 6,
-						},
+						// LivenessProbe: &v1.Probe{
+						// 	Handler:             livenessProbeHandler,
+						// 	InitialDelaySeconds: 30,
+						// 	PeriodSeconds:       5,
+						// 	TimeoutSeconds:      probeTimeoutSeconds,
+						// 	FailureThreshold:    10,
+						// },
+						// ReadinessProbe: &v1.Probe{
+						// 	Handler:          readinessProbeHandler,
+						// 	TimeoutSeconds:   probeTimeoutSeconds,
+						// 	PeriodSeconds:    5,
+						// 	FailureThreshold: 6,
+						// },
 						Resources: p.Spec.Resources,
 					},
 				},
@@ -423,4 +424,74 @@ func subPathForStorage(s *v1.PersistentVolumeClaim) string {
 	}
 
 	return "prometheus-db"
+}
+
+func makeRuleConfigMap(cm *v1.ConfigMap) (*ConfigMapReference, error) {
+	keys := []string{}
+	for k := range cm.Data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	m := yaml.MapSlice{}
+	for _, k := range keys {
+		m = append(m, yaml.MapItem{Key: k, Value: cm.Data[k]})
+	}
+
+	b, err := yaml.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ConfigMapReference{
+		Key:      cm.Namespace + "/" + cm.Name,
+		Checksum: fmt.Sprintf("%x", sha256.Sum256(b)),
+	}, nil
+}
+
+func makeRuleConfigMapListFile(configMaps []*v1.ConfigMap) ([]byte, error) {
+	cml := &ConfigMapReferenceList{}
+
+	for _, cm := range configMaps {
+		configmap, err := makeRuleConfigMap(cm)
+		if err != nil {
+			return nil, err
+		}
+		cml.Items = append(cml.Items, configmap)
+	}
+
+	sort.Sort(cml)
+	return json.Marshal(cml)
+}
+
+func makeConfigSecret(p api.GaleraCluster, configMaps []*v1.ConfigMap, config Config) (*v1.Secret, error) {
+	b, err := makeRuleConfigMapListFile(configMaps)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            configSecretName(p.Name),
+			Labels:          mergeLabels(p.Spec.PodLabels(), managedByOperatorLabels),
+			OwnerReferences: []metav1.OwnerReference{p.AsOwner()},
+		},
+		Data: map[string][]byte{
+			configFilename:     {},
+			configMapsFilename: b,
+		},
+	}, nil
+}
+
+func makeEmptyConfig(p api.GaleraCluster, configMaps []*v1.ConfigMap, config Config) (*v1.Secret, error) {
+	s, err := makeConfigSecret(p, configMaps, config)
+	if err != nil {
+		return nil, err
+	}
+
+	s.ObjectMeta.Annotations = map[string]string{
+		"empty": "true",
+	}
+
+	return s, nil
 }

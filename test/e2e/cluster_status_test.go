@@ -32,7 +32,7 @@ func TestReadyMembersStatus(t *testing.T) {
 	}
 	f := framework.Global
 	size := 1
-	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", size))
+	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", size, nil, nil))
 	if err != nil {
 		t.Fatal(err)
 	}

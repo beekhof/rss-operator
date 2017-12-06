@@ -24,8 +24,8 @@ import (
 
 const (
 	// TODO: This is where we put the galera image
-	DefaultBaseImage = "gcr.io/etcd-development/etcd"
-	DefaultVersion   = "3.2.10"
+	DefaultBaseImage = "quay.io/beekhof/centos"
+	DefaultVersion   = "0.0.1"
 )
 
 var (
@@ -173,6 +173,13 @@ type PodPolicy struct {
 	// By default, kubernetes will mount a service account token into the galera pods.
 	// AutomountServiceAccountToken indicates whether pods running with the service account should have an API token automatically mounted.
 	AutomountServiceAccountToken *bool `json:"automountServiceAccountToken,omitempty"`
+}
+
+func (c *ClusterSpec) PodLabels() map[string]string {
+	if c.Pod != nil {
+		return c.Pod.Labels
+	}
+	return map[string]string{}
 }
 
 func (c *ClusterSpec) Validate() error {

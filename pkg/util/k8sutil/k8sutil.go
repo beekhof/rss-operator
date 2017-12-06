@@ -195,6 +195,7 @@ func NewSeedMemberPod(clusterName string, ms etcdutil.MemberSet, m *etcdutil.Mem
 }
 
 func NewEtcdPod(m *etcdutil.Member, initialCluster []string, clusterName, state, token string, cs api.ClusterSpec, owner metav1.OwnerReference) *v1.Pod {
+
 	commands := fmt.Sprintf("/usr/local/bin/etcd --data-dir=%s --name=%s --initial-advertise-peer-urls=%s "+
 		"--listen-peer-urls=%s --listen-client-urls=%s --advertise-client-urls=%s "+
 		"--initial-cluster=%s --initial-cluster-state=%s",
@@ -216,7 +217,7 @@ func NewEtcdPod(m *etcdutil.Member, initialCluster []string, clusterName, state,
 	}
 
 	container := containerWithLivenessProbe(
-		etcdContainer(strings.Split(commands, " "), cs.BaseImage, cs.Version),
+		etcdContainer(strings.Split(commands, " "), "gcr.io/etcd-development/etcd", cs.Version),
 		etcdLivenessProbe(cs.TLS.IsSecureClient()))
 
 	if cs.Pod != nil {

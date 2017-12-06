@@ -28,8 +28,9 @@ func TestCreateCluster(t *testing.T) {
 	if os.Getenv(envParallelTest) == envParallelTestTrue {
 		t.Parallel()
 	}
+
 	f := framework.Global
-	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", 3))
+	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-galera-", 3, nil, nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,6 +46,32 @@ func TestCreateCluster(t *testing.T) {
 	}
 }
 
+func TestCreateClusterOnly(t *testing.T) {
+	if os.Getenv(envParallelTest) == envParallelTestTrue {
+		t.Parallel()
+	}
+
+	labels := map[string]string{
+		"testlabel": "createOnly",
+	}
+	annotations := map[string]string{
+		"testannotation": "testannotationvalue",
+	}
+
+	f := framework.Global
+	origEtcd := e2eutil.NewCluster("test-galera-", 3, labels, annotations)
+	origEtcd = e2eutil.ClusterWithVersion(origEtcd, "0.0.2")
+	origEtcd.Spec.BaseImage = "quay.io/beekhof/centos"
+	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, origEtcd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := e2eutil.WaitUntilSizeReached(t, f.CRClient, 3, 60, testEtcd); err != nil {
+		t.Fatalf("failed to create 3 members etcd cluster: %v", err)
+	}
+}
+
 // TestPauseControl tests the user can pause the operator from controlling
 // an etcd cluster.
 func TestPauseControl(t *testing.T) {
@@ -53,7 +80,7 @@ func TestPauseControl(t *testing.T) {
 	}
 
 	f := framework.Global
-	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", 3))
+	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", 3, nil, nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,9 +133,9 @@ func TestEtcdUpgrade(t *testing.T) {
 		t.Parallel()
 	}
 	f := framework.Global
-	origEtcd := e2eutil.NewCluster("test-etcd-", 3)
-	origEtcd = e2eutil.ClusterWithVersion(origEtcd, "3.1.10")
-	origEtcd.Spec.BaseImage = "quay.io/coreos/etcd"
+	origEtcd := e2eutil.NewCluster("test-etcd-", 3, nil, nil)
+	origEtcd = e2eutil.ClusterWithVersion(origEtcd, "0.0.2")
+	origEtcd.Spec.BaseImage = "quay.io/beekhof/centos"
 	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, origEtcd)
 	if err != nil {
 		t.Fatal(err)

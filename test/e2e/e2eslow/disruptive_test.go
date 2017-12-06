@@ -24,7 +24,7 @@ import (
 // restart operator should resume cluster
 func TestRestartOperator(t *testing.T) {
 	f := framework.Global
-	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", 3))
+	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", 3, nil, nil))
 	if err != nil {
 		t.Fatal(err)
 	}
