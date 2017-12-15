@@ -506,24 +506,74 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 		TTY:       tty,
 	}, scheme.ParameterCodec)
 
+	var err error
 	var stdout, stderr bytes.Buffer
 
-	//stdoutR, stdoutW := io.Pipe()
-	// stdoutR, stdoutW, err := os.Pipe()
-	err := execute("POST", req.URL(), config, options.Stdin, os.Stdout, os.Stderr, tty)
+	// Read/write code from davidvossel/kubevirt/pkg/virtctl/console/console.go
 
-	if true {
-		os.Stdout.Read(stdout.Bytes())
-	} else {
-		logger.Infof("reading: %v")
-		// max := 1024
-		// result := make([]byte, max)
-		// _, err = io.ReadAtLeast(stdoutR, stdout.Bytes(), 0)
-		logger.Infof("done reading: %v", stdout)
+	stdoutReader, stdoutWriter := io.Pipe()
+	stderrReader, stderrWriter := io.Pipe()
+
+	resChan := make(chan error)
+	readOutStop := make(chan struct{})
+	readErrStop := make(chan struct{})
+
+	go func() {
+		err := execute("POST", req.URL(), config, options.Stdin, stdoutWriter, stderrWriter, tty)
+		resChan <- err
+	}()
+
+	go func() {
+		defer close(readOutStop)
+		buf := make([]byte, 1024)
+		for {
+			logger.Infof("reading stdout")
+			n, err := stdoutReader.Read(buf)
+			if err != nil && err != io.EOF {
+				logger.Infof("non-EOF stdout read error: %v", err)
+				return
+			}
+			if n == 0 && err == io.EOF {
+				logger.Infof("EOF stdout read")
+				return
+			}
+			logger.Infof("partial stdout read: %v", string(buf))
+			_, err = stdout.Write(buf[0:n])
+			if err == io.EOF {
+				return
+			}
+		}
+	}()
+	go func() {
+		defer close(readErrStop)
+		buf := make([]byte, 1024)
+		for {
+			logger.Infof("reading stderr")
+			n, err := stderrReader.Read(buf)
+			if err != nil && err != io.EOF {
+				logger.Infof("non-EOF stderr read error: %v", err)
+				return
+			}
+			if n == 0 && err == io.EOF {
+				logger.Infof("EOF stderr read")
+				return
+			}
+			logger.Infof("partial stderr read: %v", string(buf))
+			_, err = stderr.Write(buf[0:n])
+			if err == io.EOF {
+				return
+			}
+		}
+	}()
+
+	logger.Infof("waiting")
+	select {
+	case <-readOutStop:
+	case <-readErrStop:
+	case err = <-resChan:
 	}
 
-	os.Stderr.Read(stderr.Bytes())
-	logger.Infof("out: %v, err: %v", stdout, stderr)
+	logger.Infof("out: %v, err: %v", stdout.String(), stderr.String())
 
 	if options.PreserveWhitespace {
 		return stdout.String(), stderr.String(), err
