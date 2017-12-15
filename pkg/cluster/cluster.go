@@ -71,7 +71,6 @@ type Cluster struct {
 	config Config
 
 	cluster *api.GaleraCluster
-
 	// in memory state of the cluster
 	// status is the source of truth after Cluster struct is materialized.
 	status        api.ClusterStatus
@@ -444,6 +443,9 @@ func (c *Cluster) pollPods() (running, pending []*v1.Pod, err error) {
 		switch pod.Status.Phase {
 		case v1.PodRunning:
 			running = append(running, pod)
+			go func() {
+				k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, pod.Name, "ls")
+			}()
 		case v1.PodPending:
 			pending = append(pending, pod)
 		}

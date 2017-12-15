@@ -1,4 +1,4 @@
-IMAGE="quay.io/beekhof/centos:0.0.1"
+IMAGE="quay.io/beekhof/centos:0.0.5"
 all: build push
 build:
 	echo "building container..."

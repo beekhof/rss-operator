@@ -15,8 +15,11 @@
 package k8sutil
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -26,8 +29,10 @@ import (
 	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
 	"github.com/beekhof/galera-operator/pkg/util/retryutil"
+	"github.com/golang/glog"
 	"github.com/pborman/uuid"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	"k8s.io/api/core/v1"
@@ -39,8 +44,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" // for gcp auth
+	certutil "k8s.io/client-go/util/cert"
+	// _ "k8s.io/client-go/plugin/pkg/client/auth/gcp" // for gcp auth
+	k8sv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 const (
@@ -297,9 +308,50 @@ func MustNewKubeClient() kubernetes.Interface {
 	return kubernetes.NewForConfigOrDie(cfg)
 }
 
+func TestConfig() (*rest.Config, error) {
+	cfg, err := clientcmd.BuildConfigFromFlags("https://192.168.124.10:6443", "/Users/beekhof/.kube/config")
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.Insecure = true
+	cfg.GroupVersion = &k8sv1.SchemeGroupVersion
+	cfg.APIPath = "/api"
+	cfg.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	return cfg, err
+}
+
+func FakeClusterConfig() (*rest.Config, error) {
+	// Copy the TLS settings from a running pod into KUBERNETES_SERVICE_DIR
+	host, port, account := os.Getenv("KUBERNETES_SERVICE_HOST"), os.Getenv("KUBERNETES_SERVICE_PORT"), os.Getenv("KUBERNETES_SERVICE_DIR")
+	if len(host) == 0 || len(port) == 0 || len(account) == 0 {
+		return nil, fmt.Errorf("unable to load in-cluster configuration, KUBERNETES_SERVICE_HOST, KUBERNETES_SERVICE_PORT and KUBERNETES_SERVICE_DIR must be defined")
+	}
+
+	token, err := ioutil.ReadFile(account + v1.ServiceAccountTokenKey)
+	if err != nil {
+		return nil, err
+	}
+	tlsClientConfig := rest.TLSClientConfig{}
+	rootCAFile := account + v1.ServiceAccountRootCAKey
+	if _, err := certutil.NewPool(rootCAFile); err != nil {
+		glog.Errorf("Expected to load root CA config from %s, but got err: %v", rootCAFile, err)
+	} else {
+		tlsClientConfig.CAFile = rootCAFile
+	}
+
+	return &rest.Config{
+		// TODO: switch to using cluster DNS.
+		Host:            "https://" + net.JoinHostPort(host, port),
+		BearerToken:     string(token),
+		TLSClientConfig: tlsClientConfig,
+	}, nil
+}
+
 func InClusterConfig() (*rest.Config, error) {
 	// Work around https://github.com/kubernetes/kubernetes/issues/40973
 	// See https://github.com/beekhof/galera-operator/issues/731#issuecomment-283804819
+	testing := false
 	if len(os.Getenv("KUBERNETES_SERVICE_HOST")) == 0 {
 		addrs, err := net.LookupHost("kubernetes.default.svc")
 		if err != nil {
@@ -310,7 +362,12 @@ func InClusterConfig() (*rest.Config, error) {
 	if len(os.Getenv("KUBERNETES_SERVICE_PORT")) == 0 {
 		os.Setenv("KUBERNETES_SERVICE_PORT", "443")
 	}
-	return rest.InClusterConfig()
+	cfg, err := rest.InClusterConfig()
+
+	if testing {
+		return TestConfig()
+	}
+	return cfg, err
 }
 
 func IsKubernetesResourceAlreadyExistError(err error) bool {
@@ -402,4 +459,141 @@ func CreateOrUpdateService(sclient clientv1.ServiceInterface, svc *v1.Service) e
 	}
 
 	return nil
+}
+
+// ExecOptions passed to ExecWithOptions
+type ExecOptions struct {
+	Command []string
+
+	Namespace     string
+	PodName       string
+	ContainerName string
+
+	Stdin         io.Reader
+	CaptureStdout bool
+	CaptureStderr bool
+	// If false, whitespace in std{err,out} will be removed.
+	PreserveWhitespace bool
+}
+
+// ExecWithOptions executes a command in the specified container,
+// returning stdout, stderr and error. `options` allowed for
+// additional parameters to be passed.
+func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options ExecOptions) (string, string, error) {
+	logger.Infof("ExecWithOptions %+v", options)
+
+	const tty = false
+	config, _ := InClusterConfig()
+
+	// // restClient := f.KubeClient.CoreV1().RESTClient()
+	// restClient, err := restclient.RESTClientFor(config)
+	// if err != nil {
+	// 	return "", "", err
+	// }
+
+	req := cli.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Name(options.PodName).
+		Namespace(options.Namespace).
+		SubResource("exec").
+		Param("container", options.ContainerName)
+	req.VersionedParams(&v1.PodExecOptions{
+		Container: options.ContainerName,
+		Command:   options.Command,
+		Stdin:     options.Stdin != nil,
+		Stdout:    options.CaptureStdout,
+		Stderr:    options.CaptureStderr,
+		TTY:       tty,
+	}, scheme.ParameterCodec)
+
+	var stdout, stderr bytes.Buffer
+
+	//stdoutR, stdoutW := io.Pipe()
+	// stdoutR, stdoutW, err := os.Pipe()
+	err := execute("POST", req.URL(), config, options.Stdin, os.Stdout, os.Stderr, tty)
+
+	if true {
+		os.Stdout.Read(stdout.Bytes())
+	} else {
+		logger.Infof("reading: %v")
+		// max := 1024
+		// result := make([]byte, max)
+		// _, err = io.ReadAtLeast(stdoutR, stdout.Bytes(), 0)
+		logger.Infof("done reading: %v", stdout)
+	}
+
+	os.Stderr.Read(stderr.Bytes())
+	logger.Infof("out: %v, err: %v", stdout, stderr)
+
+	if options.PreserveWhitespace {
+		return stdout.String(), stderr.String(), err
+	}
+	return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), err
+}
+
+func execute(method string, url *url.URL, config *rest.Config, stdin io.Reader, stdout, stderr io.Writer, tty bool) error {
+	exec, err := remotecommand.NewSPDYExecutor(config, method, url)
+	if err != nil {
+		return err
+	}
+	return exec.Stream(remotecommand.StreamOptions{
+		Stdin:  stdin,
+		Stdout: stdout,
+		Stderr: stderr,
+		Tty:    tty,
+	})
+}
+
+// ExecCommandInContainerWithFullOutput executes a command in the
+// specified container and return stdout, stderr and error
+func ExecCommandInContainerWithFullOutput(logger *logrus.Entry, cli kubernetes.Interface, namespace string, podName string, containerName string, cmd ...string) (string, string, error) {
+	return ExecWithOptions(logger, cli, ExecOptions{
+		Command:       cmd,
+		Namespace:     namespace,
+		PodName:       podName,
+		ContainerName: containerName,
+
+		Stdin:              nil,
+		CaptureStdout:      true,
+		CaptureStderr:      true,
+		PreserveWhitespace: false,
+	})
+}
+
+// ExecCommandInContainer executes a command in the specified container.
+func ExecCommandInContainer(logger *logrus.Entry, cli kubernetes.Interface, namespace string, podName string, containerName string, cmd ...string) string {
+	stdout, stderr, err := ExecCommandInContainerWithFullOutput(logger, cli, namespace, podName, containerName, cmd...)
+
+	logger.Infof("Exec stderr: %q", stderr)
+	if err != nil {
+		logger.Errorf("failed to execute command in pod %v, container %v: %v",
+			podName, containerName, err)
+	}
+
+	return stdout
+}
+
+func ExecCommandInPod(logger *logrus.Entry, cli kubernetes.Interface, namespace string, podName string, cmd ...string) string {
+	pod, err := cli.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
+	if err != nil {
+		logger.Errorf("failed to get pod %v: %v", podName, err)
+	}
+	if len(pod.Spec.Containers) <= 0 {
+		logger.Errorf("No containers in %v", podName)
+		return ""
+	}
+	return ExecCommandInContainer(logger, cli, namespace, podName, pod.Spec.Containers[0].Name, cmd...)
+}
+
+func ExecCommandInPodWithFullOutput(logger *logrus.Entry, cli kubernetes.Interface,
+	namespace string, podName string, cmd ...string) (string, string, error) {
+	pod, err := cli.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
+	if err != nil {
+		logger.Errorf("failed to get pod %v: %v", podName, err)
+	}
+	if len(pod.Spec.Containers) <= 0 {
+		logger.Errorf("No containers in %v", podName)
+		return "", "", nil
+	}
+	return ExecCommandInContainerWithFullOutput(logger, cli, namespace, podName, pod.Spec.Containers[0].Name, cmd...)
 }

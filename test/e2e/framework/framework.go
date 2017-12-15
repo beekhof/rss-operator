@@ -34,6 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -46,9 +47,11 @@ var Global *Framework
 
 type Framework struct {
 	opImage    string
+	Config     *rest.Config
 	KubeClient kubernetes.Interface
 	CRClient   versioned.Interface
 	Namespace  string
+	Log        *logrus.Entry
 }
 
 // Setup setups a test framework and points "Global" to it.
@@ -58,12 +61,15 @@ func setup() error {
 	ns := flag.String("namespace", "default", "e2e test namespace")
 	flag.Parse()
 
+	logrus.Info("building config from", *kubeconfig)
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
+		logrus.Info("error building config")
 		return err
 	}
 	cli, err := kubernetes.NewForConfig(config)
 	if err != nil {
+		logrus.Info("error creating cli")
 		return err
 	}
 
@@ -72,6 +78,8 @@ func setup() error {
 		CRClient:   client.MustNew(config),
 		Namespace:  *ns,
 		opImage:    *opImage,
+		Config:     config,
+		Log:        logrus.WithField("pkg", "test").WithField("ns", *ns),
 	}
 	return Global.setup()
 }

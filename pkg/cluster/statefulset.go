@@ -367,8 +367,10 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 			Spec: v1.PodSpec{
 				Containers: []v1.Container{
 					{
-						Name:  "prometheus",
-						Image: fmt.Sprintf("%s:%s", p.Spec.BaseImage, p.Spec.Version),
+						Name:            "prometheus",
+						Image:           fmt.Sprintf("%s:%s", p.Spec.BaseImage, p.Spec.Version),
+						ImagePullPolicy: "Always", // Useful while testing
+
 						Ports: []v1.ContainerPort{
 							{
 								Name:          "web",
