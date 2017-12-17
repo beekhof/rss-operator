@@ -444,7 +444,7 @@ func (c *Cluster) pollPods() (running, pending []*v1.Pod, err error) {
 		case v1.PodRunning:
 			running = append(running, pod)
 			go func() {
-				k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, pod.Name, "ls")
+				k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, pod.Name, "ls", "-al")
 			}()
 		case v1.PodPending:
 			pending = append(pending, pod)

@@ -50,7 +50,8 @@ func TestCreateCluster(t *testing.T) {
 func TestConnectPod(t *testing.T) {
 	f := framework.Global
 
-	stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(f.Log, f.KubeClient, f.Namespace, "test-galera-qgd49-0001", "ls")
+	stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(f.Log, f.KubeClient, f.Namespace,
+		"test-galera-qgd49-0001", "ls", "-al")
 	// stdout, stderr, err := f.ExecCommandInPodWithFullOutput("test-galera-qgd49-0001", "ls")
 	f.Log.Infof("out: %v, err: %v", stdout, stderr)
 	if err != nil {
@@ -72,7 +73,7 @@ func TestCreateClusterOnly(t *testing.T) {
 
 	f := framework.Global
 	origEtcd := e2eutil.NewCluster("test-galera-", 3, labels, annotations)
-	origEtcd = e2eutil.ClusterWithVersion(origEtcd, "3.2")
+	origEtcd = e2eutil.ClusterWithVersion(origEtcd, "0.0.5")
 	origEtcd.Spec.BaseImage = "quay.io/beekhof/centos"
 	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, origEtcd)
 	if err != nil {
