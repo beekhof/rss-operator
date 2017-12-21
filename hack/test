@@ -8,8 +8,8 @@ set -o pipefail
 KUBECONFIG=${KUBECONFIG:-""}
 
 if [ -z "${PASSES-}" ]; then
-	PASSES="fmt build e2e e2eslow unit"
-	PASSES="fmt build e2e"
+	PASSES="prep simple build e2e e2eslow unit"
+	PASSES="prep simple build e2e"
 fi
 
 function listPkgs() {
@@ -21,7 +21,7 @@ function listFiles() {
 	listPkgs | xargs -I {} find "${GOPATH}/src/{}" -name '*.go' | grep -v generated
 }
 
-function fmt_pass {
+function prep_pass {
 	if ! "./hack/k8s/codegen/verify-generated.sh"; then
 		exit 1
 	fi
@@ -36,28 +36,6 @@ function fmt_pass {
 			exit 255
 		fi
 	done
-
-	echo "Checking govet..."
-	for file in $allfiles; do
-		checkRes=$(go vet $file)
-		if [ -n "${checkRes}" ]; then
-			echo -e "go vet checking failed:\n${checkRes}"
-			exit 255
-		fi
-	done
-	
-	go get honnef.co/go/tools/cmd/gosimple || true
-	if which gosimple >/dev/null; then
-		echo "Checking gosimple..."
-		# Generated deepcopy code failed checking... Ignore it at the moment
-		checkRes=$(gosimple `listPkgs | grep -v -e apis/galera/v1alpha1 -e apis/etcd/v1beta2`) || true
-		if [ -n "${checkRes}" ]; then
-			echo -e "gosimple checking failed:\n${checkRes}"
-			exit 255
-		fi
-	else
-		echo "Skipping gosimple: failed to install"
-	fi
 
 	go get honnef.co/go/tools/cmd/unused || true
 	if which unused >/dev/null; then
@@ -83,6 +61,23 @@ function fmt_pass {
 		exit 255
 	fi
 }
+function simple_pass {
+	allfiles=$(listFiles)
+
+	
+	go get honnef.co/go/tools/cmd/gosimple || true
+	if which gosimple >/dev/null; then
+		echo "Checking gosimple..."
+		# Generated deepcopy code failed checking... Ignore it at the moment
+		checkRes=$(gosimple `listPkgs | grep -v -e apis/galera/v1alpha1 -e apis/etcd/v1beta2`) || true
+		if [ -n "${checkRes}" ]; then
+			echo -e "gosimple checking failed:\n${checkRes}"
+			exit 255
+		fi
+	else
+		echo "Skipping gosimple: failed to install"
+	fi
+}
 
 function build_pass {
 	hack/build/operator/build
@@ -90,9 +85,6 @@ function build_pass {
 }
 
 function e2e_pass {
-	: ${TEST_S3_BUCKET:?"Need to set TEST_S3_BUCKET"}
-	: ${TEST_AWS_SECRET:?"Need to set TEST_AWS_SECRET"}
-
 	# Run all the tests by default
 	E2E_TEST_SELECTOR=${E2E_TEST_SELECTOR:-.*}
 
@@ -162,4 +154,4 @@ do
 	${p}_pass
 done
 
-echo "test success ==="
+echo "=== success ==="
