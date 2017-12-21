@@ -31,7 +31,7 @@ import (
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 	"github.com/beekhof/galera-operator/pkg/util/retryutil"
 
-	"github.com/pborman/uuid"
+	// "github.com/pborman/uuid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
@@ -42,8 +42,7 @@ import (
 )
 
 var (
-	reconcileInterval         = 8 * time.Second
-	podTerminationGracePeriod = int64(5)
+	reconcileInterval = 8 * time.Second
 )
 
 type clusterEventType string
@@ -82,7 +81,7 @@ type Cluster struct {
 	// members repsersents the members in the etcd cluster.
 	// the name of the member is the the name of the pod the member
 	// process runs in.
-	members etcdutil.MemberSet
+	peers etcdutil.MemberSet
 
 	tlsConfig *tls.Config
 
@@ -103,6 +102,7 @@ func New(config Config, cl *api.GaleraCluster) *Cluster {
 	}
 
 	go func() {
+		c.logger.Infof("setting up cluster")
 		if err := c.setup(); err != nil {
 			c.logger.Errorf("cluster failed to setup: %v", err)
 			if c.status.Phase != api.ClusterPhaseFailed {
@@ -112,8 +112,10 @@ func New(config Config, cl *api.GaleraCluster) *Cluster {
 					c.logger.Errorf("failed to update cluster phase (%v): %v", api.ClusterPhaseFailed, err)
 				}
 			}
+			c.logger.Infof("exiting early %v", c.status.Phase)
 			return
 		}
+		c.logger.Infof("running")
 		c.run()
 	}()
 
@@ -145,13 +147,14 @@ func (c *Cluster) setup() error {
 		}
 	}
 
+	c.logger.Infof("creating cluster: %v, %v", shouldCreateCluster, c.status.Phase)
 	if shouldCreateCluster {
 		return c.create()
 	}
 	return nil
 }
 
-func (c *Cluster) startGalera() error {
+func (c *Cluster) createGalera() error {
 
 	// Create governing service if it doesn't exist.
 	svcClient := c.config.KubeCli.Core().Services(c.cluster.Namespace)
@@ -191,24 +194,11 @@ func (c *Cluster) create() error {
 	if err := c.updateCRStatus(); err != nil {
 		return fmt.Errorf("cluster create: failed to update cluster phase (%v): %v", api.ClusterPhaseCreating, err)
 	}
-	c.logClusterCreation()
-	if err := c.startGalera(); err != nil {
+	if err := c.createGalera(); err != nil {
 		c.logger.Errorf("beekhof: starting sts failed %v", err)
-	}
-	return c.prepareSeedMember()
-}
-
-func (c *Cluster) prepareSeedMember() error {
-	c.status.SetScalingUpCondition(0, c.cluster.Spec.Size)
-
-	var err error
-	c.logger.Errorf("beekhof: Bootstrap seed member")
-	err = c.bootstrap()
-	if err != nil {
 		return err
 	}
-
-	c.status.Size = 1
+	c.logClusterCreation()
 	return nil
 }
 
@@ -291,7 +281,7 @@ func (c *Cluster) run() {
 			}
 
 			// On controller restore, we could have "members == nil"
-			if rerr != nil || c.members == nil {
+			if rerr != nil || c.peers == nil {
 				rerr = c.updateMembers(podsToMemberSet(running, c.isSecureClient()))
 				if rerr != nil {
 					c.logger.Errorf("failed to update members: %v", rerr)
@@ -303,7 +293,7 @@ func (c *Cluster) run() {
 				c.logger.Errorf("failed to reconcile: %v", rerr)
 				break
 			}
-			c.updateMemberStatus(c.members, k8sutil.GetPodNames(running))
+			c.updateMemberStatus(c.peers, k8sutil.GetPodNames(running))
 			if err := c.updateCRStatus(); err != nil {
 				c.logger.Warningf("periodic update CR status failed: %v", err)
 			}
@@ -348,39 +338,12 @@ func isSpecEqual(s1, s2 api.ClusterSpec) bool {
 	return true
 }
 
-func (c *Cluster) startSeedMember() error {
-	m := &etcdutil.Member{
-		Name:         etcdutil.CreateMemberName(c.cluster.Name, c.memberCounter),
-		Namespace:    c.cluster.Namespace,
-		SecurePeer:   c.isSecurePeer(),
-		SecureClient: c.isSecureClient(),
-	}
-	ms := etcdutil.NewMemberSet(m)
-	if err := c.createPod(ms, m, "new"); err != nil {
-		return fmt.Errorf("failed to create seed member (%s): %v", m.Name, err)
-	}
-	c.memberCounter++
-	c.members = ms
-	c.logger.Infof("cluster created with seed member (%s)", m.Name)
-	_, err := c.eventsCli.Create(k8sutil.NewMemberAddEvent(m.Name, c.cluster))
-	if err != nil {
-		c.logger.Errorf("failed to create new member add event: %v", err)
-	}
-
-	return nil
-}
-
 func (c *Cluster) isSecurePeer() bool {
 	return c.cluster.Spec.TLS.IsSecurePeer()
 }
 
 func (c *Cluster) isSecureClient() bool {
 	return c.cluster.Spec.TLS.IsSecureClient()
-}
-
-// bootstrap creates the seed etcd member for a new cluster.
-func (c *Cluster) bootstrap() error {
-	return c.startSeedMember()
 }
 
 func (c *Cluster) Update(cl *api.GaleraCluster) {
@@ -399,31 +362,32 @@ func (c *Cluster) setupServices() error {
 	return k8sutil.CreatePeerService(c.config.KubeCli, c.cluster.Name, c.cluster.Namespace, c.cluster.AsOwner())
 }
 
-func (c *Cluster) createPod(members etcdutil.MemberSet, m *etcdutil.Member, state string) error {
-	pod := k8sutil.NewEtcdPod(m, members.PeerURLPairs(), c.cluster.Name, state, uuid.New(), c.cluster.Spec, c.cluster.AsOwner())
-	_, err := c.config.KubeCli.Core().Pods(c.cluster.Namespace).Create(pod)
-	return err
-}
-
-func (c *Cluster) removePod(name string) error {
-	ns := c.cluster.Namespace
-	opts := metav1.NewDeleteOptions(podTerminationGracePeriod)
-	err := c.config.KubeCli.Core().Pods(ns).Delete(name, opts)
+func (c *Cluster) podOwner(pod *v1.Pod) bool {
+	sts, err := k8sutil.GetStatefulSet(c.config.KubeCli, c.cluster.Namespace, prefixedName(c.cluster.Name))
 	if err != nil {
-		if !k8sutil.IsKubernetesResourceNotFoundError(err) {
-			return err
-		}
-		if c.isDebugLoggerEnabled() {
-			c.debugLogger.LogMessage(fmt.Sprintf("pod (%s) not found while trying to delete it", name))
-		}
+		c.logger.Errorf("failed to find sts: %v", err)
 	}
-	if c.isDebugLoggerEnabled() {
-		c.debugLogger.LogPodDeletion(name)
+
+	for n := range pod.OwnerReferences {
+		if pod.OwnerReferences[n].UID == c.cluster.UID {
+			return true
+		} else if pod.OwnerReferences[n].UID == sts.UID {
+			return true
+		}
+		c.logger.Infof("mismatch[%v/%v]: %v vs. c.%v and s.%v", n, len(pod.OwnerReferences), pod.OwnerReferences[n].UID, c.cluster.UID, sts.UID)
 	}
-	return nil
+	return false
 }
 
+// func (c *Cluster) getStatefulSet() (*apps.StatefulSet, err error) {
+// //	Labels:          mergeLabels(p.Spec.PodLabels(), p.ObjectMeta.Labels),
+// 	return cli.AppsV1beta2().StatefulSets(c.cluster.Namespace).Get(c.cluster.Name, metav1.GetOptions{})
+// }
 func (c *Cluster) pollPods() (running, pending []*v1.Pod, err error) {
+	// sel, err := metav1.LabelSelectorAsSelector(sts.Spec.Selector)
+	// c.logger.Infof("filter: %v -> %v.", sts.Spec.Selector, sel)
+	// podList, err := k8sutil.GetPodsForStatefulSet(c.config.KubeCli, sts)
+
 	podList, err := c.config.KubeCli.Core().Pods(c.cluster.Namespace).List(k8sutil.ClusterListOpt(c.cluster.Name))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to list running pods: %v", err)
@@ -435,7 +399,7 @@ func (c *Cluster) pollPods() (running, pending []*v1.Pod, err error) {
 			c.logger.Warningf("pollPods: ignore pod %v: no owner", pod.Name)
 			continue
 		}
-		if pod.OwnerReferences[0].UID != c.cluster.UID {
+		if !c.podOwner(pod) {
 			c.logger.Warningf("pollPods: ignore pod %v: owner (%v) is not %v",
 				pod.Name, pod.OwnerReferences[0].UID, c.cluster.UID)
 			continue

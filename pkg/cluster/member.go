@@ -51,19 +51,19 @@ func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
 			SecureClient: c.isSecureClient(),
 		}
 	}
-	c.members = members
+	c.peers = members
 	return nil
 }
 
-func (c *Cluster) newMember(id int) *etcdutil.Member {
-	name := etcdutil.CreateMemberName(c.cluster.Name, id)
-	return &etcdutil.Member{
-		Name:         name,
-		Namespace:    c.cluster.Namespace,
-		SecurePeer:   c.isSecurePeer(),
-		SecureClient: c.isSecureClient(),
-	}
-}
+// func (c *Cluster) newMember(id int) *etcdutil.Member {
+// 	name := etcdutil.CreateMemberName(c.cluster.Name, id)
+// 	return &etcdutil.Member{
+// 		Name:         name,
+// 		Namespace:    c.cluster.Namespace,
+// 		SecurePeer:   c.isSecurePeer(),
+// 		SecureClient: c.isSecureClient(),
+// 	}
+// }
 
 func podsToMemberSet(pods []*v1.Pod, sc bool) etcdutil.MemberSet {
 	members := etcdutil.MemberSet{}
