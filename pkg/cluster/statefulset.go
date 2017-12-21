@@ -18,7 +18,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	//	"path"
 	"sort"
 	"strings"
 
@@ -26,10 +25,11 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	// "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
-	//"github.com/beekhof/galera-operator/pkg/util/k8sutil"
+	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -40,7 +40,6 @@ const (
 	//defaultRetention     = "24h"
 	configMapsFilename   = "configmaps.json"
 	governingServiceName = "prometheus-operated"
-	DefaultVersion       = "v2.0.0"
 	configFilename       = "prometheus.yaml"
 	prometheusConfDir    = "/etc/prometheus/config"
 	prometheusConfFile   = prometheusConfDir + "/" + configFilename
@@ -104,7 +103,7 @@ func makeStatefulSet(p api.GaleraCluster, old *v1beta1.StatefulSet, config *Conf
 		return nil, errors.Wrap(err, "make StatefulSet spec")
 	}
 
-	logger.Errorf("beekhof: versions: p=%v, pM=%v, sP=%v, p=%v", p.APIVersion, p.TypeMeta.APIVersion, p.Spec.Version, p)
+	logger.Infof("beekhof: owner: %v", p.AsOwner())
 	statefulset := &v1beta1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:          mergeLabels(p.Spec.PodLabels(), p.ObjectMeta.Labels),
@@ -114,7 +113,7 @@ func makeStatefulSet(p api.GaleraCluster, old *v1beta1.StatefulSet, config *Conf
 		},
 		Spec: *spec,
 	}
-	logger.Errorf("beekhof: created STS: %v", statefulset)
+	logger.Infof("beekhof: created STS=%v", statefulset.UID)
 
 	// if p.Spec.ImagePullSecrets != nil && len(p.Spec.ImagePullSecrets) > 0 {
 	// 	statefulset.Spec.Template.Spec.ImagePullSecrets = p.Spec.ImagePullSecrets
@@ -143,7 +142,7 @@ func makeStatefulSet(p api.GaleraCluster, old *v1beta1.StatefulSet, config *Conf
 		statefulset.Spec.PodManagementPolicy = old.Spec.PodManagementPolicy
 	}
 
-	logger.Errorf("beekhof: final STS: %v", statefulset)
+	logger.Infof("beekhof: final STS: %v", statefulset)
 	return statefulset, nil
 }
 
@@ -349,9 +348,10 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 			podAnnotations[k] = v
 		}
 	}
-	podLabels["app"] = "prometheus"
-	podLabels["prometheus"] = p.Name
+
+	podLabels = mergeLabels(k8sutil.LabelsForCluster(p.Name), podLabels)
 	intSize := int32(p.Spec.Size)
+
 	return &v1beta1.StatefulSetSpec{
 		ServiceName:         governingServiceName,
 		Replicas:            &intSize,
