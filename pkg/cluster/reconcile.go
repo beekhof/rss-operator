@@ -15,17 +15,13 @@
 package cluster
 
 import (
-	"context"
 	"errors"
-	"fmt"
 
 	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
-	"github.com/beekhof/galera-operator/pkg/util/constants"
+	// "github.com/beekhof/galera-operator/pkg/util/constants"
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 
-	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
 	"k8s.io/api/core/v1"
 )
 
@@ -40,12 +36,12 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 	defer c.logger.Infoln("Finish reconciling")
 
 	defer func() {
-		c.status.Size = c.members.Size()
+		c.status.Size = c.peers.Size()
 	}()
 
 	sp := c.cluster.Spec
 	running := podsToMemberSet(pods, c.isSecureClient())
-	if !running.IsEqual(c.members) || c.members.Size() != sp.Size {
+	if !running.IsEqual(c.peers) || c.peers.Size() != sp.Size {
 		return c.reconcileMembers(running)
 	}
 	c.status.ClearCondition(api.ClusterConditionScaling)
@@ -75,117 +71,18 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 // 5. Add one missing member. END.
 func (c *Cluster) reconcileMembers(running etcdutil.MemberSet) error {
 	c.logger.Infof("running members: %s", running)
-	c.logger.Infof("cluster membership: %s", c.members)
+	c.logger.Infof("cluster membership: %s", c.peers)
 
-	unknownMembers := running.Diff(c.members)
+	unknownMembers := running.Diff(c.peers)
 	if unknownMembers.Size() > 0 {
-		c.logger.Infof("removing unexpected pods: %v", unknownMembers)
-		for _, m := range unknownMembers {
-			if err := c.removePod(m.Name); err != nil {
-				return err
-			}
-		}
-	}
-	L := running.Diff(unknownMembers)
-
-	if L.Size() == c.members.Size() {
-		return c.resize()
+		c.logger.Infof("updating pods: %v", unknownMembers)
+		c.updateMembers(running)
 	}
 
-	if L.Size() < c.members.Size()/2+1 {
+	if c.peers.Size() < c.cluster.Spec.Size/2+1 {
 		c.logger.Infof("lost quorum")
 		return ErrLostQuorum
 	}
-
-	c.logger.Infof("removing one dead member")
-	// remove dead members that doesn't have any running pods before doing resizing.
-	return c.removeDeadMember(c.members.Diff(L).PickOne())
-}
-
-func (c *Cluster) resize() error {
-	if c.members.Size() == c.cluster.Spec.Size {
-		return nil
-	}
-
-	if c.members.Size() < c.cluster.Spec.Size {
-		return c.addOneMember()
-	}
-
-	return c.removeOneMember()
-}
-
-func (c *Cluster) addOneMember() error {
-	c.status.SetScalingUpCondition(c.members.Size(), c.cluster.Spec.Size)
-
-	cfg := clientv3.Config{
-		Endpoints:   c.members.ClientURLs(),
-		DialTimeout: constants.DefaultDialTimeout,
-		TLS:         c.tlsConfig,
-	}
-	etcdcli, err := clientv3.New(cfg)
-	if err != nil {
-		return fmt.Errorf("add one member failed: creating etcd client failed %v", err)
-	}
-	defer etcdcli.Close()
-
-	newMember := c.newMember(c.memberCounter)
-	ctx, cancel := context.WithTimeout(context.Background(), constants.DefaultRequestTimeout)
-	resp, err := etcdcli.MemberAdd(ctx, []string{newMember.PeerURL()})
-	cancel()
-	if err != nil {
-		return fmt.Errorf("fail to add new member (%s): %v", newMember.Name, err)
-	}
-	newMember.ID = resp.Member.ID
-	c.members.Add(newMember)
-
-	if err := c.createPod(c.members, newMember, "existing"); err != nil {
-		return fmt.Errorf("fail to create member's pod (%s): %v", newMember.Name, err)
-	}
-	c.memberCounter++
-	c.logger.Infof("added member (%s)", newMember.Name)
-	_, err = c.eventsCli.Create(k8sutil.NewMemberAddEvent(newMember.Name, c.cluster))
-	if err != nil {
-		c.logger.Errorf("failed to create new member add event: %v", err)
-	}
-	return nil
-}
-
-func (c *Cluster) removeOneMember() error {
-	c.status.SetScalingDownCondition(c.members.Size(), c.cluster.Spec.Size)
-
-	return c.removeMember(c.members.PickOne())
-}
-
-func (c *Cluster) removeDeadMember(toRemove *etcdutil.Member) error {
-	c.logger.Infof("removing dead member %q", toRemove.Name)
-	_, err := c.eventsCli.Create(k8sutil.ReplacingDeadMemberEvent(toRemove.Name, c.cluster))
-	if err != nil {
-		c.logger.Errorf("failed to create replacing dead member event: %v", err)
-	}
-
-	return c.removeMember(toRemove)
-}
-
-func (c *Cluster) removeMember(toRemove *etcdutil.Member) error {
-	err := etcdutil.RemoveMember(c.members.ClientURLs(), c.tlsConfig, toRemove.ID)
-	if err != nil {
-		switch err {
-		case rpctypes.ErrMemberNotFound:
-			c.logger.Infof("etcd member (%v) has been removed", toRemove.Name)
-		default:
-			c.logger.Errorf("fail to remove etcd member (%v): %v", toRemove.Name, err)
-			return err
-		}
-	}
-	c.members.Remove(toRemove.Name)
-	_, err = c.eventsCli.Create(k8sutil.MemberRemoveEvent(toRemove.Name, c.cluster))
-	if err != nil {
-		c.logger.Errorf("failed to create remove member event: %v", err)
-	}
-	if err := c.removePod(toRemove.Name); err != nil {
-		return err
-	}
-	c.logger.Infof("removed member (%v) with ID (%d)", toRemove.Name, toRemove.ID)
 	return nil
 }
 
