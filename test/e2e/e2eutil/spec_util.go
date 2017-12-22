@@ -35,7 +35,11 @@ func NewCluster(genName string, size int, labels map[string]string, annotations 
 			Size: size,
 			Pod: &api.PodPolicy{
 				AntiAffinity: true,
+				Labels:       map[string]string{"origin": "e2e-test"},
 			},
+			SequenceCommand:    []string{"/sequence.sh"},
+			StartMemberCommand: []string{"/start.sh"},
+			StopCommand:        []string{"/stop.sh"},
 		},
 	}
 }

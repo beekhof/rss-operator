@@ -28,25 +28,34 @@ func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
 		c.peers = etcdutil.MemberSet{}
 	}
 	for _, m := range known {
-		stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, "bash", "-c", "/sequence.sh")
-		if err != nil {
-			c.logger.Errorf("updateMembers:  pod %v: exec failed: %v", m.Name, err)
-
-		} else {
-			c.logger.Infof("updateMembers:  pod %v: out: %v, err: %v", m.Name, stdout, stderr)
-		}
 
 		if _, ok := c.peers[m.Name]; !ok {
 			c.peers[m.Name] = c.newMember(m.Name, m.Namespace)
 		}
 
 		c.peers[m.Name].Online = true
-		c.peers[m.Name].SEQ, _ = strconv.ParseUint(stdout, 10, 64)
+
+		stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.SequenceCommand...)
+		if err != nil {
+			c.logger.Errorf("updateMembers:  pod %v: exec failed: %v", m.Name, err)
+
+		} else {
+			if stdout != "" {
+				c.peers[m.Name].SEQ, err = strconv.ParseUint(stdout, 10, 64)
+				c.logger.Errorf("updateMembers:  pod %v: could not parse '%v' into uint64: %v", m.Name, stdout, err)
+			} else {
+				c.logger.Infof("updateMembers:  pod %v sequence now: %v", m.Name, c.peers[m.Name].SEQ)
+			}
+			if stderr != "" {
+				c.logger.Errorf("updateMembers:  pod %v stderr: %v", m.Name, stderr)
+			}
+		}
 	}
 
 	missing := c.peers.Diff(known)
 	for _, m := range missing {
 		c.peers[m.Name].Online = false
+		c.logger.Warnf("updateMembers:  pod %v offline", m.Name)
 	}
 
 	return nil

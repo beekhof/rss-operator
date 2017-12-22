@@ -113,7 +113,6 @@ func makeStatefulSet(cluster api.GaleraCluster, old *v1beta1.StatefulSet, config
 		},
 		Spec: *spec,
 	}
-	logger.Infof("beekhof: created STS=%v", statefulset.UID)
 
 	// if cluster.Spec.ImagePullSecrets != nil && len(cluster.Spec.ImagePullSecrets) > 0 {
 	// 	statefulset.Spec.Template.Spec.ImagePullSecrets = cluster.Spec.ImagePullSecrets

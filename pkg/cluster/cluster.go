@@ -297,6 +297,8 @@ func (c *Cluster) run() {
 				c.logger.Warningf("periodic update CR status failed: %v", err)
 			}
 
+			rerr = c.replicate()
+
 			reconcileHistogram.WithLabelValues(c.name()).Observe(time.Since(start).Seconds())
 		}
 

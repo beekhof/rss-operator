@@ -28,8 +28,10 @@ type Member struct {
 	// Kubernetes namespace this member runs in.
 	Namespace string
 
-	SEQ    uint64
-	Online bool
+	SEQ        uint64
+	Online     bool
+	AppSeed    bool
+	AppRunning bool
 
 	SecurePeer   bool
 	SecureClient bool
@@ -106,6 +108,46 @@ func (ms MemberSet) IsEqual(other MemberSet) bool {
 
 func (ms MemberSet) Size() int {
 	return len(ms)
+}
+
+func (ms MemberSet) Seeds() int {
+	count := 0
+	for _, m := range ms {
+		if m.Online && m.AppSeed && m.AppRunning {
+			count += 1
+		}
+	}
+	return count
+}
+
+func (ms MemberSet) AppMembers() int {
+	count := 0
+	for _, m := range ms {
+		if m.Online && m.AppRunning {
+			count += 1
+		}
+	}
+	return count
+}
+
+func (ms MemberSet) Active() int {
+	count := 0
+	for _, m := range ms {
+		if m.Online {
+			count += 1
+		}
+	}
+	return count
+}
+
+func (ms MemberSet) InActive() int {
+	count := 0
+	for _, m := range ms {
+		if !m.Online {
+			count += 1
+		}
+	}
+	return count
 }
 
 func (ms MemberSet) String() string {

@@ -41,10 +41,9 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 
 	sp := c.cluster.Spec
 	running := c.podsToMemberSet(pods, c.isSecureClient())
-	if !running.IsEqual(c.peers) || c.peers.Size() != sp.Size {
+	if !running.IsEqual(c.peers) || c.peers.Active() != sp.Size {
 		return c.reconcileMembers(running)
 	}
-	c.status.ClearCondition(api.ClusterConditionScaling)
 
 	if needUpgrade(pods, sp) {
 		c.status.UpgradeVersionTo(sp.Version)
