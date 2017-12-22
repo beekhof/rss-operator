@@ -56,7 +56,7 @@ const (
 
 	etcdVolumeMountDir       = "/var/etcd"
 	dataDir                  = etcdVolumeMountDir + "/data"
-	etcdVersionAnnotationKey = "etcd.version"
+	EtcdVersionAnnotationKey = "etcd.version"
 	peerTLSDir               = "/etc/etcdtls/member/peer-tls"
 	peerTLSVolume            = "member-peer-tls"
 	serverTLSDir             = "/etc/etcdtls/member/server-tls"
@@ -68,11 +68,11 @@ const (
 const TolerateUnreadyEndpointsAnnotation = "service.alpha.kubernetes.io/tolerate-unready-endpoints"
 
 func GetEtcdVersion(pod *v1.Pod) string {
-	return pod.Annotations[etcdVersionAnnotationKey]
+	return pod.Annotations[EtcdVersionAnnotationKey]
 }
 
 func SetEtcdVersion(pod *v1.Pod, version string) {
-	pod.Annotations[etcdVersionAnnotationKey] = version
+	pod.Annotations[EtcdVersionAnnotationKey] = version
 }
 
 func GetPodNames(pods []*v1.Pod) []string {
@@ -127,7 +127,7 @@ func CreatePeerService(kubecli kubernetes.Interface, clusterName, ns string, own
 
 func createService(kubecli kubernetes.Interface, svcName, clusterName, ns, clusterIP string, ports []v1.ServicePort, owner metav1.OwnerReference) error {
 	svc := newEtcdServiceManifest(svcName, clusterName, clusterIP, ports)
-	addOwnerRefToObject(svc.GetObjectMeta(), owner)
+	AddOwnerRefToObject(svc.GetObjectMeta(), owner)
 	_, err := kubecli.CoreV1().Services(ns).Create(svc)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
@@ -189,7 +189,7 @@ func newEtcdServiceManifest(svcName, clusterName, clusterIP string, ports []v1.S
 	return svc
 }
 
-func addOwnerRefToObject(o metav1.Object, r metav1.OwnerReference) {
+func AddOwnerRefToObject(o metav1.Object, r metav1.OwnerReference) {
 	o.SetOwnerReferences(append(o.GetOwnerReferences(), r))
 }
 
@@ -292,7 +292,7 @@ func NewEtcdPod(m *etcdutil.Member, initialCluster []string, clusterName, state,
 
 	SetEtcdVersion(pod, cs.Version)
 
-	addOwnerRefToObject(pod.GetObjectMeta(), owner)
+	AddOwnerRefToObject(pod.GetObjectMeta(), owner)
 	return pod
 }
 

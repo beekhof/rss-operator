@@ -72,8 +72,7 @@ type Cluster struct {
 	cluster *api.GaleraCluster
 	// in memory state of the cluster
 	// status is the source of truth after Cluster struct is materialized.
-	status        api.ClusterStatus
-	memberCounter int
+	status api.ClusterStatus
 
 	eventCh chan *clusterEvent
 	stopCh  chan struct{}
@@ -282,7 +281,7 @@ func (c *Cluster) run() {
 
 			// On controller restore, we could have "members == nil"
 			if rerr != nil || c.peers == nil {
-				rerr = c.updateMembers(podsToMemberSet(running, c.isSecureClient()))
+				rerr = c.updateMembers(c.podsToMemberSet(running, c.isSecureClient()))
 				if rerr != nil {
 					c.logger.Errorf("failed to update members: %v", rerr)
 					break
@@ -407,9 +406,6 @@ func (c *Cluster) pollPods() (running, pending []*v1.Pod, err error) {
 		switch pod.Status.Phase {
 		case v1.PodRunning:
 			running = append(running, pod)
-			go func() {
-				k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, pod.Name, "ls", "-al")
-			}()
 		case v1.PodPending:
 			pending = append(pending, pod)
 		}
@@ -422,9 +418,11 @@ func (c *Cluster) updateMemberStatus(members etcdutil.MemberSet, running []strin
 	var unready []string
 	for _, m := range members {
 		if !util.PresentIn(m.Name, running) {
+			c.logger.Infof("updateMemberStatus:  pod %v: not ready", m.Name)
 			unready = append(unready, m.Name)
 		}
 	}
+
 	c.status.Members.Ready = running
 	c.status.Members.Unready = unready
 }

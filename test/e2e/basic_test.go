@@ -73,8 +73,10 @@ func TestCreateClusterOnly(t *testing.T) {
 
 	f := framework.Global
 	origEtcd := e2eutil.NewCluster("test-galera-", 3, labels, annotations)
-	origEtcd = e2eutil.ClusterWithVersion(origEtcd, "0.0.5")
+	// origEtcd = e2eutil.ClusterWithVersion(origEtcd, "0.0.5")
+	origEtcd.Spec.Version = "0.0.5"
 	origEtcd.Spec.BaseImage = "quay.io/beekhof/centos"
+	// origEtcd.Spec.Pod.AntiAffinity = true
 	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, origEtcd)
 	if err != nil {
 		t.Fatal(err)

@@ -192,6 +192,40 @@ func makeStatefulSetService(p *api.GaleraCluster, config Config) *v1.Service {
 	return svc
 }
 
+func applyPodSpecPolicy(clusterName string, podSpec *v1.PodSpec, policy *api.PodPolicy) {
+	if policy == nil {
+		return
+	}
+
+	if policy.AntiAffinity {
+		ls := &metav1.LabelSelector{MatchLabels: map[string]string{
+			"etcd_cluster": clusterName,
+		}}
+
+		affinity := &v1.Affinity{
+			PodAntiAffinity: &v1.PodAntiAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
+					{
+						LabelSelector: ls,
+						TopologyKey:   "kubernetes.io/hostname",
+					},
+				},
+			},
+		}
+		podSpec.Affinity = affinity
+	}
+
+	if policy.AutomountServiceAccountToken != nil {
+		podSpec.AutomountServiceAccountToken = policy.AutomountServiceAccountToken
+	}
+
+	for i := range podSpec.Containers {
+		if podSpec.Containers[i].Name == "etcd" {
+			podSpec.Containers[i].Env = append(podSpec.Containers[i].Env, policy.GaleraEnv...)
+		}
+	}
+}
+
 func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.ConfigMap) (*v1beta1.StatefulSetSpec, error) {
 	// Prometheus may take quite long to shut down to checkpoint existing data.
 	// Allow up to 10 minutes for clean termination.
@@ -349,8 +383,53 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 		}
 	}
 
+	// SetEtcdVersion(podSpec, cs.Version)
+	podAnnotations[k8sutil.EtcdVersionAnnotationKey] = p.Spec.Version
+
 	podLabels = mergeLabels(k8sutil.LabelsForCluster(p.Name), podLabels)
 	intSize := int32(p.Spec.Size)
+	podSpec := v1.PodSpec{
+		Containers: []v1.Container{
+			{
+				Name:            "prometheus",
+				Image:           fmt.Sprintf("%s:%s", p.Spec.BaseImage, p.Spec.Version),
+				ImagePullPolicy: "Always", // Useful while testing
+
+				Ports: []v1.ContainerPort{
+					{
+						Name:          "web",
+						ContainerPort: 9090,
+						Protocol:      v1.ProtocolTCP,
+					},
+				},
+				// Args:         promArgs,
+				VolumeMounts: promVolumeMounts,
+				// LivenessProbe: &v1.Probe{
+				// 	Handler:             livenessProbeHandler,
+				// 	InitialDelaySeconds: 30,
+				// 	PeriodSeconds:       5,
+				// 	TimeoutSeconds:      probeTimeoutSeconds,
+				// 	FailureThreshold:    10,
+				// },
+				// ReadinessProbe: &v1.Probe{
+				// 	Handler:          readinessProbeHandler,
+				// 	TimeoutSeconds:   probeTimeoutSeconds,
+				// 	PeriodSeconds:    5,
+				// 	FailureThreshold: 6,
+				// },
+				Resources: p.Spec.Resources,
+			},
+		},
+		SecurityContext:               &securityContext,
+		ServiceAccountName:            p.Spec.ServiceAccountName,
+		NodeSelector:                  p.Spec.NodeSelector,
+		TerminationGracePeriodSeconds: &terminationGracePeriod,
+		Volumes:     volumes,
+		Tolerations: p.Spec.Tolerations,
+		Affinity:    p.Spec.Affinity,
+	}
+
+	applyPodSpecPolicy(p.Name, &podSpec, p.Spec.Pod)
 
 	return &v1beta1.StatefulSetSpec{
 		ServiceName:         governingServiceName,
@@ -361,49 +440,11 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 		},
 		Template: v1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels:      mergeLabels(p.Spec.PodLabels(), podLabels),
-				Annotations: podAnnotations,
+				Labels:          mergeLabels(p.Spec.PodLabels(), podLabels),
+				Annotations:     podAnnotations,
+				OwnerReferences: []metav1.OwnerReference{p.AsOwner()},
 			},
-			Spec: v1.PodSpec{
-				Containers: []v1.Container{
-					{
-						Name:            "prometheus",
-						Image:           fmt.Sprintf("%s:%s", p.Spec.BaseImage, p.Spec.Version),
-						ImagePullPolicy: "Always", // Useful while testing
-
-						Ports: []v1.ContainerPort{
-							{
-								Name:          "web",
-								ContainerPort: 9090,
-								Protocol:      v1.ProtocolTCP,
-							},
-						},
-						// Args:         promArgs,
-						VolumeMounts: promVolumeMounts,
-						// LivenessProbe: &v1.Probe{
-						// 	Handler:             livenessProbeHandler,
-						// 	InitialDelaySeconds: 30,
-						// 	PeriodSeconds:       5,
-						// 	TimeoutSeconds:      probeTimeoutSeconds,
-						// 	FailureThreshold:    10,
-						// },
-						// ReadinessProbe: &v1.Probe{
-						// 	Handler:          readinessProbeHandler,
-						// 	TimeoutSeconds:   probeTimeoutSeconds,
-						// 	PeriodSeconds:    5,
-						// 	FailureThreshold: 6,
-						// },
-						Resources: p.Spec.Resources,
-					},
-				},
-				SecurityContext:               &securityContext,
-				ServiceAccountName:            p.Spec.ServiceAccountName,
-				NodeSelector:                  p.Spec.NodeSelector,
-				TerminationGracePeriodSeconds: &terminationGracePeriod,
-				Volumes:     volumes,
-				Tolerations: p.Spec.Tolerations,
-				Affinity:    p.Spec.Affinity,
-			},
+			Spec: podSpec,
 		},
 	}, nil
 }

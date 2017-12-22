@@ -15,69 +15,55 @@
 package cluster
 
 import (
-	"fmt"
+	"strconv"
 
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
-	"github.com/coreos/etcd/etcdserver/etcdserverpb"
-	"github.com/pkg/errors"
+	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 
 	"k8s.io/api/core/v1"
 )
 
 func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
-	resp, err := etcdutil.ListMembers(known.ClientURLs(), c.tlsConfig)
-	if err != nil {
-		return err
+	if c.peers == nil {
+		c.peers = etcdutil.MemberSet{}
 	}
-	members := etcdutil.MemberSet{}
-	for _, m := range resp.Members {
-		name, err := getMemberName(m, c.cluster.GetName())
+	for _, m := range known {
+		stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, "bash", "-c", "/sequence.sh")
 		if err != nil {
-			return errors.Wrap(err, "get member name failed")
-		}
-		ct, err := etcdutil.GetCounterFromMemberName(name)
-		if err != nil {
-			return newFatalError(fmt.Sprintf("get counter from member name (%s) failed: %v", name, err))
-		}
-		if ct+1 > c.memberCounter {
-			c.memberCounter = ct + 1
+			c.logger.Infof("updateMembers:  pod %v: exec failed: %v", m.Name, err)
+
+		} else {
+			c.logger.Infof("updateMembers:  pod %v: out: %v, err: %v", m.Name, stdout, stderr)
 		}
 
-		members[name] = &etcdutil.Member{
-			Name:         name,
-			Namespace:    c.cluster.Namespace,
-			ID:           m.ID,
-			SecurePeer:   c.isSecurePeer(),
-			SecureClient: c.isSecureClient(),
+		if _, ok := c.peers[m.Name]; !ok {
+			mcopy := c.newMember(m.Name, m.Namespace)
+			c.peers[mcopy.Name] = mcopy
 		}
+
+		c.peers[m.Name].SEQ, _ = strconv.ParseUint(stdout, 10, 64)
 	}
-	c.peers = members
+	// TODO: Flag unseen members as down
 	return nil
 }
 
-// func (c *Cluster) newMember(id int) *etcdutil.Member {
-// 	name := etcdutil.CreateMemberName(c.cluster.Name, id)
-// 	return &etcdutil.Member{
-// 		Name:         name,
-// 		Namespace:    c.cluster.Namespace,
-// 		SecurePeer:   c.isSecurePeer(),
-// 		SecureClient: c.isSecureClient(),
-// 	}
-// }
+func (c *Cluster) newMember(name string, namespace string) *etcdutil.Member {
+	if namespace == "" {
+		namespace = c.cluster.Namespace
+	}
+	return &etcdutil.Member{
+		Name:         name,
+		Namespace:    namespace,
+		SecurePeer:   c.isSecurePeer(),
+		SecureClient: c.isSecureClient(),
+	}
+}
 
-func podsToMemberSet(pods []*v1.Pod, sc bool) etcdutil.MemberSet {
+func (c *Cluster) podsToMemberSet(pods []*v1.Pod, sc bool) etcdutil.MemberSet {
 	members := etcdutil.MemberSet{}
 	for _, pod := range pods {
-		m := &etcdutil.Member{Name: pod.Name, Namespace: pod.Namespace, SecureClient: sc}
+		m := c.newMember(pod.Name, pod.Namespace)
 		members.Add(m)
 	}
 	return members
-}
-
-func getMemberName(m *etcdserverpb.Member, clusterName string) (string, error) {
-	name, err := etcdutil.MemberNameFromPeerURL(m.PeerURLs[0])
-	if err != nil {
-		return "", newFatalError(fmt.Sprintf("invalid member peerURL (%s): %v", m.PeerURLs[0], err))
-	}
-	return name, nil
 }
