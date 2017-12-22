@@ -30,20 +30,25 @@ func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
 	for _, m := range known {
 		stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, "bash", "-c", "/sequence.sh")
 		if err != nil {
-			c.logger.Infof("updateMembers:  pod %v: exec failed: %v", m.Name, err)
+			c.logger.Errorf("updateMembers:  pod %v: exec failed: %v", m.Name, err)
 
 		} else {
 			c.logger.Infof("updateMembers:  pod %v: out: %v, err: %v", m.Name, stdout, stderr)
 		}
 
 		if _, ok := c.peers[m.Name]; !ok {
-			mcopy := c.newMember(m.Name, m.Namespace)
-			c.peers[mcopy.Name] = mcopy
+			c.peers[m.Name] = c.newMember(m.Name, m.Namespace)
 		}
 
+		c.peers[m.Name].Online = true
 		c.peers[m.Name].SEQ, _ = strconv.ParseUint(stdout, 10, 64)
 	}
-	// TODO: Flag unseen members as down
+
+	missing := c.peers.Diff(known)
+	for _, m := range missing {
+		c.peers[m.Name].Online = false
+	}
+
 	return nil
 }
 

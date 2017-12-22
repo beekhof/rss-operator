@@ -33,7 +33,7 @@ func NewCluster(genName string, size int, labels map[string]string, annotations 
 		},
 		Spec: api.ClusterSpec{
 			Size: size,
-			Pod: api.PodPolicy{
+			Pod: &api.PodPolicy{
 				AntiAffinity: true,
 			},
 		},

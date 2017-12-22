@@ -28,7 +28,8 @@ type Member struct {
 	// Kubernetes namespace this member runs in.
 	Namespace string
 
-	SEQ uint64
+	SEQ    uint64
+	Online bool
 
 	SecurePeer   bool
 	SecureClient bool
