@@ -22,7 +22,7 @@ import (
 	galera_v1alpha1 "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
 	versioned "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned"
 	internalinterfaces "github.com/beekhof/galera-operator/pkg/generated/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/beekhof/galera-operator/pkg/generated/listers/galera/v1alpha1"
+	v1alpha1 "github.com/beekhof/galera-operator/pkg/generated/listers/clusterlabs/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -30,44 +30,44 @@ import (
 	time "time"
 )
 
-// GaleraClusterInformer provides access to a shared informer and lister for
-// GaleraClusters.
-type GaleraClusterInformer interface {
+// ReplicatedStatefulSetInformer provides access to a shared informer and lister for
+// ReplicatedStatefulSets.
+type ReplicatedStatefulSetInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.GaleraClusterLister
+	Lister() v1alpha1.ReplicatedStatefulSetLister
 }
 
-type galeraClusterInformer struct {
+type replicatedStatefulSetInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-// NewGaleraClusterInformer constructs a new informer for GaleraCluster type.
+// NewReplicatedStatefulSetInformer constructs a new informer for ReplicatedStatefulSet type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewGaleraClusterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewReplicatedStatefulSetInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.GaleraV1alpha1().GaleraClusters(namespace).List(options)
+				return client.ClusterlabsV1alpha1().ReplicatedStatefulSets(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.GaleraV1alpha1().GaleraClusters(namespace).Watch(options)
+				return client.ClusterlabsV1alpha1().ReplicatedStatefulSets(namespace).Watch(options)
 			},
 		},
-		&galera_v1alpha1.GaleraCluster{},
+		&galera_v1alpha1.ReplicatedStatefulSet{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func defaultGaleraClusterInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewGaleraClusterInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func defaultReplicatedStatefulSetInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewReplicatedStatefulSetInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
-func (f *galeraClusterInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&galera_v1alpha1.GaleraCluster{}, defaultGaleraClusterInformer)
+func (f *replicatedStatefulSetInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&galera_v1alpha1.ReplicatedStatefulSet{}, defaultReplicatedStatefulSetInformer)
 }
 
-func (f *galeraClusterInformer) Lister() v1alpha1.GaleraClusterLister {
-	return v1alpha1.NewGaleraClusterLister(f.Informer().GetIndexer())
+func (f *replicatedStatefulSetInformer) Lister() v1alpha1.ReplicatedStatefulSetLister {
+	return v1alpha1.NewReplicatedStatefulSetLister(f.Informer().GetIndexer())
 }

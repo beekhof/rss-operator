@@ -20,7 +20,7 @@ package externalversions
 
 import (
 	versioned "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned"
-	galera "github.com/beekhof/galera-operator/pkg/generated/informers/externalversions/galera"
+	clusterlabs "github.com/beekhof/galera-operator/pkg/generated/informers/externalversions/clusterlabs"
 	internalinterfaces "github.com/beekhof/galera-operator/pkg/generated/informers/externalversions/internalinterfaces"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -110,9 +110,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Galera() galera.Interface
+	Clusterlabs() clusterlabs.Interface
 }
 
-func (f *sharedInformerFactory) Galera() galera.Interface {
-	return galera.New(f)
+func (f *sharedInformerFactory) Clusterlabs() clusterlabs.Interface {
+	return clusterlabs.New(f)
 }

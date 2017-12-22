@@ -85,7 +85,7 @@ func setup() error {
 }
 
 func teardown() error {
-	err := Global.deleteOperatorCompletely("etcd-operator")
+	err := Global.deleteOperatorCompletely("rss-operator")
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (f *Framework) setup() error {
 	if err := f.SetupEtcdOperator(); err != nil {
 		return fmt.Errorf("failed to setup etcd operator: %v", err)
 	}
-	logrus.Info("etcd operator created successfully")
+	logrus.Info("rss operator created successfully")
 
 	logrus.Info("e2e setup successfully")
 	return nil
@@ -109,13 +109,13 @@ func (f *Framework) SetupEtcdOperator() error {
 	cmd := []string{"/usr/local/bin/etcd-operator"}
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "etcd-operator",
-			Labels: map[string]string{"name": "etcd-operator"},
+			Name:   "rss-operator",
+			Labels: map[string]string{"name": "rss-operator"},
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
 				{
-					Name:            "etcd-operator",
+					Name:            "rss-operator",
 					Image:           f.opImage,
 					ImagePullPolicy: v1.PullAlways,
 					Command:         cmd,
@@ -148,12 +148,12 @@ func (f *Framework) SetupEtcdOperator() error {
 
 	p, err := k8sutil.CreateAndWaitPod(f.KubeClient, f.Namespace, pod, 60*time.Second)
 	if err != nil {
-		describePod(f.Namespace, "etcd-operator")
+		describePod(f.Namespace, "rss-operator")
 		return err
 	}
-	logrus.Infof("etcd operator pod is running on node (%s)", p.Spec.NodeName)
+	logrus.Infof("rss operator pod is running on node (%s)", p.Spec.NodeName)
 
-	return e2eutil.WaitUntilOperatorReady(f.KubeClient, f.Namespace, "etcd-operator")
+	return e2eutil.WaitUntilOperatorReady(f.KubeClient, f.Namespace, "rss-operator")
 }
 
 func describePod(ns, name string) {
@@ -166,7 +166,7 @@ func describePod(ns, name string) {
 }
 
 func (f *Framework) DeleteEtcdOperatorCompletely() error {
-	return f.deleteOperatorCompletely("etcd-operator")
+	return f.deleteOperatorCompletely("rss-operator")
 }
 
 func (f *Framework) deleteOperatorCompletely(name string) error {

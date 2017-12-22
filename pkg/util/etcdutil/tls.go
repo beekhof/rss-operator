@@ -24,13 +24,13 @@ import (
 )
 
 const (
-	CliCertFile = "etcd-client.crt"
-	CliKeyFile  = "etcd-client.key"
-	CliCAFile   = "etcd-client-ca.crt"
+	CliCertFile = "rss-client.crt"
+	CliKeyFile  = "rss-client.key"
+	CliCAFile   = "rss-client-ca.crt"
 )
 
 func NewTLSConfig(certData, keyData, caData []byte) (*tls.Config, error) {
-	dir, err := ioutil.TempDir("", "etcd-operator-cluster-tls")
+	dir, err := ioutil.TempDir("", "rss-operator-cluster-tls")
 	if err != nil {
 		return nil, err
 	}

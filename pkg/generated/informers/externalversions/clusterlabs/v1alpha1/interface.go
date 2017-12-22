@@ -24,8 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// GaleraClusters returns a GaleraClusterInformer.
-	GaleraClusters() GaleraClusterInformer
+	// ReplicatedStatefulSets returns a ReplicatedStatefulSetInformer.
+	ReplicatedStatefulSets() ReplicatedStatefulSetInformer
 }
 
 type version struct {
@@ -37,7 +37,7 @@ func New(f internalinterfaces.SharedInformerFactory) Interface {
 	return &version{f}
 }
 
-// GaleraClusters returns a GaleraClusterInformer.
-func (v *version) GaleraClusters() GaleraClusterInformer {
-	return &galeraClusterInformer{factory: v.SharedInformerFactory}
+// ReplicatedStatefulSets returns a ReplicatedStatefulSetInformer.
+func (v *version) ReplicatedStatefulSets() ReplicatedStatefulSetInformer {
+	return &replicatedStatefulSetInformer{factory: v.SharedInformerFactory}
 }

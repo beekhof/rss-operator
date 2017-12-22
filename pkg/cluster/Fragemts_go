@@ -1,0 +1,46 @@
+Fragemts
+
+
+func (c *Cluster) startSeedMember() error {
+	m := &etcdutil.Member{
+		Name:         etcdutil.CreateMemberName(c.cluster.Name, c.memberCounter),
+		Namespace:    c.cluster.Namespace,
+		SecurePeer:   c.isSecurePeer(),
+		SecureClient: c.isSecureClient(),
+	}
+	ms := etcdutil.NewMemberSet(m)
+	if err := c.createPod(ms, m, "new"); err != nil {
+		return fmt.Errorf("failed to create seed member (%s): %v", m.Name, err)
+	}
+	c.memberCounter++
+	c.members = ms
+	c.logger.Infof("cluster created with seed member (%s)", m.Name)
+	_, err := c.eventsCli.Create(k8sutil.NewMemberAddEvent(m.Name, c.cluster))
+	if err != nil {
+		c.logger.Errorf("failed to create new member add event: %v", err)
+	}
+
+	return nil
+}
+
+
+func (c *Cluster) prepareSeedMember() error {
+	c.status.SetScalingUpCondition(0, c.cluster.Spec.Size)
+
+	var err error
+	c.logger.Errorf("beekhof: Bootstrap seed member")
+	err = c.bootstrap()
+	if err != nil {
+		return err
+	}
+
+	c.status.Size = 1
+	return nil
+}
+
+func (c *Cluster) createPod(members etcdutil.MemberSet, m *etcdutil.Member, state string) error {
+	pod := k8sutil.NewEtcdPod(m, members.PeerURLPairs(), c.cluster.Name, state, uuid.New(), c.cluster.Spec, c.cluster.AsOwner())
+	_, err := c.config.KubeCli.Core().Pods(c.cluster.Namespace).Create(pod)
+	return err
+}
+

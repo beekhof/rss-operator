@@ -20,10 +20,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewCluster(genName string, size int, labels map[string]string, annotations map[string]string) *api.GaleraCluster {
-	return &api.GaleraCluster{
+func NewCluster(genName string, size int, labels map[string]string, annotations map[string]string) *api.ReplicatedStatefulSet {
+	return &api.ReplicatedStatefulSet{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       api.GaleraClusterResourceKind,
+			Kind:       api.ReplicatedStatefulSetResourceKind,
 			APIVersion: api.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -44,7 +44,7 @@ func NewCluster(genName string, size int, labels map[string]string, annotations 
 	}
 }
 
-func ClusterWithVersion(cl *api.GaleraCluster, version string) *api.GaleraCluster {
+func ClusterWithVersion(cl *api.ReplicatedStatefulSet, version string) *api.ReplicatedStatefulSet {
 	cl.Spec.Version = version
 	return cl
 }

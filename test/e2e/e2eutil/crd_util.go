@@ -28,32 +28,34 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func CreateCluster(t *testing.T, crClient versioned.Interface, namespace string, cl *api.GaleraCluster) (*api.GaleraCluster, error) {
+func CreateCluster(t *testing.T, crClient versioned.Interface, namespace string, cl *api.ReplicatedStatefulSet) (*api.ReplicatedStatefulSet, error) {
 	cl.Namespace = namespace
-	res, err := crClient.GaleraV1alpha1().GaleraClusters(namespace).Create(cl)
+	t.Logf("creating rss cluster")
+	res, err := crClient.ClusterlabsV1alpha1().ReplicatedStatefulSets(namespace).Create(cl)
 	if err != nil {
+		t.Logf("error creating rss cluster: %v", err)
 		return nil, err
 	}
-	t.Logf("creating etcd cluster: %s", res.Name)
+	t.Logf("created rss cluster: %s", res.Name)
 
 	return res, nil
 }
 
-func UpdateCluster(crClient versioned.Interface, cl *api.GaleraCluster, maxRetries int, updateFunc k8sutil.GaleraClusterCRUpdateFunc) (*api.GaleraCluster, error) {
+func UpdateCluster(crClient versioned.Interface, cl *api.ReplicatedStatefulSet, maxRetries int, updateFunc k8sutil.ReplicatedStatefulSetCRUpdateFunc) (*api.ReplicatedStatefulSet, error) {
 	return AtomicUpdateClusterCR(crClient, cl.Name, cl.Namespace, maxRetries, updateFunc)
 }
 
-func AtomicUpdateClusterCR(crClient versioned.Interface, name, namespace string, maxRetries int, updateFunc k8sutil.GaleraClusterCRUpdateFunc) (*api.GaleraCluster, error) {
-	result := &api.GaleraCluster{}
+func AtomicUpdateClusterCR(crClient versioned.Interface, name, namespace string, maxRetries int, updateFunc k8sutil.ReplicatedStatefulSetCRUpdateFunc) (*api.ReplicatedStatefulSet, error) {
+	result := &api.ReplicatedStatefulSet{}
 	err := retryutil.Retry(1*time.Second, maxRetries, func() (done bool, err error) {
-		etcdCluster, err := crClient.GaleraV1alpha1().GaleraClusters(namespace).Get(name, metav1.GetOptions{})
+		etcdCluster, err := crClient.ClusterlabsV1alpha1().ReplicatedStatefulSets(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
 
 		updateFunc(etcdCluster)
 
-		result, err = crClient.GaleraV1alpha1().GaleraClusters(namespace).Update(etcdCluster)
+		result, err = crClient.ClusterlabsV1alpha1().ReplicatedStatefulSets(namespace).Update(etcdCluster)
 		if err != nil {
 			if apierrors.IsConflict(err) {
 				return false, nil
@@ -65,9 +67,9 @@ func AtomicUpdateClusterCR(crClient versioned.Interface, name, namespace string,
 	return result, err
 }
 
-func DeleteCluster(t *testing.T, crClient versioned.Interface, kubeClient kubernetes.Interface, cl *api.GaleraCluster) error {
-	t.Logf("deleting etcd cluster: %v", cl.Name)
-	err := crClient.GaleraV1alpha1().GaleraClusters(cl.Namespace).Delete(cl.Name, nil)
+func DeleteCluster(t *testing.T, crClient versioned.Interface, kubeClient kubernetes.Interface, cl *api.ReplicatedStatefulSet) error {
+	t.Logf("deleting rss cluster: %v", cl.Name)
+	err := crClient.ClusterlabsV1alpha1().ReplicatedStatefulSets(cl.Namespace).Delete(cl.Name, nil)
 	if err != nil {
 		return err
 	}

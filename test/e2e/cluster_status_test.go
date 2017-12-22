@@ -48,7 +48,7 @@ func TestReadyMembersStatus(t *testing.T) {
 	}
 
 	err = retryutil.Retry(5*time.Second, 3, func() (done bool, err error) {
-		currEtcd, err := f.CRClient.GaleraV1alpha1().GaleraClusters(f.Namespace).Get(testEtcd.Name, metav1.GetOptions{})
+		currEtcd, err := f.CRClient.ClusterlabsV1alpha1().ReplicatedStatefulSets(f.Namespace).Get(testEtcd.Name, metav1.GetOptions{})
 		if err != nil {
 			e2eutil.LogfWithTimestamp(t, "failed to get updated cluster object: %v", err)
 			return false, nil

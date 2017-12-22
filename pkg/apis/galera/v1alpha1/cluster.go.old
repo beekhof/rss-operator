@@ -35,30 +35,30 @@ var (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ReplicatedStatefulSetList is a list of galera clusters.
-type ReplicatedStatefulSetList struct {
+// GaleraClusterList is a list of galera clusters.
+type GaleraClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata
 	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ReplicatedStatefulSet `json:"items"`
+	Items           []GaleraCluster `json:"items"`
 }
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type ReplicatedStatefulSet struct {
+type GaleraCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              ClusterSpec   `json:"spec"`
 	Status            ClusterStatus `json:"status"`
 }
 
-func (c *ReplicatedStatefulSet) AsOwner() metav1.OwnerReference {
+func (c *GaleraCluster) AsOwner() metav1.OwnerReference {
 	trueVar := true
 	return metav1.OwnerReference{
 		APIVersion: SchemeGroupVersion.String(),
-		Kind:       ReplicatedStatefulSetResourceKind,
+		Kind:       GaleraClusterResourceKind,
 		Name:       c.Name,
 		UID:        c.UID,
 		Controller: &trueVar,

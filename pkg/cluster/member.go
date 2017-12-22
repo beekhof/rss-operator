@@ -42,7 +42,10 @@ func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
 		} else {
 			if stdout != "" {
 				c.peers[m.Name].SEQ, err = strconv.ParseUint(stdout, 10, 64)
-				c.logger.Errorf("updateMembers:  pod %v: could not parse '%v' into uint64: %v", m.Name, stdout, err)
+				if err != nil {
+					c.logger.Errorf("updateMembers:  pod %v: could not parse '%v' into uint64: %v", m.Name, stdout, err)
+				}
+
 			} else {
 				c.logger.Infof("updateMembers:  pod %v sequence now: %v", m.Name, c.peers[m.Name].SEQ)
 			}

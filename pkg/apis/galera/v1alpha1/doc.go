@@ -15,5 +15,5 @@ limitations under the License.
 */
 
 // +k8s:deepcopy-gen=package
-// +groupName=galera.db.beekhof.net
+// +groupName=clusterlabs.org
 package v1alpha1

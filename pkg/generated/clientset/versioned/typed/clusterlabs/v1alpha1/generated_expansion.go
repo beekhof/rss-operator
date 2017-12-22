@@ -15,4 +15,4 @@ limitations under the License.
 */
 package v1alpha1
 
-type GaleraClusterExpansion interface{}
+type ReplicatedStatefulSetExpansion interface{}

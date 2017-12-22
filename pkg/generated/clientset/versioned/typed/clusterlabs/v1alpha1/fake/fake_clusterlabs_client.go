@@ -16,22 +16,22 @@ limitations under the License.
 package fake
 
 import (
-	v1alpha1 "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned/typed/galera/v1alpha1"
+	v1alpha1 "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned/typed/clusterlabs/v1alpha1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )
 
-type FakeGaleraV1alpha1 struct {
+type FakeClusterlabsV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeGaleraV1alpha1) GaleraClusters(namespace string) v1alpha1.GaleraClusterInterface {
-	return &FakeGaleraClusters{c, namespace}
+func (c *FakeClusterlabsV1alpha1) ReplicatedStatefulSets(namespace string) v1alpha1.ReplicatedStatefulSetInterface {
+	return &FakeReplicatedStatefulSets{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeGaleraV1alpha1) RESTClient() rest.Interface {
+func (c *FakeClusterlabsV1alpha1) RESTClient() rest.Interface {
 	var ret *rest.RESTClient
 	return ret
 }

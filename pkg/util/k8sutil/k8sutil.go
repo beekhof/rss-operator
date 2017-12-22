@@ -19,16 +19,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/url"
 	"os"
-	"strings"
 	"time"
 
-	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
-	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
 	"github.com/beekhof/galera-operator/pkg/util/retryutil"
 	"github.com/golang/glog"
-	"github.com/pborman/uuid"
+	//"github.com/pborman/uuid"
 	"github.com/pkg/errors"
 
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
@@ -52,17 +48,8 @@ import (
 
 const (
 	// EtcdClientPort is the client port on client service and etcd nodes.
-	EtcdClientPort = 2379
-
-	etcdVolumeMountDir       = "/var/etcd"
-	dataDir                  = etcdVolumeMountDir + "/data"
-	EtcdVersionAnnotationKey = "etcd.version"
-	peerTLSDir               = "/etc/etcdtls/member/peer-tls"
-	peerTLSVolume            = "member-peer-tls"
-	serverTLSDir             = "/etc/etcdtls/member/server-tls"
-	serverTLSVolume          = "member-server-tls"
-	operatorEtcdTLSDir       = "/etc/etcdtls/operator/etcd-tls"
-	operatorEtcdTLSVolume    = "etcd-client-tls"
+	EtcdClientPort           = 2379
+	EtcdVersionAnnotationKey = "rss.version"
 )
 
 const TolerateUnreadyEndpointsAnnotation = "service.alpha.kubernetes.io/tolerate-unready-endpoints"
@@ -193,109 +180,6 @@ func AddOwnerRefToObject(o metav1.Object, r metav1.OwnerReference) {
 	o.SetOwnerReferences(append(o.GetOwnerReferences(), r))
 }
 
-// NewSeedMemberPod returns a Pod manifest for a seed member.
-// It's special that it has new token, and might need recovery init containers
-func NewSeedMemberPod(clusterName string, ms etcdutil.MemberSet, m *etcdutil.Member, cs api.ClusterSpec, owner metav1.OwnerReference, backupURL *url.URL) *v1.Pod {
-	token := uuid.New()
-	pod := NewEtcdPod(m, ms.PeerURLPairs(), clusterName, "new", token, cs, owner)
-	return pod
-}
-
-func NewEtcdPod(m *etcdutil.Member, initialCluster []string, clusterName, state, token string, cs api.ClusterSpec, owner metav1.OwnerReference) *v1.Pod {
-
-	commands := fmt.Sprintf("/usr/local/bin/etcd --data-dir=%s --name=%s --initial-advertise-peer-urls=%s "+
-		"--listen-peer-urls=%s --listen-client-urls=%s --advertise-client-urls=%s "+
-		"--initial-cluster=%s --initial-cluster-state=%s",
-		dataDir, m.Name, m.PeerURL(), m.ListenPeerURL(), m.ListenClientURL(), m.ClientURL(), strings.Join(initialCluster, ","), state)
-	if m.SecurePeer {
-		commands += fmt.Sprintf(" --peer-client-cert-auth=true --peer-trusted-ca-file=%[1]s/peer-ca.crt --peer-cert-file=%[1]s/peer.crt --peer-key-file=%[1]s/peer.key", peerTLSDir)
-	}
-	if m.SecureClient {
-		commands += fmt.Sprintf(" --client-cert-auth=true --trusted-ca-file=%[1]s/server-ca.crt --cert-file=%[1]s/server.crt --key-file=%[1]s/server.key", serverTLSDir)
-	}
-	if state == "new" {
-		commands = fmt.Sprintf("%s --initial-cluster-token=%s", commands, token)
-	}
-
-	labels := map[string]string{
-		"app":          "etcd",
-		"etcd_node":    m.Name,
-		"etcd_cluster": clusterName,
-	}
-
-	container := containerWithLivenessProbe(
-		etcdContainer(strings.Split(commands, " "), "gcr.io/etcd-development/etcd", "3.2"), //cs.BaseImage, cs.Version
-		etcdLivenessProbe(cs.TLS.IsSecureClient()))
-
-	if cs.Pod != nil {
-		container = containerWithRequirements(container, cs.Pod.Resources)
-	}
-
-	volumes := []v1.Volume{
-		{Name: "etcd-data", VolumeSource: v1.VolumeSource{EmptyDir: &v1.EmptyDirVolumeSource{}}},
-	}
-
-	if m.SecurePeer {
-		container.VolumeMounts = append(container.VolumeMounts, v1.VolumeMount{
-			MountPath: peerTLSDir,
-			Name:      peerTLSVolume,
-		})
-		volumes = append(volumes, v1.Volume{Name: peerTLSVolume, VolumeSource: v1.VolumeSource{
-			Secret: &v1.SecretVolumeSource{SecretName: cs.TLS.Static.Member.PeerSecret},
-		}})
-	}
-	if m.SecureClient {
-		container.VolumeMounts = append(container.VolumeMounts, v1.VolumeMount{
-			MountPath: serverTLSDir,
-			Name:      serverTLSVolume,
-		}, v1.VolumeMount{
-			MountPath: operatorEtcdTLSDir,
-			Name:      operatorEtcdTLSVolume,
-		})
-		volumes = append(volumes, v1.Volume{Name: serverTLSVolume, VolumeSource: v1.VolumeSource{
-			Secret: &v1.SecretVolumeSource{SecretName: cs.TLS.Static.Member.ServerSecret},
-		}}, v1.Volume{Name: operatorEtcdTLSVolume, VolumeSource: v1.VolumeSource{
-			Secret: &v1.SecretVolumeSource{SecretName: cs.TLS.Static.OperatorSecret},
-		}})
-	}
-
-	pod := &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        m.Name,
-			Labels:      labels,
-			Annotations: map[string]string{},
-		},
-		Spec: v1.PodSpec{
-			InitContainers: []v1.Container{{
-				Image: "busybox",
-				Name:  "check-dns",
-				// In etcd 3.2, TLS listener will do a reverse-DNS lookup for pod IP -> hostname.
-				// If DNS entry is not warmed up, it will return empty result and peer connection will be rejected.
-				Command: []string{"/bin/sh", "-c", fmt.Sprintf(`
-					while ( ! nslookup %s )
-					do
-						sleep 2
-					done`, m.Addr())},
-			}},
-			Containers:    []v1.Container{container},
-			RestartPolicy: v1.RestartPolicyNever,
-			Volumes:       volumes,
-			// DNS A record: `[m.Name].[clusterName].Namespace.svc`
-			// For example, etcd-0000 in default namesapce will have DNS name
-			// `etcd-0000.etcd.default.svc`.
-			Hostname:  m.Name,
-			Subdomain: clusterName,
-		},
-	}
-
-	applyPodPolicy(clusterName, pod, cs.Pod)
-
-	SetEtcdVersion(pod, cs.Version)
-
-	AddOwnerRefToObject(pod.GetObjectMeta(), owner)
-	return pod
-}
-
 func MustNewKubeClient() kubernetes.Interface {
 	cfg, err := InClusterConfig()
 	if err != nil {
@@ -422,16 +306,6 @@ func CascadeDeleteOptions(gracePeriodSeconds int64) *metav1.DeleteOptions {
 			foreground := metav1.DeletePropagationForeground
 			return &foreground
 		}(),
-	}
-}
-
-// mergeLables merges l2 into l1. Conflicting label will be skipped.
-func mergeLabels(l1, l2 map[string]string) {
-	for k, v := range l2 {
-		if _, ok := l1[k]; ok {
-			continue
-		}
-		l1[k] = v
 	}
 }
 

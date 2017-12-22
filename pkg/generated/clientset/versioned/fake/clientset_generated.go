@@ -17,8 +17,8 @@ package fake
 
 import (
 	clientset "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned"
-	galerav1alpha1 "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned/typed/galera/v1alpha1"
-	fakegalerav1alpha1 "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned/typed/galera/v1alpha1/fake"
+	clusterlabsv1alpha1 "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned/typed/clusterlabs/v1alpha1"
+	fakeclusterlabsv1alpha1 "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned/typed/clusterlabs/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -59,12 +59,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// GaleraV1alpha1 retrieves the GaleraV1alpha1Client
-func (c *Clientset) GaleraV1alpha1() galerav1alpha1.GaleraV1alpha1Interface {
-	return &fakegalerav1alpha1.FakeGaleraV1alpha1{Fake: &c.Fake}
+// ClusterlabsV1alpha1 retrieves the ClusterlabsV1alpha1Client
+func (c *Clientset) ClusterlabsV1alpha1() clusterlabsv1alpha1.ClusterlabsV1alpha1Interface {
+	return &fakeclusterlabsv1alpha1.FakeClusterlabsV1alpha1{Fake: &c.Fake}
 }
 
-// Galera retrieves the GaleraV1alpha1Client
-func (c *Clientset) Galera() galerav1alpha1.GaleraV1alpha1Interface {
-	return &fakegalerav1alpha1.FakeGaleraV1alpha1{Fake: &c.Fake}
+// Clusterlabs retrieves the ClusterlabsV1alpha1Client
+func (c *Clientset) Clusterlabs() clusterlabsv1alpha1.ClusterlabsV1alpha1Interface {
+	return &fakeclusterlabsv1alpha1.FakeClusterlabsV1alpha1{Fake: &c.Fake}
 }

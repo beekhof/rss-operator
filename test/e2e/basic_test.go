@@ -31,7 +31,20 @@ func TestCreateCluster(t *testing.T) {
 	}
 
 	f := framework.Global
-	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-galera-", 3, nil, nil))
+
+	labels := map[string]string{
+		"testlabel": "createOnly",
+	}
+	annotations := map[string]string{
+		"testannotation": "testannotationvalue",
+	}
+
+	origEtcd := e2eutil.NewCluster("test-galera-", 3, labels, annotations)
+	// origEtcd = e2eutil.ClusterWithVersion(origEtcd, "0.0.5")
+	origEtcd.Spec.Version = "0.0.5"
+	origEtcd.Spec.BaseImage = "quay.io/beekhof/centos"
+	// origEtcd.Spec.Pod.AntiAffinity = true
+	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, origEtcd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,9 +55,14 @@ func TestCreateCluster(t *testing.T) {
 		}
 	}()
 
+	t.Log(time.Now(), "Waiting")
+	time.Sleep(120 * time.Second)
+	t.Log(time.Now(), "Done Waiting")
+
 	if _, err := e2eutil.WaitUntilSizeReached(t, f.CRClient, 3, 60, testEtcd); err != nil {
 		t.Fatalf("failed to create 3 members etcd cluster: %v", err)
 	}
+
 }
 
 func TestConnectPod(t *testing.T) {
@@ -59,7 +77,7 @@ func TestConnectPod(t *testing.T) {
 	}
 }
 
-func TestCreateClusterOnly(t *testing.T) {
+func TestCreateAClusterOnly(t *testing.T) {
 	if os.Getenv(envParallelTest) == envParallelTestTrue {
 		t.Parallel()
 	}
@@ -85,6 +103,7 @@ func TestCreateClusterOnly(t *testing.T) {
 	if _, err := e2eutil.WaitUntilSizeReached(t, f.CRClient, 3, 60, testEtcd); err != nil {
 		t.Fatalf("failed to create 3 members etcd cluster: %v", err)
 	}
+	time.Sleep(60000)
 }
 
 // TestPauseControl tests the user can pause the operator from controlling
@@ -110,7 +129,7 @@ func TestPauseControl(t *testing.T) {
 		t.Fatalf("failed to create 3 members etcd cluster: %v", err)
 	}
 
-	updateFunc := func(cl *api.GaleraCluster) {
+	updateFunc := func(cl *api.ReplicatedStatefulSet) {
 		cl.Spec.Paused = true
 	}
 	if testEtcd, err = e2eutil.UpdateCluster(f.CRClient, testEtcd, 10, updateFunc); err != nil {
@@ -131,7 +150,7 @@ func TestPauseControl(t *testing.T) {
 		t.Fatalf("cluster should not be recovered: control is paused")
 	}
 
-	updateFunc = func(cl *api.GaleraCluster) {
+	updateFunc = func(cl *api.ReplicatedStatefulSet) {
 		cl.Spec.Paused = false
 	}
 	if testEtcd, err = e2eutil.UpdateCluster(f.CRClient, testEtcd, 10, updateFunc); err != nil {
@@ -168,7 +187,7 @@ func TestEtcdUpgrade(t *testing.T) {
 	}
 
 	targetVersion := "3.2.10"
-	updateFunc := func(cl *api.GaleraCluster) {
+	updateFunc := func(cl *api.ReplicatedStatefulSet) {
 		cl = e2eutil.ClusterWithVersion(cl, targetVersion)
 	}
 	_, err = e2eutil.UpdateCluster(f.CRClient, testEtcd, 10, updateFunc)

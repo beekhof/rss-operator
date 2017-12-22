@@ -73,7 +73,7 @@ func mergeLabels(labels map[string]string, otherLabels map[string]string) map[st
 	return mergedLabels
 }
 
-func makeStatefulSet(cluster api.ReplicatedStatefulSet, old *v1beta1.StatefulSet, config *Config, ruleConfigMaps []*v1.ConfigMap) (*v1beta1.StatefulSet, error) {
+func makeStatefulSet(cluster api.GaleraCluster, old *v1beta1.StatefulSet, config *Config, ruleConfigMaps []*v1.ConfigMap) (*v1beta1.StatefulSet, error) {
 	// TODO(fabxc): is this the right point to inject defaults?
 	// Ideally we would do it before storing but that's currently not possible.
 	// Potentially an update handler on first insertion.
@@ -166,7 +166,7 @@ func (l *ConfigMapReferenceList) Swap(i, j int) {
 	l.Items[i], l.Items[j] = l.Items[j], l.Items[i]
 }
 
-func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config) *v1.Service {
+func makeStatefulSetService(cluster *api.GaleraCluster, config Config) *v1.Service {
 	svc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: governingServiceName,
@@ -225,7 +225,7 @@ func applyPodSpecPolicy(clusterName string, podSpec *v1.PodSpec, policy *api.Pod
 	}
 }
 
-func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfigMaps []*v1.ConfigMap) (*v1beta1.StatefulSetSpec, error) {
+func makeStatefulSetSpec(cluster api.GaleraCluster, c *Config, ruleConfigMaps []*v1.ConfigMap) (*v1beta1.StatefulSetSpec, error) {
 	// Prometheus may take quite long to shut down to checkpoint existing data.
 	// Allow up to 10 minutes for clean termination.
 	terminationGracePeriod := int64(600)
@@ -506,7 +506,7 @@ func makeRuleConfigMapListFile(configMaps []*v1.ConfigMap) ([]byte, error) {
 	return json.Marshal(cml)
 }
 
-func makeConfigSecret(cluster api.ReplicatedStatefulSet, configMaps []*v1.ConfigMap, config Config) (*v1.Secret, error) {
+func makeConfigSecret(cluster api.GaleraCluster, configMaps []*v1.ConfigMap, config Config) (*v1.Secret, error) {
 	b, err := makeRuleConfigMapListFile(configMaps)
 	if err != nil {
 		return nil, err
@@ -525,7 +525,7 @@ func makeConfigSecret(cluster api.ReplicatedStatefulSet, configMaps []*v1.Config
 	}, nil
 }
 
-func makeEmptyConfig(cluster api.ReplicatedStatefulSet, configMaps []*v1.ConfigMap, config Config) (*v1.Secret, error) {
+func makeEmptyConfig(cluster api.GaleraCluster, configMaps []*v1.ConfigMap, config Config) (*v1.Secret, error) {
 	s, err := makeConfigSecret(cluster, configMaps, config)
 	if err != nil {
 		return nil, err

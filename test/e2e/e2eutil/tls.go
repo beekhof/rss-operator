@@ -26,7 +26,7 @@ import (
 )
 
 func PreparePeerTLSSecret(clusterName, ns, secretName string) error {
-	dir, err := ioutil.TempDir("", "etcd-operator-tls-")
+	dir, err := ioutil.TempDir("", "rss-operator-tls-")
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func PreparePeerTLSSecret(clusterName, ns, secretName string) error {
 func PrepareClientTLSSecret(dir, clusterName, ns, mSecret, oSecret string) error {
 	mCertPath := filepath.Join(dir, "server.crt")
 	mKeyPath := filepath.Join(dir, "server.key")
-	oCAPath := filepath.Join(dir, "etcd-client-ca.crt")
+	oCAPath := filepath.Join(dir, "rss-client-ca.crt")
 	mHosts := []string{
 		fmt.Sprintf("*.%s.%s.svc", clusterName, ns),
 		fmt.Sprintf("%s-client.%s.svc", clusterName, ns),
@@ -69,8 +69,8 @@ func PrepareClientTLSSecret(dir, clusterName, ns, mSecret, oSecret string) error
 		return err
 	}
 
-	oCertPath := filepath.Join(dir, "etcd-client.crt")
-	oKeyPath := filepath.Join(dir, "etcd-client.key")
+	oCertPath := filepath.Join(dir, "rss-client.crt")
+	oKeyPath := filepath.Join(dir, "rss-client.key")
 	mCAPath := filepath.Join(dir, "server-ca.crt")
 	oHosts := []string{""}
 

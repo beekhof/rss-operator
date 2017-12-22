@@ -64,12 +64,12 @@ func TestResize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testClus, err = testF.CRClient.GaleraV1alpha1().GaleraClusters(testF.KubeNS).Get(testClus.Name, metav1.GetOptions{})
+	testClus, err = testF.CRClient.ClusterlabsV1alpha1().ReplicatedStatefulSets(testF.KubeNS).Get(testClus.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	updateFunc := func(cl *api.GaleraCluster) {
+	updateFunc := func(cl *api.ReplicatedStatefulSet) {
 		cl.Spec.Size = 5
 	}
 	_, err = e2eutil.UpdateCluster(testF.CRClient, testClus, 10, updateFunc)

@@ -18,10 +18,10 @@ limitations under the License.
 
 package v1alpha1
 
-// GaleraClusterListerExpansion allows custom methods to be added to
-// GaleraClusterLister.
-type GaleraClusterListerExpansion interface{}
+// ReplicatedStatefulSetListerExpansion allows custom methods to be added to
+// ReplicatedStatefulSetLister.
+type ReplicatedStatefulSetListerExpansion interface{}
 
-// GaleraClusterNamespaceListerExpansion allows custom methods to be added to
-// GaleraClusterNamespaceLister.
-type GaleraClusterNamespaceListerExpansion interface{}
+// ReplicatedStatefulSetNamespaceListerExpansion allows custom methods to be added to
+// ReplicatedStatefulSetNamespaceLister.
+type ReplicatedStatefulSetNamespaceListerExpansion interface{}

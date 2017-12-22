@@ -22,22 +22,22 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-type GaleraV1alpha1Interface interface {
+type ClusterlabsV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	GaleraClustersGetter
+	ReplicatedStatefulSetsGetter
 }
 
-// GaleraV1alpha1Client is used to interact with features provided by the galera.db.beekhof.net group.
-type GaleraV1alpha1Client struct {
+// ClusterlabsV1alpha1Client is used to interact with features provided by the clusterlabs.org group.
+type ClusterlabsV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *GaleraV1alpha1Client) GaleraClusters(namespace string) GaleraClusterInterface {
-	return newGaleraClusters(c, namespace)
+func (c *ClusterlabsV1alpha1Client) ReplicatedStatefulSets(namespace string) ReplicatedStatefulSetInterface {
+	return newReplicatedStatefulSets(c, namespace)
 }
 
-// NewForConfig creates a new GaleraV1alpha1Client for the given config.
-func NewForConfig(c *rest.Config) (*GaleraV1alpha1Client, error) {
+// NewForConfig creates a new ClusterlabsV1alpha1Client for the given config.
+func NewForConfig(c *rest.Config) (*ClusterlabsV1alpha1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -46,12 +46,12 @@ func NewForConfig(c *rest.Config) (*GaleraV1alpha1Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &GaleraV1alpha1Client{client}, nil
+	return &ClusterlabsV1alpha1Client{client}, nil
 }
 
-// NewForConfigOrDie creates a new GaleraV1alpha1Client for the given config and
+// NewForConfigOrDie creates a new ClusterlabsV1alpha1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *GaleraV1alpha1Client {
+func NewForConfigOrDie(c *rest.Config) *ClusterlabsV1alpha1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -59,9 +59,9 @@ func NewForConfigOrDie(c *rest.Config) *GaleraV1alpha1Client {
 	return client
 }
 
-// New creates a new GaleraV1alpha1Client for the given RESTClient.
-func New(c rest.Interface) *GaleraV1alpha1Client {
-	return &GaleraV1alpha1Client{c}
+// New creates a new ClusterlabsV1alpha1Client for the given RESTClient.
+func New(c rest.Interface) *ClusterlabsV1alpha1Client {
+	return &ClusterlabsV1alpha1Client{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
@@ -79,7 +79,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *GaleraV1alpha1Client) RESTClient() rest.Interface {
+func (c *ClusterlabsV1alpha1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}
