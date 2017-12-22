@@ -73,65 +73,65 @@ func mergeLabels(labels map[string]string, otherLabels map[string]string) map[st
 	return mergedLabels
 }
 
-func makeStatefulSet(p api.GaleraCluster, old *v1beta1.StatefulSet, config *Config, ruleConfigMaps []*v1.ConfigMap) (*v1beta1.StatefulSet, error) {
+func makeStatefulSet(cluster api.GaleraCluster, old *v1beta1.StatefulSet, config *Config, ruleConfigMaps []*v1.ConfigMap) (*v1beta1.StatefulSet, error) {
 	// TODO(fabxc): is this the right point to inject defaults?
 	// Ideally we would do it before storing but that's currently not possible.
 	// Potentially an update handler on first insertion.
 
-	if p.Spec.BaseImage == "" {
-		p.Spec.BaseImage = api.DefaultBaseImage
+	if cluster.Spec.BaseImage == "" {
+		cluster.Spec.BaseImage = api.DefaultBaseImage
 	}
-	if p.Spec.Version == "" {
-		p.Spec.Version = api.DefaultVersion
+	if cluster.Spec.Version == "" {
+		cluster.Spec.Version = api.DefaultVersion
 	}
-	if p.Spec.Size == 0 {
-		p.Spec.Size = minSize
+	if cluster.Spec.Size == 0 {
+		cluster.Spec.Size = minSize
 	}
-	if p.Spec.Size != 0 && p.Spec.Size < 0 {
-		p.Spec.Size = 0
-	}
-
-	if p.Spec.Resources.Requests == nil {
-		p.Spec.Resources.Requests = v1.ResourceList{}
-	}
-	if _, ok := p.Spec.Resources.Requests[v1.ResourceMemory]; !ok {
-		p.Spec.Resources.Requests[v1.ResourceMemory] = resource.MustParse("2M")
+	if cluster.Spec.Size != 0 && cluster.Spec.Size < 0 {
+		cluster.Spec.Size = 0
 	}
 
-	spec, err := makeStatefulSetSpec(p, config, ruleConfigMaps)
+	if cluster.Spec.Resources.Requests == nil {
+		cluster.Spec.Resources.Requests = v1.ResourceList{}
+	}
+	if _, ok := cluster.Spec.Resources.Requests[v1.ResourceMemory]; !ok {
+		cluster.Spec.Resources.Requests[v1.ResourceMemory] = resource.MustParse("2M")
+	}
+
+	spec, err := makeStatefulSetSpec(cluster, config, ruleConfigMaps)
 	if err != nil {
 		return nil, errors.Wrap(err, "make StatefulSet spec")
 	}
 
-	logger.Infof("beekhof: owner: %v", p.AsOwner())
+	logger.Infof("beekhof: owner: %v", cluster.AsOwner())
 	statefulset := &v1beta1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels:          mergeLabels(p.Spec.PodLabels(), p.ObjectMeta.Labels),
-			Name:            prefixedName(p.Name),
-			Annotations:     p.ObjectMeta.Annotations,
-			OwnerReferences: []metav1.OwnerReference{p.AsOwner()},
+			Labels:          mergeLabels(cluster.Spec.PodLabels(), cluster.ObjectMeta.Labels),
+			Name:            prefixedName(cluster.Name),
+			Annotations:     cluster.ObjectMeta.Annotations,
+			OwnerReferences: []metav1.OwnerReference{cluster.AsOwner()},
 		},
 		Spec: *spec,
 	}
 	logger.Infof("beekhof: created STS=%v", statefulset.UID)
 
-	// if p.Spec.ImagePullSecrets != nil && len(p.Spec.ImagePullSecrets) > 0 {
-	// 	statefulset.Spec.Template.Spec.ImagePullSecrets = p.Spec.ImagePullSecrets
+	// if cluster.Spec.ImagePullSecrets != nil && len(cluster.Spec.ImagePullSecrets) > 0 {
+	// 	statefulset.Spec.Template.Spec.ImagePullSecrets = cluster.Spec.ImagePullSecrets
 	// }
 
-	if p.Spec.VolumeClaimTemplate == nil {
+	if cluster.Spec.VolumeClaimTemplate == nil {
 		statefulset.Spec.Template.Spec.Volumes = append(statefulset.Spec.Template.Spec.Volumes, v1.Volume{
-			Name: volumeName(p.Name),
+			Name: volumeName(cluster.Name),
 			VolumeSource: v1.VolumeSource{
 				EmptyDir: &v1.EmptyDirVolumeSource{},
 			},
 		})
 	} else {
-		pvcTemplate := p.Spec.VolumeClaimTemplate
-		pvcTemplate.Name = volumeName(p.Name)
+		pvcTemplate := cluster.Spec.VolumeClaimTemplate
+		pvcTemplate.Name = volumeName(cluster.Name)
 		pvcTemplate.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce}
-		pvcTemplate.Spec.Resources = p.Spec.VolumeClaimTemplate.Spec.Resources
-		pvcTemplate.Spec.Selector = p.Spec.VolumeClaimTemplate.Spec.Selector
+		pvcTemplate.Spec.Resources = cluster.Spec.VolumeClaimTemplate.Spec.Resources
+		pvcTemplate.Spec.Selector = cluster.Spec.VolumeClaimTemplate.Spec.Selector
 		statefulset.Spec.VolumeClaimTemplates = append(statefulset.Spec.VolumeClaimTemplates, *pvcTemplate)
 	}
 
@@ -167,11 +167,11 @@ func (l *ConfigMapReferenceList) Swap(i, j int) {
 	l.Items[i], l.Items[j] = l.Items[j], l.Items[i]
 }
 
-func makeStatefulSetService(p *api.GaleraCluster, config Config) *v1.Service {
+func makeStatefulSetService(cluster *api.GaleraCluster, config Config) *v1.Service {
 	svc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: governingServiceName,
-			Labels: mergeLabels(p.Spec.PodLabels(), map[string]string{
+			Labels: mergeLabels(cluster.Spec.PodLabels(), map[string]string{
 				"operated-prometheus": "true",
 			}),
 		},
@@ -226,12 +226,12 @@ func applyPodSpecPolicy(clusterName string, podSpec *v1.PodSpec, policy *api.Pod
 	}
 }
 
-func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.ConfigMap) (*v1beta1.StatefulSetSpec, error) {
+func makeStatefulSetSpec(cluster api.GaleraCluster, c *Config, ruleConfigMaps []*v1.ConfigMap) (*v1beta1.StatefulSetSpec, error) {
 	// Prometheus may take quite long to shut down to checkpoint existing data.
 	// Allow up to 10 minutes for clean termination.
 	terminationGracePeriod := int64(600)
 
-	versionStr := strings.TrimLeft(p.Spec.Version, "v")
+	versionStr := strings.TrimLeft(cluster.Spec.Version, "v")
 
 	version, err := semver.Parse(versionStr)
 	if err != nil {
@@ -244,7 +244,7 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 	// switch version.Major {
 	// case 1:
 	promArgs = append(promArgs,
-		// "-storage.local.retention="+p.Spec.Retention,
+		// "-storage.local.retention="+cluster.Spec.Retention,
 		"-storage.local.num-fingerprint-mutexes=4096",
 		fmt.Sprintf("-storage.local.path=%s", prometheusStorageDir),
 		"-storage.local.chunk-encoding-version=2",
@@ -253,7 +253,7 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 	// requested memory can fit. The user has to specify an appropriate buffering
 	// in memory limits to catch increased memory usage during query bursts.
 	// More info: https://prometheus.io/docs/operating/storage/.
-	reqMem := p.Spec.Resources.Requests[v1.ResourceMemory]
+	reqMem := cluster.Spec.Resources.Requests[v1.ResourceMemory]
 
 	if version.Minor < 6 {
 		// 1024 byte is the fixed chunk size. With increasing number of chunks actually
@@ -274,14 +274,14 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 	// 	return nil, errors.Errorf("unsupported Prometheus major version %s", version)
 	// }
 
-	// promArgs = append(promArgs, "-web.external-url="+p.Spec.ExternalURL)
+	// promArgs = append(promArgs, "-web.external-url="+cluster.Spec.ExternalURL)
 
 	volumes := []v1.Volume{
 		{
 			Name: "config",
 			VolumeSource: v1.VolumeSource{
 				Secret: &v1.SecretVolumeSource{
-					SecretName: configSecretName(p.Name),
+					SecretName: configSecretName(cluster.Name),
 				},
 			},
 		},
@@ -326,9 +326,9 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 			MountPath: prometheusRulesDir,
 		},
 		{
-			Name:      volumeName(p.Name),
+			Name:      volumeName(cluster.Name),
 			MountPath: prometheusStorageDir,
-			SubPath:   subPathForStorage(p.Spec.VolumeClaimTemplate),
+			SubPath:   subPathForStorage(cluster.Spec.VolumeClaimTemplate),
 		},
 		{
 			Name:      "podinfo",
@@ -338,7 +338,7 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 		},
 	}
 
-	for _, s := range p.Spec.Secrets {
+	for _, s := range cluster.Spec.Secrets {
 		volumes = append(volumes, v1.Volume{
 			Name: "secret-" + s,
 			VolumeSource: v1.VolumeSource{
@@ -372,27 +372,27 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 
 	podAnnotations := map[string]string{}
 	podLabels := map[string]string{}
-	if p.ObjectMeta.Labels != nil {
-		for k, v := range p.ObjectMeta.Labels {
+	if cluster.ObjectMeta.Labels != nil {
+		for k, v := range cluster.ObjectMeta.Labels {
 			podLabels[k] = v
 		}
 	}
-	if p.ObjectMeta.Annotations != nil {
-		for k, v := range p.ObjectMeta.Annotations {
+	if cluster.ObjectMeta.Annotations != nil {
+		for k, v := range cluster.ObjectMeta.Annotations {
 			podAnnotations[k] = v
 		}
 	}
 
 	// SetEtcdVersion(podSpec, cs.Version)
-	podAnnotations[k8sutil.EtcdVersionAnnotationKey] = p.Spec.Version
+	podAnnotations[k8sutil.EtcdVersionAnnotationKey] = cluster.Spec.Version
 
-	podLabels = mergeLabels(k8sutil.LabelsForCluster(p.Name), podLabels)
-	intSize := int32(p.Spec.Size)
+	podLabels = mergeLabels(k8sutil.LabelsForCluster(cluster.Name), podLabels)
+	intSize := int32(cluster.Spec.Size)
 	podSpec := v1.PodSpec{
 		Containers: []v1.Container{
 			{
 				Name:            "prometheus",
-				Image:           fmt.Sprintf("%s:%s", p.Spec.BaseImage, p.Spec.Version),
+				Image:           fmt.Sprintf("%s:%s", cluster.Spec.BaseImage, cluster.Spec.Version),
 				ImagePullPolicy: "Always", // Useful while testing
 
 				Ports: []v1.ContainerPort{
@@ -417,19 +417,19 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 				// 	PeriodSeconds:    5,
 				// 	FailureThreshold: 6,
 				// },
-				Resources: p.Spec.Resources,
+				Resources: cluster.Spec.Resources,
 			},
 		},
 		SecurityContext:               &securityContext,
-		ServiceAccountName:            p.Spec.ServiceAccountName,
-		NodeSelector:                  p.Spec.NodeSelector,
+		ServiceAccountName:            cluster.Spec.ServiceAccountName,
+		NodeSelector:                  cluster.Spec.NodeSelector,
 		TerminationGracePeriodSeconds: &terminationGracePeriod,
 		Volumes:     volumes,
-		Tolerations: p.Spec.Tolerations,
-		Affinity:    p.Spec.Affinity,
+		Tolerations: cluster.Spec.Tolerations,
+		Affinity:    cluster.Spec.Affinity,
 	}
 
-	applyPodSpecPolicy(p.Name, &podSpec, p.Spec.Pod)
+	applyPodSpecPolicy(cluster.Name, &podSpec, cluster.Spec.Pod)
 
 	return &v1beta1.StatefulSetSpec{
 		ServiceName:         governingServiceName,
@@ -440,9 +440,9 @@ func makeStatefulSetSpec(p api.GaleraCluster, c *Config, ruleConfigMaps []*v1.Co
 		},
 		Template: v1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels:          mergeLabels(p.Spec.PodLabels(), podLabels),
+				Labels:          mergeLabels(cluster.Spec.PodLabels(), podLabels),
 				Annotations:     podAnnotations,
-				OwnerReferences: []metav1.OwnerReference{p.AsOwner()},
+				OwnerReferences: []metav1.OwnerReference{cluster.AsOwner()},
 			},
 			Spec: podSpec,
 		},
@@ -507,7 +507,7 @@ func makeRuleConfigMapListFile(configMaps []*v1.ConfigMap) ([]byte, error) {
 	return json.Marshal(cml)
 }
 
-func makeConfigSecret(p api.GaleraCluster, configMaps []*v1.ConfigMap, config Config) (*v1.Secret, error) {
+func makeConfigSecret(cluster api.GaleraCluster, configMaps []*v1.ConfigMap, config Config) (*v1.Secret, error) {
 	b, err := makeRuleConfigMapListFile(configMaps)
 	if err != nil {
 		return nil, err
@@ -515,9 +515,9 @@ func makeConfigSecret(p api.GaleraCluster, configMaps []*v1.ConfigMap, config Co
 
 	return &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            configSecretName(p.Name),
-			Labels:          mergeLabels(p.Spec.PodLabels(), managedByOperatorLabels),
-			OwnerReferences: []metav1.OwnerReference{p.AsOwner()},
+			Name:            configSecretName(cluster.Name),
+			Labels:          mergeLabels(cluster.Spec.PodLabels(), managedByOperatorLabels),
+			OwnerReferences: []metav1.OwnerReference{cluster.AsOwner()},
 		},
 		Data: map[string][]byte{
 			configFilename:     {},
@@ -526,8 +526,8 @@ func makeConfigSecret(p api.GaleraCluster, configMaps []*v1.ConfigMap, config Co
 	}, nil
 }
 
-func makeEmptyConfig(p api.GaleraCluster, configMaps []*v1.ConfigMap, config Config) (*v1.Secret, error) {
-	s, err := makeConfigSecret(p, configMaps, config)
+func makeEmptyConfig(cluster api.GaleraCluster, configMaps []*v1.ConfigMap, config Config) (*v1.Secret, error) {
+	s, err := makeConfigSecret(cluster, configMaps, config)
 	if err != nil {
 		return nil, err
 	}
