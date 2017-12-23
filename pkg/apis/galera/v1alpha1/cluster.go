@@ -72,7 +72,7 @@ type ClusterSpec struct {
 	// The vaild range of the size is from 1 to 7.
 	Size int `json:"size"`
 
-	MaxSeeds int `json:"maxSeeds"`
+	MaxPrimaries int `json:"maxPrimaries"`
 	// Number of instances to deploy for a Prometheus deployment.
 	//Replicas *int32 `json:"replicas,omitempty"`
 
@@ -92,10 +92,11 @@ type ClusterSpec struct {
 	// If version is not set, default is "3.2.10".
 	Version string `json:"version,omitempty"`
 
-	SequenceCommand    []string `json:"sequenceCommand"`
-	StartSeedCommand   []string `json:"startSeedCommand,omitempty"`
-	StartMemberCommand []string `json:"startMemberCommand"`
-	StopCommand        []string `json:"stopCommand"`
+	SequenceCommand       []string `json:"sequenceCommand"`
+	StartSeedCommand      []string `json:"startSeedCommand,omitempty"`
+	StartPrimaryCommand   []string `json:"startPrimaryCommand"`
+	StartSecondaryCommand []string `json:"startSecondaryCommand,omitempty"`
+	StopCommand           []string `json:"stopCommand"`
 
 	// An optional list of references to secrets in the same namespace
 	// to use for pulling prometheus and alertmanager images from registries

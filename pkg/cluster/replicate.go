@@ -23,34 +23,28 @@ import (
 )
 
 func (c *Cluster) replicate() error {
-	if c.cluster.Spec.MaxSeeds < 1 {
-		c.cluster.Spec.MaxSeeds = c.cluster.Spec.Size
-	}
-	if c.cluster.Spec.MaxSeeds > c.cluster.Spec.Size {
-		c.cluster.Spec.MaxSeeds = c.cluster.Spec.Size
+	primaries := c.cluster.Spec.MaxPrimaries
+	var err error = nil
+
+	if primaries < 1 || primaries > c.cluster.Spec.Size {
+		primaries = c.cluster.Spec.Size
 	}
 
-	for c.peers.Seeds() < c.cluster.Spec.MaxSeeds {
-		err := c.startSeed()
-		if err != nil {
-			return fmt.Errorf("%v of %v seeds available: %v", c.peers.Seeds(), c.cluster.Spec.MaxSeeds, err)
-		}
+	for err == nil && c.peers.AppPrimaries() < primaries {
+		err := c.startPrimary()
 	}
 
-	for c.peers.Seeds() > c.cluster.Spec.MaxSeeds {
-		err := c.demoteSeed()
-		if err != nil {
-			return fmt.Errorf("%v of %v seeds still running: %v", c.peers.Seeds(), c.cluster.Spec.MaxSeeds, err)
-		}
+	for err == nil && c.peers.AppPrimaries() > primaries {
+		err := c.demotePrimary()
 	}
 
-	// Needed? Or just let STS controller stop them
-	for c.peers.AppMembers() > c.cluster.Spec.Size {
-		m, err := chooseSeed(c)
-		if err != nil {
-			return fmt.Errorf("%v of %v members available: %v", c.peers.AppMembers(), c.cluster.Spec.Size, err)
-		}
-		c.startMember(m)
+	for err == nil && c.peers.AppMembers() < c.cluster.Spec.Size {
+		err = c.startMember(m)
+	}
+
+	if err != nil {
+		return fmt.Errorf("%v of %v primaries, and %v of %v members available: %v",
+			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), c.cluster.Spec.Size, err)
 	}
 	return nil
 }
@@ -61,9 +55,9 @@ func chooseSeed(c *Cluster) (*etcdutil.Member, error) {
 		return nil, fmt.Errorf("No known peers")
 	}
 	for _, m := range c.peers {
-		if !m.Online {
+		if !m.Online || m.AppFailed {
 			continue
-		} else if m.AppSeed {
+		} else if m.AppPrimary {
 			continue
 		} else if bestPeer == nil {
 			bestPeer = m
@@ -77,13 +71,13 @@ func chooseSeed(c *Cluster) (*etcdutil.Member, error) {
 	return bestPeer, nil
 }
 
-func chooseCurrentSeed(c *Cluster) (*etcdutil.Member, error) {
+func chooseCurrentPrimary(c *Cluster) (*etcdutil.Member, error) {
 	var bestPeer *etcdutil.Member
 	if c.peers == nil {
 		return nil, fmt.Errorf("No know peers")
 	}
 	for _, m := range c.peers {
-		if !m.AppSeed {
+		if !m.AppPrimary || m.AppFailed {
 			continue
 		} else if !m.Online {
 			return m, nil
@@ -98,8 +92,8 @@ func chooseCurrentSeed(c *Cluster) (*etcdutil.Member, error) {
 	return bestPeer, nil
 }
 
-func (c *Cluster) demoteSeed() error {
-	seed, err := chooseCurrentSeed(c)
+func (c *Cluster) demotePrimary() error {
+	seed, err := chooseCurrentPrimary(c)
 	if err != nil {
 		return fmt.Errorf("Could not demote seed: %v", err)
 	}
@@ -114,7 +108,7 @@ func (c *Cluster) demoteSeed() error {
 	return nil
 }
 
-func (c *Cluster) startSeed() error {
+func (c *Cluster) startPrimary() error {
 	seed, err := chooseSeed(c)
 	if err != nil {
 		return err
@@ -122,24 +116,31 @@ func (c *Cluster) startSeed() error {
 	return c.startAppMember(seed, true)
 }
 
-func (c *Cluster) startMember(m *etcdutil.Member) error {
+func (c *Cluster) startMember() error {
+	m, err := chooseSeed(c)
+	if err != nil {
+		return fmt.Errorf("%v of %v members available: %v", c.peers.AppMembers(), c.cluster.Spec.Size, err)
+	}
 	return c.startAppMember(m, false)
 }
 
-func (c *Cluster) startAppMember(m *etcdutil.Member, asSeed bool) error {
-	startCmd := c.cluster.Spec.StartMemberCommand
+func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
+	startCmd := c.cluster.Spec.StartPrimaryCommand
 
-	if asSeed && len(c.cluster.Spec.StartSeedCommand) > 0 {
+	if asPrimary && c.peers.AppPrimaries() == 0 && len(c.cluster.Spec.StartSeedCommand) > 0 {
 		startCmd = c.cluster.Spec.StartSeedCommand
+	} else if !asPrimary && len(c.cluster.Spec.StartSecondaryCommand) > 0 {
+		startCmd = c.cluster.Spec.StartSecondaryCommand
 	}
 
-	if asSeed {
+	if asPrimary && c.peers.AppPrimaries() == 0 {
 		c.logger.Infof("Seeding from pod %v: %v", m.Name, m.SEQ)
 	}
 	stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, startCmd...)
 	if err != nil {
 		c.logger.Errorf("startAppMember: pod %v: exec failed: %v", m.Name, err)
-		if asSeed {
+		m.AppFailed = true
+		if asPrimary {
 			return fmt.Errorf("Could not seed app on %v: %v", m.Name, err)
 		} else {
 			return fmt.Errorf("Could not start app on %v: %v", m.Name, err)
@@ -152,8 +153,9 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asSeed bool) error {
 		if stderr != "" {
 			c.logger.Errorf("startAppMember: pod %v stderr: %v", m.Name, stderr)
 		}
-		m.AppSeed = asSeed
+		m.AppPrimary = asPrimary
 		m.AppRunning = true
+		m.AppFailed = false
 	}
 	return nil
 }
@@ -163,6 +165,8 @@ func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
 	stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.StopCommand...)
 	if err != nil {
 		c.logger.Errorf("stopAppMember: pod %v: exec failed: %v", m.Name, err)
+		m.AppFailed = true
+
 		return fmt.Errorf("Could not stop %v: %v", m.Name, err)
 
 	} else {
@@ -172,8 +176,9 @@ func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
 		if stderr != "" {
 			c.logger.Errorf("stopAppMember: pod %v stderr: %v", m.Name, stderr)
 		}
-		m.AppSeed = false
+		m.AppPrimary = false
 		m.AppRunning = false
+		m.AppFailed = false
 	}
 	return nil
 }

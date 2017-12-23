@@ -30,8 +30,9 @@ type Member struct {
 
 	SEQ        uint64
 	Online     bool
-	AppSeed    bool
+	AppPrimary bool
 	AppRunning bool
+	AppFailed  bool
 
 	SecurePeer   bool
 	SecureClient bool
@@ -110,10 +111,10 @@ func (ms MemberSet) Size() int {
 	return len(ms)
 }
 
-func (ms MemberSet) Seeds() int {
+func (ms MemberSet) AppPrimaries() int {
 	count := 0
 	for _, m := range ms {
-		if m.Online && m.AppSeed && m.AppRunning {
+		if m.Online && m.AppPrimary && m.AppRunning {
 			count += 1
 		}
 	}
@@ -130,7 +131,7 @@ func (ms MemberSet) AppMembers() int {
 	return count
 }
 
-func (ms MemberSet) Active() int {
+func (ms MemberSet) ActiveMembers() int {
 	count := 0
 	for _, m := range ms {
 		if m.Online {
@@ -140,7 +141,7 @@ func (ms MemberSet) Active() int {
 	return count
 }
 
-func (ms MemberSet) InActive() int {
+func (ms MemberSet) InActiveMembers() int {
 	count := 0
 	for _, m := range ms {
 		if !m.Online {

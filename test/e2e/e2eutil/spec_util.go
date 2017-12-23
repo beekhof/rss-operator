@@ -37,9 +37,10 @@ func NewCluster(genName string, size int, labels map[string]string, annotations 
 				AntiAffinity: true,
 				Labels:       map[string]string{"origin": "e2e-test"},
 			},
-			SequenceCommand:    []string{"/sequence.sh"},
-			StartMemberCommand: []string{"/start.sh"},
-			StopCommand:        []string{"/stop.sh"},
+			SequenceCommand:     []string{"/sequence.sh"},
+			StartSeedCommand:    []string{"/seed.sh"},
+			StartPrimaryCommand: []string{"/start.sh"},
+			StopCommand:         []string{"/stop.sh"},
 		},
 	}
 }
