@@ -31,19 +31,19 @@ func (c *Cluster) replicate() error {
 	}
 
 	for err == nil && c.peers.AppPrimaries() < primaries {
-		err := c.startPrimary()
+		err = c.startPrimary()
 	}
 
 	for err == nil && c.peers.AppPrimaries() > primaries {
-		err := c.demotePrimary()
+		err = c.demotePrimary()
 	}
 
 	for err == nil && c.peers.AppMembers() < c.cluster.Spec.Size {
-		err = c.startMember(m)
+		err = c.startMember()
 	}
 
 	if err != nil {
-		return fmt.Errorf("%v of %v primaries, and %v of %v members available: %v",
+		return fmt.Errorf("Replication failed: %v of %v primaries, and %v of %v members available: %v",
 			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), c.cluster.Spec.Size, err)
 	}
 	return nil
@@ -74,7 +74,7 @@ func chooseSeed(c *Cluster) (*etcdutil.Member, error) {
 func chooseCurrentPrimary(c *Cluster) (*etcdutil.Member, error) {
 	var bestPeer *etcdutil.Member
 	if c.peers == nil {
-		return nil, fmt.Errorf("No know peers")
+		return nil, fmt.Errorf("No known peers")
 	}
 	for _, m := range c.peers {
 		if !m.AppPrimary || m.AppFailed {
@@ -124,6 +124,29 @@ func (c *Cluster) startMember() error {
 	return c.startAppMember(m, false)
 }
 
+func (c *Cluster) execCommand(podName string, stdin string, cmd ...string) (string, string, error) {
+	return k8sutil.ExecWithOptions(c.logger, c.config.KubeCli, k8sutil.ExecOptions{
+		Command:       cmd,
+		Namespace:     c.cluster.Namespace,
+		PodName:       podName,
+		ContainerName: "rss",
+
+		StdinText:          stdin,
+		CaptureStdout:      true,
+		CaptureStderr:      true,
+		PreserveWhitespace: false,
+	})
+}
+
+func (c *Cluster) appendPrimaries(cmd []string) []string {
+	for _, m := range c.peers {
+		if m.Online && m.AppPrimary {
+			cmd = append(cmd, fmt.Sprintf("%v.%v", m.Name, serviceName(c.cluster.Name)))
+		}
+	}
+	return cmd
+
+}
 func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 	startCmd := c.cluster.Spec.StartPrimaryCommand
 
@@ -133,10 +156,12 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 		startCmd = c.cluster.Spec.StartSecondaryCommand
 	}
 
+	startCmd = c.appendPrimaries(startCmd)
+
 	if asPrimary && c.peers.AppPrimaries() == 0 {
 		c.logger.Infof("Seeding from pod %v: %v", m.Name, m.SEQ)
 	}
-	stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, startCmd...)
+	stdout, stderr, err := c.execCommand(m.Name, "beekhof", startCmd...)
 	if err != nil {
 		c.logger.Errorf("startAppMember: pod %v: exec failed: %v", m.Name, err)
 		m.AppFailed = true
@@ -153,6 +178,7 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 		if stderr != "" {
 			c.logger.Errorf("startAppMember: pod %v stderr: %v", m.Name, stderr)
 		}
+		c.logger.Infof("startAppMember: pod %v running: %v", m.Name, asPrimary)
 		m.AppPrimary = asPrimary
 		m.AppRunning = true
 		m.AppFailed = false
@@ -162,7 +188,7 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 
 func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
 	c.logger.Infof("Stopping pod %v: %v", m.Name, m.SEQ)
-	stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.StopCommand...)
+	stdout, stderr, err := c.execCommand(m.Name, "", c.cluster.Spec.StopCommand...)
 	if err != nil {
 		c.logger.Errorf("stopAppMember: pod %v: exec failed: %v", m.Name, err)
 		m.AppFailed = true

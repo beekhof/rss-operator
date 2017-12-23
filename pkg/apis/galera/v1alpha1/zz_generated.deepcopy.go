@@ -254,6 +254,16 @@ func (in *MembersStatus) DeepCopyInto(out *MembersStatus) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.Primary != nil {
+		in, out := &in.Primary, &out.Primary
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.Secondary != nil {
+		in, out := &in.Secondary, &out.Secondary
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

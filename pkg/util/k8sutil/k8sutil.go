@@ -267,8 +267,9 @@ func ClusterListOpt(clusterName string) metav1.ListOptions {
 
 func LabelsForCluster(clusterName string) map[string]string {
 	return map[string]string{
-		"modal_cluster": clusterName,
-		"app":           "galera",
+		"app":                  clusterName,
+		"operated-rss":         "true",
+		"rss-operator-managed": "true",
 	}
 }
 

@@ -38,8 +38,8 @@ import (
 
 const (
 	//defaultRetention     = "24h"
-	configMapsFilename   = "configmaps.json"
-	governingServiceName = "rss-operated"
+	configMapsFilename = "configmaps.json"
+	//governingServiceName = "rss-operated"
 	configFilename       = "prometheus.yaml"
 	prometheusConfDir    = "/etc/prometheus/config"
 	prometheusConfFile   = prometheusConfDir + "/" + configFilename
@@ -59,6 +59,10 @@ var (
 
 	logger = logrus.WithField("pkg", "statefulset")
 )
+
+func serviceName(name string) string {
+	return fmt.Sprintf("%s-svc", name)
+}
 
 func mergeLabels(labels map[string]string, otherLabels map[string]string) map[string]string {
 	mergedLabels := map[string]string{}
@@ -169,10 +173,8 @@ func (l *ConfigMapReferenceList) Swap(i, j int) {
 func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config) *v1.Service {
 	svc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: governingServiceName,
-			Labels: mergeLabels(cluster.Spec.PodLabels(), map[string]string{
-				"operated-rss": "true",
-			}),
+			Name:   serviceName(cluster.Name),
+			Labels: mergeLabels(cluster.Spec.PodLabels(), k8sutil.LabelsForCluster(cluster.Name)),
 		},
 		Spec: v1.ServiceSpec{
 			ClusterIP: "None",
@@ -183,9 +185,7 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config) *
 					TargetPort: intstr.FromString("web"),
 				},
 			},
-			Selector: map[string]string{
-				"app": "rss",
-			},
+			Selector: k8sutil.LabelsForCluster(cluster.Name),
 		},
 	}
 	return svc
@@ -384,8 +384,8 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 
 	// SetEtcdVersion(podSpec, cs.Version)
 	podAnnotations[k8sutil.EtcdVersionAnnotationKey] = cluster.Spec.Version
-
 	podLabels = mergeLabels(k8sutil.LabelsForCluster(cluster.Name), podLabels)
+
 	intSize := int32(cluster.Spec.Size)
 	podSpec := v1.PodSpec{
 		Containers: []v1.Container{
@@ -394,6 +394,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 				Image:           fmt.Sprintf("%s:%s", cluster.Spec.BaseImage, cluster.Spec.Version),
 				ImagePullPolicy: "Always", // Useful while testing
 
+				// TODO: Make ports configurable as part of the cluster/pod spec
 				Ports: []v1.ContainerPort{
 					{
 						Name:          "web",
@@ -431,7 +432,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	applyPodSpecPolicy(cluster.Name, &podSpec, cluster.Spec.Pod)
 
 	return &v1beta1.StatefulSetSpec{
-		ServiceName:         governingServiceName,
+		ServiceName:         serviceName(cluster.Name),
 		Replicas:            &intSize,
 		PodManagementPolicy: v1beta1.ParallelPodManagement,
 		UpdateStrategy: v1beta1.StatefulSetUpdateStrategy{

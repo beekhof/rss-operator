@@ -92,7 +92,9 @@ type MembersStatus struct {
 	// The member names are the same as the galera pod names
 	Ready []string `json:"ready,omitempty"`
 	// Unready are the galera members not ready to serve requests
-	Unready []string `json:"unready,omitempty"`
+	Unready   []string `json:"unready,omitempty"`
+	Primary   []string `json:"primary,omitempty"`
+	Secondary []string `json:"secondary,omitempty"`
 }
 
 func (cs *ClusterStatus) IsFailed() bool {

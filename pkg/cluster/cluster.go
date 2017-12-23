@@ -275,7 +275,7 @@ func (c *Cluster) run() {
 			}
 			if len(running) == 0 {
 				// TODO: how to handle this case?
-				c.logger.Warningf("all etcd pods are dead.")
+				c.logger.Warningf("all %v pods are dead.", c.cluster.Name)
 				break
 			}
 
@@ -418,15 +418,24 @@ func (c *Cluster) pollPods() (running, pending []*v1.Pod, err error) {
 
 func (c *Cluster) updateMemberStatus(members etcdutil.MemberSet, running []string) {
 	var unready []string
+	var primary []string
+	var secondary []string
+
 	for _, m := range members {
 		if !util.PresentIn(m.Name, running) {
 			c.logger.Infof("updateMemberStatus:  pod %v: not ready", m.Name)
 			unready = append(unready, m.Name)
+		} else if m.AppRunning && m.AppPrimary {
+			primary = append(primary, m.Name)
+		} else if m.AppRunning {
+			secondary = append(secondary, m.Name)
 		}
 	}
 
 	c.status.Members.Ready = running
 	c.status.Members.Unready = unready
+	c.status.Members.Primary = primary
+	c.status.Members.Secondary = secondary
 }
 
 func (c *Cluster) updateCRStatus() error {
