@@ -1,4 +1,4 @@
-IMAGE="quay.io/beekhof/centos:0.0.5"
+IMAGE="quay.io/beekhof/$$(basename $$PWD):0.0.1"
 all: build push
 build:
 	echo "building container..."
@@ -12,3 +12,7 @@ push:
 
 export:
 	docker save $(IMAGE)  | gzip > $(IMAGE).tar.gz 
+
+
+pf:
+	wget -O peer-finder.go https://raw.githubusercontent.com/kubernetes/contrib/master/peer-finder/peer-finder.go
