@@ -341,6 +341,8 @@ func (in *PodPolicy) DeepCopyInto(out *PodPolicy) {
 		*out = make([]v1.ContainerPort, len(*in))
 		copy(*out, *in)
 	}
+	in.LivenessProbe.DeepCopyInto(&out.LivenessProbe)
+	in.ReadinessProbe.DeepCopyInto(&out.ReadinessProbe)
 	return
 }
 

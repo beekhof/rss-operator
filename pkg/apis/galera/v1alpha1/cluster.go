@@ -198,6 +198,9 @@ type PodPolicy struct {
 	AutomountServiceAccountToken *bool `json:"automountServiceAccountToken,omitempty"`
 
 	Ports []v1.ContainerPort `json:"ports,omitempty"`
+
+	LivenessProbe  v1.Probe `json:"livenessProbe,omitempty"`
+	ReadinessProbe v1.Probe `json:"readinessProbe,omitempty"`
 }
 
 func (c *ClusterSpec) PodLabels() map[string]string {

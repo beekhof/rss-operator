@@ -38,7 +38,6 @@ const (
 	//governingServiceName = "rss-operated"
 	configFilename       = "prometheus.yaml"
 	prometheusConfDir    = "/etc/prometheus/config"
-	prometheusConfFile   = prometheusConfDir + "/" + configFilename
 	prometheusStorageDir = "/var/prometheus/data"
 	prometheusRulesDir   = "/etc/prometheus/rules"
 	prometheusSecretsDir = "/etc/prometheus/secrets/"
@@ -297,21 +296,17 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 		})
 	}
 
-	// webRoutePrefix := "/"
-	// var livenessProbeHandler v1.Handler
-	// var readinessProbeHandler v1.Handler
-	// livenessProbeHandler = v1.Handler{
-	// 	HTTPGet: &v1.HTTPGetAction{
-	// 		Path: path.Clean(webRoutePrefix + "/-/healthy"),
-	// 		Port: intstr.FromString("web"),
-	// 	},
-	// }
-	// readinessProbeHandler = v1.Handler{
-	// 	HTTPGet: &v1.HTTPGetAction{
-	// 		Path: path.Clean(webRoutePrefix + "/-/ready"),
-	// 		Port: intstr.FromString("web"),
-	// 	},
-	// }
+	// ReadinessProbe: &v1.Probe{
+	// 	Handler:          v1.Handler{
+	// 		HTTPGet: &v1.HTTPGetAction{
+	// 		    Path: path.Clean(webRoutePrefix + "/-/ready"),
+	// 		    Port: intstr.FromString("web"),
+	// 	    },
+	//  },
+	// 	TimeoutSeconds:   probeTimeoutSeconds,
+	// 	PeriodSeconds:    5,
+	// 	FailureThreshold: 6,
+	// },
 
 	podAnnotations := map[string]string{}
 	podLabels := map[string]string{}
@@ -367,19 +362,8 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 				},
 				// Args:         promArgs,
 				VolumeMounts: promVolumeMounts,
-				// LivenessProbe: &v1.Probe{
-				// 	Handler:             livenessProbeHandler,
-				// 	InitialDelaySeconds: 30,
-				// 	PeriodSeconds:       5,
-				// 	TimeoutSeconds:      probeTimeoutSeconds,
-				// 	FailureThreshold:    10,
-				// },
-				// ReadinessProbe: &v1.Probe{
-				// 	Handler:          readinessProbeHandler,
-				// 	TimeoutSeconds:   probeTimeoutSeconds,
-				// 	PeriodSeconds:    5,
-				// 	FailureThreshold: 6,
-				// },
+				LivenessProbe: cluster.Spec.Pod.LivenessProbe
+				ReadinessProbe: cluster.Spec.Pod.ReadinessProbe
 				Resources: cluster.Spec.Resources,
 			},
 		},
