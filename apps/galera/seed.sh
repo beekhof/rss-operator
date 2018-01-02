@@ -19,7 +19,9 @@ fi
 kubectl label --overwrite pods $HOSTNAME state=active
 echo "$$ Service seeded."
 
-sed -ie 's/^\(safe_to_bootstrap:\) 0/\1 1/' ${OCF_RESKEY_datadir}/grastate.dat
+if [ -e ${OCF_RESKEY_datadir}/grastate.dat ]; then
+    sed -ie 's/^\(safe_to_bootstrap:\) 0/\1 1/' ${OCF_RESKEY_datadir}/grastate.dat
+fi
 
 mysql_common_prepare_dirs
 mysql_common_start "--wsrep-cluster-address=gcomm://"

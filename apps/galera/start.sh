@@ -22,5 +22,9 @@ fi
 kubectl label --overwrite pods $HOSTNAME state=active
 
 mysql_common_prepare_dirs
+
+set -x
 mysql_common_start "--wsrep-cluster-address=gcomm://$1"
+set +x
+
 echo "$$ Replication complete."

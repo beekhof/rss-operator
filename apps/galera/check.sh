@@ -6,5 +6,4 @@
 . ${OCF_FUNCTIONS_DIR}/ocf-shellfuncs
 . ${OCF_FUNCTIONS_DIR}/mysql-common.sh
 
-set -x
 mysql_common_status err
