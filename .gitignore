@@ -29,3 +29,5 @@ _testmain.go
 
 # vendor
 vendor/
+vendor-good
+vendor_old
