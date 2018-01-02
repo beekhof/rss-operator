@@ -76,6 +76,9 @@ func main() {
 	if ns == "" {
 		ns = os.Getenv("POD_NAMESPACE")
 	}
+	if svc == "" {
+		ns = os.Getenv("POD_SERVICE")
+	}
 	hostname, err := os.Hostname()
 	if err != nil {
 		log.Fatalf("Failed to get hostname: %s", err)
