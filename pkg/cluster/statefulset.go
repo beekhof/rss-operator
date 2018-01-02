@@ -19,18 +19,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strings"
 
 	"k8s.io/api/apps/v1beta1"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	// "k8s.io/apimachinery/pkg/labels"
-	//"k8s.io/apimachinery/pkg/util/intstr"
 
 	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
-	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
@@ -221,54 +217,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	// Allow up to 10 minutes for clean termination.
 	terminationGracePeriod := int64(600)
 
-	versionStr := strings.TrimLeft(cluster.Spec.Version, "v")
-
-	if versionStr == "latest" {
-		// Used for version specific logic (that we dont need, yet)
-		versionStr = "0.0.1"
-	}
-	version, err := semver.Parse(versionStr)
-	if err != nil {
-		return nil, errors.Wrap(err, "parse version")
-	}
-
-	var promArgs []string
-	var securityContext v1.PodSecurityContext
-
-	// switch version.Major {
-	// case 1:
-	promArgs = append(promArgs,
-		// "-storage.local.retention="+cluster.Spec.Retention,
-		"-storage.local.num-fingerprint-mutexes=4096",
-		fmt.Sprintf("-storage.local.path=%s", prometheusStorageDir),
-		"-storage.local.chunk-encoding-version=2",
-		fmt.Sprintf("-config.file=%s", prometheusConfFile))
-	// We attempt to specify decent storage tuning flags based on how much the
-	// requested memory can fit. The user has to specify an appropriate buffering
-	// in memory limits to catch increased memory usage during query bursts.
-	// More info: https://prometheus.io/docs/operating/storage/.
-	reqMem := cluster.Spec.Resources.Requests[v1.ResourceMemory]
-
-	if version.Minor < 6 {
-		// 1024 byte is the fixed chunk size. With increasing number of chunks actually
-		// in memory, overhead owed to their management, higher ingestion buffers, etc.
-		// increases.
-		// We are conservative for now an assume this to be 80% as the Kubernetes environment
-		// generally has a very high time series churn.
-		memChunks := reqMem.Value() / 1024 / 5
-
-		promArgs = append(promArgs,
-			fmt.Sprintf("-storage.local.memory-chunks=%d", memChunks),
-			fmt.Sprintf("-storage.local.max-chunks-to-persist=%d", memChunks/2),
-		)
-	}
-
-	securityContext = v1.PodSecurityContext{}
-	// default:
-	// 	return nil, errors.Errorf("unsupported Prometheus major version %s", version)
-	// }
-
-	// promArgs = append(promArgs, "-web.external-url="+cluster.Spec.ExternalURL)
+	securityContext := v1.PodSecurityContext{}
 
 	volumes := []v1.Volume{
 		{
