@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	// "k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/intstr"
+	//"k8s.io/apimachinery/pkg/util/intstr"
 
 	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
@@ -59,10 +59,6 @@ var (
 
 	logger = logrus.WithField("pkg", "statefulset")
 )
-
-func serviceName(name string) string {
-	return fmt.Sprintf("%s-svc", name)
-}
 
 func mergeLabels(labels map[string]string, otherLabels map[string]string) map[string]string {
 	mergedLabels := map[string]string{}
@@ -173,19 +169,14 @@ func (l *ConfigMapReferenceList) Swap(i, j int) {
 func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config) *v1.Service {
 	svc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   serviceName(cluster.Name),
+			Name:   cluster.Spec.ServiceName(cluster.Name),
 			Labels: mergeLabels(cluster.Spec.PodLabels(), k8sutil.LabelsForCluster(cluster.Name)),
 		},
 		Spec: v1.ServiceSpec{
 			ClusterIP: "None",
-			Ports: []v1.ServicePort{
-				{
-					Name:       "web",
-					Port:       9090,
-					TargetPort: intstr.FromString("web"),
-				},
-			},
-			Selector: k8sutil.LabelsForCluster(cluster.Name),
+			Ports:     cluster.Spec.ServicePorts(),
+			Selector:  k8sutil.LabelsForCluster(cluster.Name),
+			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 		},
 	}
 	return svc
@@ -399,17 +390,11 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 				ImagePullPolicy: "Always", // Useful while testing
 
 				// TODO: Make ports configurable as part of the cluster/pod spec
-				Ports: []v1.ContainerPort{
-					{
-						Name:          "web",
-						ContainerPort: 9090,
-						Protocol:      v1.ProtocolTCP,
-					},
-				},
+				Ports: cluster.Spec.ContainerPorts(),
 				Env: []v1.EnvVar{
 					{
-						Name:  "POD_SERVICE",
-						Value: serviceName(cluster.Name),
+						Name:  "SERVICE_NAME",
+						Value: cluster.Spec.ServiceName(cluster.Name),
 					},
 					{
 						Name: "MY_POD_NAME",
@@ -461,7 +446,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	applyPodSpecPolicy(cluster.Name, &podSpec, cluster.Spec.Pod)
 
 	return &v1beta1.StatefulSetSpec{
-		ServiceName:         serviceName(cluster.Name),
+		ServiceName:         cluster.Spec.Service.Name,
 		Replicas:            &intSize,
 		PodManagementPolicy: v1beta1.ParallelPodManagement,
 		UpdateStrategy: v1beta1.StatefulSetUpdateStrategy{

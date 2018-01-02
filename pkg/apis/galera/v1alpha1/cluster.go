@@ -16,10 +16,12 @@ package v1alpha1
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -112,6 +114,11 @@ type ClusterSpec struct {
 	// Updating Pod does not take effect on any existing galera pods.
 	Pod *PodPolicy `json:"pod,omitempty"`
 
+	// Pod defines the policy to create pod for the galera pod.
+	//
+	// Updating Pod does not take effect on any existing galera pods.
+	Service *ServicePolicy `json:"pod,omitempty"`
+
 	// galera cluster TLS configuration
 	TLS *TLSPolicy `json:"TLS,omitempty"`
 
@@ -148,6 +155,13 @@ type ClusterSpec struct {
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 }
 
+// ServicePolicy defines the policy to create service for the galera container.
+type ServicePolicy struct {
+	Name            string             `json:"name,omitempty"`
+	SessionAffinity v1.ServiceAffinity `json:"sessionAffinity,omitempty"`
+	Ports           []v1.ServicePort   `json:"ports,omitempty"`
+}
+
 // PodPolicy defines the policy to create pod for the galera container.
 type PodPolicy struct {
 	// Labels specifies the labels to attach to pods the operator creates for the
@@ -182,6 +196,8 @@ type PodPolicy struct {
 	// By default, kubernetes will mount a service account token into the galera pods.
 	// AutomountServiceAccountToken indicates whether pods running with the service account should have an API token automatically mounted.
 	AutomountServiceAccountToken *bool `json:"automountServiceAccountToken,omitempty"`
+
+	Ports []v1.ContainerPort `json:"ports,omitempty"`
 }
 
 func (c *ClusterSpec) PodLabels() map[string]string {
@@ -189,6 +205,38 @@ func (c *ClusterSpec) PodLabels() map[string]string {
 		return c.Pod.Labels
 	}
 	return map[string]string{}
+}
+
+func (c *ClusterSpec) ServiceName(cname string) string {
+	if c.Service != nil && c.Service.Name != "" {
+		return c.Service.Name
+	}
+	return fmt.Sprintf("%s-svc", cname)
+}
+
+func (c *ClusterSpec) ServicePorts() []v1.ServicePort {
+	if c.Service != nil && c.Service.Ports != nil {
+		return c.Service.Ports
+	}
+	return []v1.ServicePort{
+		{
+			Name:       "web",
+			Port:       9090,
+			TargetPort: intstr.FromString("web"),
+		},
+	}
+}
+
+func (c *ClusterSpec) ContainerPorts() []v1.ContainerPort {
+	if c.Pod != nil && c.Pod.Ports != nil {
+		return c.Pod.Ports
+	}
+	return []v1.ContainerPort{
+		{
+			Name:          "web",
+			ContainerPort: 9090,
+			Protocol:      v1.ProtocolTCP},
+	}
 }
 
 func (c *ClusterSpec) Validate() error {
