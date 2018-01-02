@@ -92,6 +92,7 @@ type ClusterSpec struct {
 	// If version is not set, default is "3.2.10".
 	Version string `json:"version,omitempty"`
 
+	StatusCommand         []string `json:"statusCommand"`
 	SequenceCommand       []string `json:"sequenceCommand"`
 	StartSeedCommand      []string `json:"startSeedCommand,omitempty"`
 	StartPrimaryCommand   []string `json:"startPrimaryCommand"`

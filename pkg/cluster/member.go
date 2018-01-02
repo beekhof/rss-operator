@@ -15,8 +15,6 @@
 package cluster
 
 import (
-	"strconv"
-
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 
@@ -35,19 +33,13 @@ func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
 
 		c.peers[m.Name].Online = true
 
-		stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.SequenceCommand...)
-		if err != nil {
-			c.logger.Errorf("updateMembers:  pod %v: exec failed: %v", m.Name, err)
-
-		} else {
+		if len(c.cluster.Spec.StatusCommand) > 0 {
+			stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.StatusCommand...)
+			if err != nil {
+				c.logger.Errorf("updateMembers:  pod %v: exec failed: %v", m.Name, err)
+			}
 			if stdout != "" {
-				c.peers[m.Name].SEQ, err = strconv.ParseUint(stdout, 10, 64)
-				if err != nil {
-					c.logger.Errorf("updateMembers:  pod %v: could not parse '%v' into uint64: %v", m.Name, stdout, err)
-				}
-
-			} else {
-				c.logger.Infof("updateMembers:  pod %v sequence now: %v", m.Name, c.peers[m.Name].SEQ)
+				c.logger.Infof("updateMembers:  pod %v stdout: %v", m.Name, stdout)
 			}
 			if stderr != "" {
 				c.logger.Errorf("updateMembers:  pod %v stderr: %v", m.Name, stderr)

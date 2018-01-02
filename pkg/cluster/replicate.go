@@ -16,8 +16,10 @@ package cluster
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
+	"github.com/beekhof/galera-operator/pkg/util"
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 )
@@ -30,6 +32,10 @@ func (c *Cluster) replicate() error {
 		primaries = c.cluster.Spec.Size
 	}
 
+	if c.peers.AppPrimaries() == 0 {
+		c.detectMembers()
+
+	}
 	for err == nil && c.peers.AppPrimaries() < primaries {
 		err = c.startPrimary()
 	}
@@ -49,6 +55,29 @@ func (c *Cluster) replicate() error {
 	return nil
 }
 
+func (c *Cluster) detectMembers() {
+	for _, m := range c.peers {
+		stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.SequenceCommand...)
+		util.LogOutput(c.logger.WithField("source", "detectMembers:stdout"), m.Name, stdout)
+		util.LogOutput(c.logger.WithField("source", "detectMembers:stderr"), m.Name, stderr)
+
+		if err != nil {
+			c.logger.Errorf("detectMembers:  pod %v: exec failed: %v", m.Name, err)
+
+		} else {
+			if stdout != "" {
+				c.peers[m.Name].SEQ, err = strconv.ParseUint(stdout, 10, 64)
+				if err != nil {
+					c.logger.WithField("pod", m.Name).Errorf("detectMembers:  pod %v: could not parse '%v' into uint64: %v", m.Name, stdout, err)
+				}
+
+			} else {
+				c.logger.WithField("pod", m.Name).Infof("detectMembers:  pod %v sequence now: %v", m.Name, c.peers[m.Name].SEQ)
+			}
+		}
+	}
+}
+
 func chooseSeed(c *Cluster) (*etcdutil.Member, error) {
 	var bestPeer *etcdutil.Member
 	if c.peers == nil {
@@ -62,6 +91,9 @@ func chooseSeed(c *Cluster) (*etcdutil.Member, error) {
 		} else if bestPeer == nil {
 			bestPeer = m
 		} else if m.SEQ > bestPeer.SEQ {
+			bestPeer = m
+		} else if strings.Compare(m.Name, bestPeer.Name) > 0 {
+			// Prefer sts members towards the start of the range
 			bestPeer = m
 		}
 	}
@@ -131,7 +163,6 @@ func (c *Cluster) execCommand(podName string, stdin string, cmd ...string) (stri
 		PodName:       podName,
 		ContainerName: "rss",
 
-		StdinText:          stdin,
 		CaptureStdout:      true,
 		CaptureStderr:      true,
 		PreserveWhitespace: false,
@@ -162,6 +193,9 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 		c.logger.Infof("Seeding from pod %v: %v", m.Name, m.SEQ)
 	}
 	stdout, stderr, err := c.execCommand(m.Name, "beekhof", startCmd...)
+	c.logger.WithField("pod", m.Name).Errorf("startAppMember:  result start =========")
+	util.LogOutput(c.logger.WithField("source", "startAppMember:stdout"), m.Name, stdout)
+	util.LogOutput(c.logger.WithField("source", "startAppMember:stderr"), m.Name, stderr)
 	if err != nil {
 		c.logger.Errorf("startAppMember: pod %v: exec failed: %v", m.Name, err)
 		m.AppFailed = true
@@ -172,23 +206,20 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 		}
 
 	} else {
-		if stdout != "" {
-			c.logger.Infof("startAppMember: pod %v stdout: %v", m.Name, stdout)
-		}
-		if stderr != "" {
-			c.logger.Errorf("startAppMember: pod %v stderr: %v", m.Name, stderr)
-		}
-		c.logger.Infof("startAppMember: pod %v running: %v", m.Name, asPrimary)
+		c.logger.WithField("pod", m.Name).Infof("startAppMember: pod %v running: %v", m.Name, asPrimary)
 		m.AppPrimary = asPrimary
 		m.AppRunning = true
 		m.AppFailed = false
 	}
+	c.logger.WithField("pod", m.Name).Errorf("startAppMember:  result end =========")
 	return nil
 }
 
 func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
 	c.logger.Infof("Stopping pod %v: %v", m.Name, m.SEQ)
 	stdout, stderr, err := c.execCommand(m.Name, "", c.cluster.Spec.StopCommand...)
+	util.LogOutput(c.logger.WithField("source", "stopAppMember:stdout"), m.Name, stdout)
+	util.LogOutput(c.logger.WithField("source", "stopAppMember:stderr"), m.Name, stderr)
 	if err != nil {
 		c.logger.Errorf("stopAppMember: pod %v: exec failed: %v", m.Name, err)
 		m.AppFailed = true
@@ -196,12 +227,6 @@ func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
 		return fmt.Errorf("Could not stop %v: %v", m.Name, err)
 
 	} else {
-		if stdout != "" {
-			c.logger.Infof("stopAppMember: pod %v stdout: %v", m.Name, stdout)
-		}
-		if stderr != "" {
-			c.logger.Errorf("stopAppMember: pod %v stderr: %v", m.Name, stderr)
-		}
 		m.AppPrimary = false
 		m.AppRunning = false
 		m.AppFailed = false

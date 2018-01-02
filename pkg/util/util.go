@@ -14,6 +14,12 @@
 
 package util
 
+import (
+	"strings"
+
+	"github.com/sirupsen/logrus"
+)
+
 // PresentIn returns true if the given string is part of an array of strings
 func PresentIn(a string, list []string) bool {
 	for _, l := range list {
@@ -22,4 +28,13 @@ func PresentIn(a string, list []string) bool {
 		}
 	}
 	return false
+}
+
+func LogOutput(logger *logrus.Entry, id string, result string) {
+	if result != "" {
+		lines := strings.Split(result, "\n")
+		for n, l := range lines {
+			logger.WithField("pod", id).Infof("[%v][%v]", n, l)
+		}
+	}
 }

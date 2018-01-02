@@ -232,6 +232,10 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 
 	versionStr := strings.TrimLeft(cluster.Spec.Version, "v")
 
+	if versionStr == "latest" {
+		// Used for version specific logic (that we dont need, yet)
+		versionStr = "0.0.1"
+	}
 	version, err := semver.Parse(versionStr)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse version")
@@ -400,6 +404,31 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 						Name:          "web",
 						ContainerPort: 9090,
 						Protocol:      v1.ProtocolTCP,
+					},
+				},
+				Env: []v1.EnvVar{
+					{
+						Name:  "POD_SERVICE",
+						Value: serviceName(cluster.Name),
+					},
+					{
+						Name: "MY_POD_NAME",
+						ValueFrom: &v1.EnvVarSource{
+							FieldRef: &v1.ObjectFieldSelector{
+								APIVersion: "v1",
+								FieldPath:  "metadata.name",
+							},
+						},
+					},
+					{
+						// Used by peer-finder.go
+						Name: "POD_NAMESPACE",
+						ValueFrom: &v1.EnvVarSource{
+							FieldRef: &v1.ObjectFieldSelector{
+								APIVersion: "v1",
+								FieldPath:  "metadata.namespace",
+							},
+						},
 					},
 				},
 				// Args:         promArgs,
