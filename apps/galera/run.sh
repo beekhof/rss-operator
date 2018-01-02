@@ -1,14 +1,22 @@
 #!/bin/bash
 
+
+_term() { 
+  echo "Caught SIGTERM signal!" 
+  exit 0
+}
+
+trap _term SIGTERM
+
 count=1
 echo "$$ Container starting..."
-kubectl label --overwrite pods $HOSTNAME state=starting
+kubectl annotate --overwrite pods $HOSTNAME state=starting
 while [ 1 = 1 ]; do
-    kubectl label --overwrite pods $HOSTNAME state=running
+    kubectl annotate --overwrite pods $HOSTNAME state=running
     printf .
     sleep 30
-    kubectl label --overwrite pods $HOSTNAME counter=$count
+    kubectl annotate --overwrite pods $HOSTNAME counter=$count
     count=$((count+1))
 done
-kubectl label --overwrite pods $HOSTNAME state=done
+kubectl annotate --overwrite pods $HOSTNAME state=done
 echo "$$ Container done."
