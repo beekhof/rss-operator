@@ -67,7 +67,6 @@ func New(fc Config) (*Framework, error) {
 }
 
 func (f *Framework) CreateOperator(name string) error {
-	cmd := []string{"/usr/local/bin/etcd-operator"}
 	image := f.OldImage
 	d := &appsv1beta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -92,7 +91,6 @@ func (f *Framework) CreateOperator(name string) error {
 						Name:            name,
 						Image:           image,
 						ImagePullPolicy: v1.PullAlways,
-						Command:         cmd,
 						Env: []v1.EnvVar{
 							{
 								Name:      constants.EnvOperatorPodNamespace,
@@ -144,7 +142,7 @@ func (f *Framework) DeleteOperator(name string) error {
 	// The deleted operator will not actively release the Endpoints lock causing a non-leader candidate to timeout for the lease duration: 15s
 	// Deleting the Endpoints resource simulates the leader actively releasing the lock so that the next candidate avoids the timeout.
 	// TODO: change this if we change to use another kind of lock, e.g. configmap.
-	return f.KubeCli.CoreV1().Endpoints(f.KubeNS).Delete("etcd-operator", metav1.NewDeleteOptions(0))
+	return f.KubeCli.CoreV1().Endpoints(f.KubeNS).Delete("rss-operator", metav1.NewDeleteOptions(0))
 }
 
 func (f *Framework) UpgradeOperator(name string) error {

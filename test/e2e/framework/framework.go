@@ -106,7 +106,6 @@ func (f *Framework) setup() error {
 
 func (f *Framework) SetupEtcdOperator() error {
 	// TODO: unify this and the yaml file in example/
-	cmd := []string{"/usr/local/bin/etcd-operator"}
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "rss-operator",
@@ -118,7 +117,6 @@ func (f *Framework) SetupEtcdOperator() error {
 					Name:            "rss-operator",
 					Image:           f.opImage,
 					ImagePullPolicy: v1.PullAlways,
-					Command:         cmd,
 					Env: []v1.EnvVar{
 						{
 							Name:      constants.EnvOperatorPodNamespace,

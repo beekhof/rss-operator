@@ -27,7 +27,7 @@ import (
 
 func newOperatorName() string {
 	suffix := fmt.Sprintf("-%d", rand.Uint64())
-	return "etcd-operator" + suffix
+	return "rss-operator" + suffix
 }
 
 func TestResize(t *testing.T) {
