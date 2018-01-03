@@ -25,12 +25,8 @@ import (
 )
 
 func (c *Cluster) replicate() error {
-	primaries := c.cluster.Spec.MaxPrimaries
+	primaries := c.cluster.Spec.Primaries
 	var err error = nil
-
-	if primaries < 1 || primaries > c.cluster.Spec.Size {
-		primaries = c.cluster.Spec.Size
-	}
 
 	if c.peers.AppPrimaries() == 0 {
 		c.detectMembers()
@@ -57,7 +53,7 @@ func (c *Cluster) replicate() error {
 
 func (c *Cluster) detectMembers() {
 	for _, m := range c.peers {
-		stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.SequenceCommand...)
+		stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.Commands.Sequence...)
 		util.LogOutput(c.logger.WithField("source", "detectMembers:stdout"), m.Name, stdout)
 		util.LogOutput(c.logger.WithField("source", "detectMembers:stderr"), m.Name, stderr)
 
@@ -182,12 +178,12 @@ func (c *Cluster) appendPrimaries(cmd []string) []string {
 
 }
 func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
-	startCmd := c.cluster.Spec.StartPrimaryCommand
+	startCmd := c.cluster.Spec.Commands.Primary
 
-	if asPrimary && c.peers.AppPrimaries() == 0 && len(c.cluster.Spec.StartSeedCommand) > 0 {
-		startCmd = c.cluster.Spec.StartSeedCommand
-	} else if !asPrimary && len(c.cluster.Spec.StartSecondaryCommand) > 0 {
-		startCmd = c.cluster.Spec.StartSecondaryCommand
+	if asPrimary && c.peers.AppPrimaries() == 0 && len(c.cluster.Spec.Commands.Seed) > 0 {
+		startCmd = c.cluster.Spec.Commands.Seed
+	} else if !asPrimary && len(c.cluster.Spec.Commands.Secondary) > 0 {
+		startCmd = c.cluster.Spec.Commands.Secondary
 	}
 
 	startCmd = c.appendPrimaries(startCmd)
@@ -220,7 +216,7 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 
 func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
 	c.logger.Infof("Stopping pod %v: %v", m.Name, m.SEQ)
-	stdout, stderr, err := c.execCommand(m.Name, "", c.cluster.Spec.StopCommand...)
+	stdout, stderr, err := c.execCommand(m.Name, "", c.cluster.Spec.Commands.Stop...)
 	util.LogOutput(c.logger.WithField("source", "stopAppMember:stdout"), m.Name, stdout)
 	util.LogOutput(c.logger.WithField("source", "stopAppMember:stderr"), m.Name, stderr)
 	if err != nil {

@@ -98,6 +98,10 @@ type Cluster struct {
 
 func New(config Config, cl *api.ReplicatedStatefulSet) *Cluster {
 	lg := logrus.WithField("pkg", "cluster").WithField("cluster-name", cl.Name)
+	lg.Infof("Creating %v", cl.Spec)
+	lg.Infof("   Pods %v", cl.Spec.Pod)
+	lg.Infof("   Containers %v", cl.Spec.ManagedContainer)
+
 	c := &Cluster{
 		logger:      lg,
 		debugLogger: debug.New(cl.Name),
@@ -377,17 +381,19 @@ func (c *Cluster) run() {
 
 func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 	oldSpec := c.cluster.Spec.DeepCopy()
+	c.logger.Infof("Update event [%v] vs. [%v]", c.cluster, event.cluster.Spec)
 	c.cluster = event.cluster
 
 	if isSpecEqual(event.cluster.Spec, *oldSpec) {
 		// We have some fields that once created could not be mutated.
 		if !reflect.DeepEqual(event.cluster.Spec, *oldSpec) {
-			c.logger.Infof("ignoring update event: %#v", event.cluster.Spec)
+			c.logger.Warnf("ignoring update event: %#v", event.cluster.Spec)
 		}
 		return nil
 	}
 	// TODO: we can't handle another upgrade while an upgrade is in progress
 
+	c.logger.Infof("Handling update event: %#v", event.cluster.Spec)
 	c.logSpecUpdate(*oldSpec, event.cluster.Spec)
 	return nil
 }

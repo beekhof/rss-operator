@@ -126,7 +126,7 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config) *
 		},
 		Spec: v1.ServiceSpec{
 			ClusterIP: "None",
-			Ports:     cluster.Spec.ServicePorts(),
+			Ports:     cluster.Spec.GetServicePorts(),
 			Selector:  k8sutil.LabelsForCluster(cluster.Name),
 			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 		},
@@ -185,7 +185,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	lg.Infof("Building spec from: pod=%v, all=%v", cluster.Spec.Pod, cluster.Spec)
 	intSize := int32(cluster.Spec.Size)
 	podSpec := v1.PodSpec{
-		Containers:                    cluster.Spec.Pod.Containers,
+		Containers:                    []v1.Container{cluster.Spec.ManagedContainer},
 		ServiceAccountName:            cluster.Spec.ServiceAccountName,
 		NodeSelector:                  cluster.Spec.NodeSelector,
 		Tolerations:                   cluster.Spec.Tolerations,
@@ -194,8 +194,8 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 		TerminationGracePeriodSeconds: &terminationGracePeriod,
 	}
 
-	if cluster.Spec.Pod.Volumes != nil {
-		podSpec.Volumes = cluster.Spec.Pod.Volumes
+	if cluster.Spec.Volumes != nil {
+		podSpec.Volumes = cluster.Spec.Volumes
 	}
 
 	for _, container := range podSpec.Containers {
@@ -273,7 +273,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 		}
 	}
 
-	applyPodSpecPolicy(cluster.Name, &podSpec, cluster.Spec.Pod)
+	applyPodSpecPolicy(cluster.Name, &podSpec, &cluster.Spec.Pod)
 
 	podAnnotations := map[string]string{}
 	if cluster.ObjectMeta.Annotations != nil {
@@ -281,7 +281,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	}
 
 	return &v1beta1.StatefulSetSpec{
-		ServiceName:         cluster.Spec.Service.Name,
+		ServiceName:         cluster.Spec.ServiceName(cluster.Name),
 		Replicas:            &intSize,
 		PodManagementPolicy: v1beta1.ParallelPodManagement,
 		UpdateStrategy: v1beta1.StatefulSetUpdateStrategy{

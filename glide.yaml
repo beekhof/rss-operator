@@ -8,8 +8,6 @@ import:
   version: kubernetes-1.9.0
 - package: k8s.io/apiextensions-apiserver
   version: kubernetes-1.9.0
-- package: github.com/coreos/etcd
-  version: v3.1.9
 - package: github.com/sirupsen/logrus
   version: v1.0.0
 - package: github.com/pkg/errors
@@ -30,6 +28,12 @@ ignore:
   - go-openapi
   - doc
   - go
+  - ww
+  - gnostic
+  - jwt-go
+  - goautoneg
+  - gengo
+  - go-oidc
 excludeDirs:
   - cloudprovider
   - go/doc

@@ -40,7 +40,7 @@ function prep_pass {
 	go get honnef.co/go/tools/cmd/unused || true
 	if which unused >/dev/null; then
 		echo "Checking unused..."
-		checkRes=$(unused `listPkgs`) || true
+		checkRes=$(unused `listPkgs | grep -v -e apis/galera/v1alpha1`) || true
 		if [ -n "${checkRes}" ]; then
 				echo -e "unused checking failed:\n${checkRes}"
 				exit 255
@@ -69,7 +69,7 @@ function simple_pass {
 	if which gosimple >/dev/null; then
 		echo "Checking gosimple..."
 		# Generated deepcopy code failed checking... Ignore it at the moment
-		checkRes=$(gosimple `listPkgs | grep -v -e apis/galera/v1alpha1 -e apis/etcd/v1beta2`) || true
+		checkRes=$(gosimple `listPkgs | grep -v -e apis/galera/v1alpha1`) || true
 		if [ -n "${checkRes}" ]; then
 			echo -e "gosimple checking failed:\n${checkRes}"
 			exit 255
@@ -135,7 +135,7 @@ function unit_pass {
 	do
 		build_flags=("-i") # cache package compilation data for faster repeated builds
 		for i in {1..2}; do
-			go test ${build_flags[@]} -race -covermode=atomic -coverprofile=profile.out $pkg
+			go test -v ${build_flags[@]} -race -covermode=atomic -coverprofile=profile.out $pkg
 			# Expand empty array would cause "unbound variable".
 			# Expand one empty string array is equal to nothing.
 			build_flags=("")

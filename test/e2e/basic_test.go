@@ -23,6 +23,8 @@ import (
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 	"github.com/beekhof/galera-operator/test/e2e/e2eutil"
 	"github.com/beekhof/galera-operator/test/e2e/framework"
+
+	"github.com/sirupsen/logrus"
 )
 
 func TestCreateClusterDummy(t *testing.T) {
@@ -39,9 +41,12 @@ func TestCreateClusterDummy(t *testing.T) {
 		"testannotation": "testannotationvalue",
 	}
 
-	origEtcd := e2eutil.NewCluster("dummy-", 3, "", labels, annotations)
+	logrus.Info("Creating cluster")
+	origEtcd := e2eutil.NewCluster("beekhof-dummy-", 3, "", labels, annotations)
+	logrus.Infof("Cluster pods: %v [%v]", origEtcd.Spec, origEtcd.Spec.DeepCopy())
 	// origEtcd.Spec.Pod.AntiAffinity = true
 	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, origEtcd)
+	logrus.Infof("Created pods: %v [%v]", testEtcd.Spec, testEtcd.Spec.Pod)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,9 +57,9 @@ func TestCreateClusterDummy(t *testing.T) {
 		}
 	}()
 
-	t.Log(time.Now(), "Waiting")
+	logrus.Info(time.Now(), "Waiting")
 	time.Sleep(120 * time.Second)
-	t.Log(time.Now(), "Done Waiting")
+	logrus.Info(time.Now(), "Done Waiting")
 
 	if _, err := e2eutil.WaitUntilSizeReached(t, f.CRClient, 3, 60, testEtcd); err != nil {
 		t.Fatalf("failed to create 3 members etcd cluster: %v", err)

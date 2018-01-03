@@ -62,23 +62,42 @@ func (c *ReplicatedStatefulSet) AsOwner() metav1.OwnerReference {
 	}
 }
 
+type ClusterCommands struct {
+	Status    []string `json:"status"`
+	Sequence  []string `json:"sequence"`
+	Stop      []string `json:"stop"`
+	Seed      []string `json:"seed,omitempty"`
+	Primary   []string `json:"primary"`
+	Secondary []string `json:"secondary,omitempty"`
+}
+
+type ServicePolicy struct {
+	Name            string             `json:"name,omitempty"`
+	SessionAffinity v1.ServiceAffinity `json:"sessionAffinity,omitempty"`
+}
+
+type PodPolicy struct {
+	// NodeSelector specifies a map of key-value pairs. For the pod to be eligible
+	// to run on a node, the node must have each of the indicated key-value pairs as
+	// labels.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// AntiAffinity determines if the galera-operator tries to avoid putting
+	// the galera members in the same cluster onto the same node.
+	AntiAffinity bool `json:"antiAffinity"`
+
+	// By default, kubernetes will mount a service account token into the galera pods.
+	// AutomountServiceAccountToken indicates whether pods running with the service account should have an API token automatically mounted.
+	AutomountServiceAccountToken *bool `json:"automountServiceAccountToken,omitempty"`
+}
+
 type ClusterSpec struct {
 	// Size is the expected size of the galera cluster.
 	// The galera-operator will eventually make the size of the running
 	// cluster equal to the expected size.
-	// The vaild range of the size is from 1 to 7.
-	Size int `json:"size"`
-
-	MaxPrimaries int `json:"maxPrimaries"`
-	// Number of instances to deploy for a Prometheus deployment.
-	//Replicas *int32 `json:"replicas,omitempty"`
-
-	StatusCommand         []string `json:"statusCommand"`
-	SequenceCommand       []string `json:"sequenceCommand"`
-	StartSeedCommand      []string `json:"startSeedCommand,omitempty"`
-	StartPrimaryCommand   []string `json:"startPrimaryCommand"`
-	StartSecondaryCommand []string `json:"startSecondaryCommand,omitempty"`
-	StopCommand           []string `json:"stopCommand"`
+	Size      int   `json:"size"` // Replace with replicas
+	Replicas  int32 `json:"replicas"`
+	Primaries int   `json:"primaries"`
 
 	// An optional list of references to secrets in the same namespace
 	// to use for pulling prometheus and alertmanager images from registries
@@ -91,12 +110,16 @@ type ClusterSpec struct {
 	// Pod defines the policy to create pod for the galera pod.
 	//
 	// Updating Pod does not take effect on any existing galera pods.
-	Pod *PodPolicy `json:"pod,omitempty"`
-
-	// Pod defines the policy to create pod for the galera pod.
-	//
-	// Updating Pod does not take effect on any existing galera pods.
+	Pod     PodPolicy      `json:"pod"`
 	Service *ServicePolicy `json:"pod,omitempty"`
+
+	// Ideally these would be part of the PodPolicy or ServicePolicy, but they
+	// don't make it to the server side when they are :shrug:
+	ManagedContainer v1.Container     `json:"managedContainer"`
+	Volumes          []v1.Volume      `json:"volumes,omitempty"`
+	ServicePorts     []v1.ServicePort `json:"servicePorts,omitempty"`
+
+	Commands ClusterCommands `json:"commands"`
 
 	// galera cluster TLS configuration
 	TLS *TLSPolicy `json:"TLS,omitempty"`
@@ -134,35 +157,6 @@ type ClusterSpec struct {
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 }
 
-// ServicePolicy defines the policy to create service for the galera container.
-type ServicePolicy struct {
-	Name            string             `json:"name,omitempty"`
-	SessionAffinity v1.ServiceAffinity `json:"sessionAffinity,omitempty"`
-	Ports           []v1.ServicePort   `json:"ports,omitempty"`
-}
-
-// PodPolicy defines the policy to create pod for the galera container.
-type PodPolicy struct {
-	// NodeSelector specifies a map of key-value pairs. For the pod to be eligible
-	// to run on a node, the node must have each of the indicated key-value pairs as
-	// labels.
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-
-	// AntiAffinity determines if the galera-operator tries to avoid putting
-	// the galera members in the same cluster onto the same node.
-	AntiAffinity bool `json:"antiAffinity,omitempty"`
-
-	// Tolerations specifies the pod's tolerations.
-	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
-
-	// By default, kubernetes will mount a service account token into the galera pods.
-	// AutomountServiceAccountToken indicates whether pods running with the service account should have an API token automatically mounted.
-	AutomountServiceAccountToken *bool `json:"automountServiceAccountToken,omitempty"`
-
-	Containers []v1.Container `json:"containers"`
-	Volumes    []v1.Volume    `json:"volumes,omitempty"`
-}
-
 func (c *ClusterSpec) ServiceName(genName string) string {
 	if c.Service != nil && c.Service.Name != "" {
 		return c.Service.Name
@@ -170,10 +164,11 @@ func (c *ClusterSpec) ServiceName(genName string) string {
 	return fmt.Sprintf("%s-svc", genName)
 }
 
-func (c *ClusterSpec) ServicePorts() []v1.ServicePort {
-	if c.Service != nil && c.Service.Ports != nil {
-		return c.Service.Ports
+func (c *ClusterSpec) GetServicePorts() []v1.ServicePort {
+	if c.ServicePorts != nil {
+		return c.ServicePorts
 	}
+
 	return []v1.ServicePort{
 		{
 			Name:       "web",
@@ -195,6 +190,11 @@ func (c *ClusterSpec) Validate(labels map[string]string) error {
 			return errors.New(fmt.Sprintf("spec: cluster contains reserved label: %v=%v", k, labels[k]))
 		}
 	}
+
+	if c.ManagedContainer.Image == "" {
+		return errors.New(fmt.Sprintf("spec: No image configured for container: %v", c.ManagedContainer))
+	}
+
 	return nil
 }
 
@@ -209,6 +209,10 @@ func (c *ClusterSpec) Cleanup() {
 
 	if c.Size < 0 {
 		c.Size = 0
+	}
+
+	if c.Primaries < 1 || c.Primaries > c.Size {
+		c.Primaries = c.Size
 	}
 
 	if c.Resources.Requests == nil {

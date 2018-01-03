@@ -83,7 +83,7 @@ func (c *Controller) initResource() error {
 }
 
 func (c *Controller) onAddEtcdClus(obj interface{}) {
-	c.logger.Errorf("beekhof: Creating a new cluster")
+	c.logger.Infof("beekhof: Creating a new cluster: %v", obj)
 	c.syncEtcdClus(obj.(*api.ReplicatedStatefulSet))
 }
 

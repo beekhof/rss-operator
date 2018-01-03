@@ -38,21 +38,21 @@ func NewCluster(genName string, size int, image string, labels map[string]string
 		},
 		Spec: api.ClusterSpec{
 			Size: size,
-			Pod: &api.PodPolicy{
+			Pod: api.PodPolicy{
 				AntiAffinity: true,
-				Containers: []v1.Container{
-					{
-						Image:           image,
-						Name:            "rss",
-						ImagePullPolicy: v1.PullAlways,
-					},
-				},
 			},
-			StatusCommand:       []string{"/check.sh"},
-			SequenceCommand:     []string{"/sequence.sh"},
-			StartSeedCommand:    []string{"/seed.sh"},
-			StartPrimaryCommand: []string{"/start.sh"},
-			StopCommand:         []string{"/stop.sh"},
+			ManagedContainer: v1.Container{
+				Image:           image,
+				Name:            "rss",
+				ImagePullPolicy: v1.PullAlways,
+			},
+			Commands: api.ClusterCommands{
+				Status:   []string{"/check.sh"},
+				Sequence: []string{"/sequence.sh"},
+				Seed:     []string{"/seed.sh"},
+				Primary:  []string{"/start.sh"},
+				Stop:     []string{"/stop.sh"},
+			},
 		},
 	}
 }

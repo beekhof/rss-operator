@@ -33,8 +33,8 @@ func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
 
 		c.peers[m.Name].Online = true
 
-		if len(c.cluster.Spec.StatusCommand) > 0 {
-			stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.StatusCommand...)
+		if len(c.cluster.Spec.Commands.Status) > 0 {
+			stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.Commands.Status...)
 			if err != nil {
 				c.logger.Errorf("updateMembers:  pod %v: exec failed: %v", m.Name, err)
 			}

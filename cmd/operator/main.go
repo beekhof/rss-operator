@@ -90,14 +90,14 @@ func main() {
 	}()
 
 	if printVersion {
-		fmt.Println("etcd-operator Version:", version.Version)
+		fmt.Println("rss-operator Version:", version.Version)
 		fmt.Println("Git SHA:", version.GitSHA)
 		fmt.Println("Go Version:", runtime.Version())
 		fmt.Printf("Go OS/Arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
 		os.Exit(0)
 	}
 
-	logrus.Infof("etcd-operator Version: %v", version.Version)
+	logrus.Infof("rss-operator Version: %v", version.Version)
 	logrus.Infof("Git SHA: %s", version.GitSHA)
 	logrus.Infof("Go Version: %s", runtime.Version())
 	logrus.Infof("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH)
@@ -115,7 +115,7 @@ func main() {
 
 	rl, err := resourcelock.New(resourcelock.EndpointsResourceLock,
 		namespace,
-		"etcd-operator",
+		"rss-operator",
 		kubecli.CoreV1(),
 		resourcelock.ResourceLockConfig{
 			Identity:      id,

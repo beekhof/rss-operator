@@ -1,5 +1,5 @@
 FROM centos:centos7
-RUN yum install -y httpd wget curl which bind-utils lsof docker kubernetes-client golang git glide make
+RUN yum install -y httpd wget curl which docker golang git make
 
 ADD . $HOME/go/src/github.com/beekhof/galera-operator
 WORKDIR $HOME/go/src/github.com/beekhof/galera-operator
