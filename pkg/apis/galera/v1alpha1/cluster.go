@@ -20,14 +20,9 @@ import (
 	"strings"
 
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-)
-
-const (
-	// TODO: This is where we put the galera image
-	DefaultBaseImage = "quay.io/beekhof/centos"
-	DefaultVersion   = "0.0.1"
 )
 
 var (
@@ -77,22 +72,6 @@ type ClusterSpec struct {
 	MaxPrimaries int `json:"maxPrimaries"`
 	// Number of instances to deploy for a Prometheus deployment.
 	//Replicas *int32 `json:"replicas,omitempty"`
-
-	// BaseImage is the base galera image name that will be used to launch
-	// galera clusters. This is useful for private registries, etc.
-	//
-	// If image is not set, default is gcr.io/galera-development/etcd
-	BaseImage string `json:"baseImage"`
-
-	// Version is the expected version of the galera cluster.
-	// The galera-operator will eventually make the galera cluster version
-	// equal to the expected version.
-	//
-	// The version must follow the [semver]( http://semver.org) format, for example "3.2.10".
-	// Only galera released versions are supported: https://github.com/coreos/etcd/releases
-	//
-	// If version is not set, default is "3.2.10".
-	Version string `json:"version,omitempty"`
 
 	StatusCommand         []string `json:"statusCommand"`
 	SequenceCommand       []string `json:"sequenceCommand"`
@@ -164,12 +143,6 @@ type ServicePolicy struct {
 
 // PodPolicy defines the policy to create pod for the galera container.
 type PodPolicy struct {
-	// Labels specifies the labels to attach to pods the operator creates for the
-	// galera cluster.
-	// "app" and "galera_*" labels are reserved for the internal use of the galera operator.
-	// Do not overwrite them.
-	Labels map[string]string `json:"labels,omitempty"`
-
 	// NodeSelector specifies a map of key-value pairs. For the pod to be eligible
 	// to run on a node, the node must have each of the indicated key-value pairs as
 	// labels.
@@ -179,42 +152,22 @@ type PodPolicy struct {
 	// the galera members in the same cluster onto the same node.
 	AntiAffinity bool `json:"antiAffinity,omitempty"`
 
-	// Resources is the resource requirements for the galera container.
-	// This field cannot be updated once the cluster is created.
-	Resources v1.ResourceRequirements `json:"resources,omitempty"`
-
 	// Tolerations specifies the pod's tolerations.
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
-
-	// List of environment variables to set in the galera container.
-	// This is used to configure galera process. galera cluster cannot be created, when
-	// bad environement variables are provided. Do not overwrite any flags used to
-	// bootstrap the cluster (for example `--initial-cluster` flag).
-	// This field cannot be updated.
-	GaleraEnv []v1.EnvVar `json:"galeraEnv,omitempty"`
 
 	// By default, kubernetes will mount a service account token into the galera pods.
 	// AutomountServiceAccountToken indicates whether pods running with the service account should have an API token automatically mounted.
 	AutomountServiceAccountToken *bool `json:"automountServiceAccountToken,omitempty"`
 
-	Ports []v1.ContainerPort `json:"ports,omitempty"`
-
-	LivenessProbe  v1.Probe `json:"livenessProbe,omitempty"`
-	ReadinessProbe v1.Probe `json:"readinessProbe,omitempty"`
+	Containers []v1.Container `json:"containers"`
+	Volumes    []v1.Volume    `json:"volumes,omitempty"`
 }
 
-func (c *ClusterSpec) PodLabels() map[string]string {
-	if c.Pod != nil {
-		return c.Pod.Labels
-	}
-	return map[string]string{}
-}
-
-func (c *ClusterSpec) ServiceName(cname string) string {
+func (c *ClusterSpec) ServiceName(genName string) string {
 	if c.Service != nil && c.Service.Name != "" {
 		return c.Service.Name
 	}
-	return fmt.Sprintf("%s-svc", cname)
+	return fmt.Sprintf("%s-svc", genName)
 }
 
 func (c *ClusterSpec) ServicePorts() []v1.ServicePort {
@@ -230,30 +183,16 @@ func (c *ClusterSpec) ServicePorts() []v1.ServicePort {
 	}
 }
 
-func (c *ClusterSpec) ContainerPorts() []v1.ContainerPort {
-	if c.Pod != nil && c.Pod.Ports != nil {
-		return c.Pod.Ports
-	}
-	return []v1.ContainerPort{
-		{
-			Name:          "web",
-			ContainerPort: 9090,
-			Protocol:      v1.ProtocolTCP},
-	}
-}
-
-func (c *ClusterSpec) Validate() error {
+func (c *ClusterSpec) Validate(labels map[string]string) error {
 	if c.TLS != nil {
 		if err := c.TLS.Validate(); err != nil {
 			return err
 		}
 	}
 
-	if c.Pod != nil {
-		for k := range c.Pod.Labels {
-			if k == "app" || strings.HasPrefix(k, "galera_") {
-				return errors.New("spec: pod labels contains reserved label")
-			}
+	for k := range labels {
+		if k == "app" || strings.HasPrefix(k, "rss") {
+			return errors.New(fmt.Sprintf("spec: cluster contains reserved label: %v=%v", k, labels[k]))
 		}
 	}
 	return nil
@@ -262,13 +201,20 @@ func (c *ClusterSpec) Validate() error {
 // Cleanup cleans up user passed spec, e.g. defaulting, transforming fields.
 // TODO: move this to admission controller
 func (c *ClusterSpec) Cleanup() {
-	if len(c.BaseImage) == 0 {
-		c.BaseImage = DefaultBaseImage
+	minSize := 3
+
+	if c.Size > 0 && c.Size < minSize {
+		c.Size = minSize
 	}
 
-	if len(c.Version) == 0 {
-		c.Version = DefaultVersion
+	if c.Size < 0 {
+		c.Size = 0
 	}
 
-	c.Version = strings.TrimLeft(c.Version, "v")
+	if c.Resources.Requests == nil {
+		c.Resources.Requests = v1.ResourceList{}
+	}
+	if _, ok := c.Resources.Requests[v1.ResourceMemory]; !ok {
+		c.Resources.Requests[v1.ResourceMemory] = resource.MustParse("2M")
+	}
 }

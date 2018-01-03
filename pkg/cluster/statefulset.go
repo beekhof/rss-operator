@@ -22,37 +22,20 @@ import (
 
 	"k8s.io/api/apps/v1beta1"
 	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
 	yaml "gopkg.in/yaml.v2"
 )
 
 const (
-	//defaultRetention     = "24h"
-	configMapsFilename = "configmaps.json"
-	//governingServiceName = "rss-operated"
-	configFilename       = "prometheus.yaml"
-	prometheusConfDir    = "/etc/prometheus/config"
-	prometheusStorageDir = "/var/prometheus/data"
-	prometheusRulesDir   = "/etc/prometheus/rules"
-	prometheusSecretsDir = "/etc/prometheus/secrets/"
-)
-
-var (
-	minSize                     = 1
-	managedByOperatorLabel      = "managed-by"
-	managedByOperatorLabelValue = "rss-operator"
-	managedByOperatorLabels     = map[string]string{
-		managedByOperatorLabel: managedByOperatorLabelValue,
-	}
-	//probeTimeoutSeconds int32 = 3
-
-	logger = logrus.WithField("pkg", "statefulset")
+	configMapsFilename   = "configmaps.json"
+	configFilename       = "rss-config.yaml"
+	prometheusSecretsDir = "/etc/rss/secrets/"
 )
 
 func mergeLabels(labels map[string]string, otherLabels map[string]string) map[string]string {
@@ -69,39 +52,14 @@ func mergeLabels(labels map[string]string, otherLabels map[string]string) map[st
 }
 
 func makeStatefulSet(cluster api.ReplicatedStatefulSet, old *v1beta1.StatefulSet, config *Config, ruleConfigMaps []*v1.ConfigMap) (*v1beta1.StatefulSet, error) {
-	// TODO(fabxc): is this the right point to inject defaults?
-	// Ideally we would do it before storing but that's currently not possible.
-	// Potentially an update handler on first insertion.
-
-	if cluster.Spec.BaseImage == "" {
-		cluster.Spec.BaseImage = api.DefaultBaseImage
-	}
-	if cluster.Spec.Version == "" {
-		cluster.Spec.Version = api.DefaultVersion
-	}
-	if cluster.Spec.Size == 0 {
-		cluster.Spec.Size = minSize
-	}
-	if cluster.Spec.Size != 0 && cluster.Spec.Size < 0 {
-		cluster.Spec.Size = 0
-	}
-
-	if cluster.Spec.Resources.Requests == nil {
-		cluster.Spec.Resources.Requests = v1.ResourceList{}
-	}
-	if _, ok := cluster.Spec.Resources.Requests[v1.ResourceMemory]; !ok {
-		cluster.Spec.Resources.Requests[v1.ResourceMemory] = resource.MustParse("2M")
-	}
-
 	spec, err := makeStatefulSetSpec(cluster, config, ruleConfigMaps)
 	if err != nil {
 		return nil, errors.Wrap(err, "make StatefulSet spec")
 	}
 
-	logger.Infof("beekhof: owner: %v", cluster.AsOwner())
 	statefulset := &v1beta1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels:          mergeLabels(cluster.Spec.PodLabels(), cluster.ObjectMeta.Labels),
+			Labels:          mergeLabels(k8sutil.LabelsForCluster(cluster.Name), cluster.ObjectMeta.Labels),
 			Name:            prefixedName(cluster.Name),
 			Annotations:     cluster.ObjectMeta.Annotations,
 			OwnerReferences: []metav1.OwnerReference{cluster.AsOwner()},
@@ -136,7 +94,6 @@ func makeStatefulSet(cluster api.ReplicatedStatefulSet, old *v1beta1.StatefulSet
 		statefulset.Spec.PodManagementPolicy = old.Spec.PodManagementPolicy
 	}
 
-	logger.Infof("beekhof: final STS: %v", statefulset)
 	return statefulset, nil
 }
 
@@ -165,7 +122,7 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config) *
 	svc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   cluster.Spec.ServiceName(cluster.Name),
-			Labels: mergeLabels(cluster.Spec.PodLabels(), k8sutil.LabelsForCluster(cluster.Name)),
+			Labels: mergeLabels(cluster.Labels, k8sutil.LabelsForCluster(cluster.Name)),
 		},
 		Spec: v1.ServiceSpec{
 			ClusterIP: "None",
@@ -203,37 +160,74 @@ func applyPodSpecPolicy(clusterName string, podSpec *v1.PodSpec, policy *api.Pod
 	if policy.AutomountServiceAccountToken != nil {
 		podSpec.AutomountServiceAccountToken = policy.AutomountServiceAccountToken
 	}
-
-	for i := range podSpec.Containers {
-		if podSpec.Containers[i].Name == "rss" {
-			podSpec.Containers[i].Env = append(podSpec.Containers[i].Env, policy.GaleraEnv...)
-		}
-	}
 }
 
 func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfigMaps []*v1.ConfigMap) (*v1beta1.StatefulSetSpec, error) {
 	// Prometheus may take quite long to shut down to checkpoint existing data.
 	// Allow up to 10 minutes for clean termination.
 	terminationGracePeriod := int64(600)
+	lg := logrus.WithField("pkg", "RSS").WithField("cluster-name", cluster.Name)
 
 	securityContext := v1.PodSecurityContext{}
 
-	volumes := []v1.Volume{
-		{
-			Name: "config",
-			VolumeSource: v1.VolumeSource{
-				Secret: &v1.SecretVolumeSource{
-					SecretName: configSecretName(cluster.Name),
+	// ReadinessProbe: &v1.Probe{
+	// 	Handler:          v1.Handler{
+	// 		HTTPGet: &v1.HTTPGetAction{
+	// 		    Path: path.Clean(webRoutePrefix + "/-/ready"),
+	// 		    Port: intstr.FromString("web"),
+	// 	    },
+	//  },
+	// 	TimeoutSeconds:   probeTimeoutSeconds,
+	// 	PeriodSeconds:    5,
+	// 	FailureThreshold: 6,
+	// },
+
+	lg.Infof("Building spec from: pod=%v, all=%v", cluster.Spec.Pod, cluster.Spec)
+	intSize := int32(cluster.Spec.Size)
+	podSpec := v1.PodSpec{
+		Containers:                    cluster.Spec.Pod.Containers,
+		ServiceAccountName:            cluster.Spec.ServiceAccountName,
+		NodeSelector:                  cluster.Spec.NodeSelector,
+		Tolerations:                   cluster.Spec.Tolerations,
+		Affinity:                      cluster.Spec.Affinity,
+		SecurityContext:               &securityContext,
+		TerminationGracePeriodSeconds: &terminationGracePeriod,
+	}
+
+	if cluster.Spec.Pod.Volumes != nil {
+		podSpec.Volumes = cluster.Spec.Pod.Volumes
+	}
+
+	for _, container := range podSpec.Containers {
+		// Append generated details
+		container.Env = append(container.Env, v1.EnvVar{
+			Name:  "SERVICE_NAME",
+			Value: cluster.Spec.ServiceName(cluster.Name),
+		})
+
+		// The spec author could add themselves though...
+		container.Env = append(container.Env, v1.EnvVar{
+			Name: "POD_NAME",
+			ValueFrom: &v1.EnvVarSource{
+				FieldRef: &v1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.name",
 				},
 			},
-		},
-		{
-			Name: "rules",
-			VolumeSource: v1.VolumeSource{
-				EmptyDir: &v1.EmptyDirVolumeSource{},
+		})
+
+		container.Env = append(container.Env, v1.EnvVar{
+			Name: "POD_NAMESPACE",
+			ValueFrom: &v1.EnvVarSource{
+				FieldRef: &v1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.namespace",
+				},
 			},
-		},
-		{
+		})
+
+		// Now add and mount the downward API
+		podSpec.Volumes = append(podSpec.Volumes, v1.Volume{
 			Name: "podinfo",
 			VolumeSource: v1.VolumeSource{
 				DownwardAPI: &v1.DownwardAPIVolumeSource{
@@ -253,130 +247,38 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 					},
 				},
 			},
-		},
-	}
-
-	promVolumeMounts := []v1.VolumeMount{
-		{
-			Name:      "config",
-			ReadOnly:  true,
-			MountPath: prometheusConfDir,
-		},
-		{
-			Name:      "rules",
-			ReadOnly:  true,
-			MountPath: prometheusRulesDir,
-		},
-		{
-			Name:      volumeName(cluster.Name),
-			MountPath: prometheusStorageDir,
-			SubPath:   subPathForStorage(cluster.Spec.VolumeClaimTemplate),
-		},
-		{
+		})
+		container.VolumeMounts = append(container.VolumeMounts, v1.VolumeMount{
 			Name:      "podinfo",
 			ReadOnly:  false,
 			MountPath: "/etc/podinfo",
 			SubPath:   "",
-		},
-	}
-
-	for _, s := range cluster.Spec.Secrets {
-		volumes = append(volumes, v1.Volume{
-			Name: "secret-" + s,
-			VolumeSource: v1.VolumeSource{
-				Secret: &v1.SecretVolumeSource{
-					SecretName: s,
-				},
-			},
 		})
-		promVolumeMounts = append(promVolumeMounts, v1.VolumeMount{
-			Name:      "secret-" + s,
-			ReadOnly:  true,
-			MountPath: prometheusSecretsDir + s,
-		})
-	}
 
-	// ReadinessProbe: &v1.Probe{
-	// 	Handler:          v1.Handler{
-	// 		HTTPGet: &v1.HTTPGetAction{
-	// 		    Path: path.Clean(webRoutePrefix + "/-/ready"),
-	// 		    Port: intstr.FromString("web"),
-	// 	    },
-	//  },
-	// 	TimeoutSeconds:   probeTimeoutSeconds,
-	// 	PeriodSeconds:    5,
-	// 	FailureThreshold: 6,
-	// },
-
-	podAnnotations := map[string]string{}
-	podLabels := map[string]string{}
-	if cluster.ObjectMeta.Labels != nil {
-		for k, v := range cluster.ObjectMeta.Labels {
-			podLabels[k] = v
-		}
-	}
-	if cluster.ObjectMeta.Annotations != nil {
-		for k, v := range cluster.ObjectMeta.Annotations {
-			podAnnotations[k] = v
-		}
-	}
-
-	// SetEtcdVersion(podSpec, cs.Version)
-	podAnnotations[k8sutil.EtcdVersionAnnotationKey] = cluster.Spec.Version
-	podLabels = mergeLabels(k8sutil.LabelsForCluster(cluster.Name), podLabels)
-
-	intSize := int32(cluster.Spec.Size)
-	podSpec := v1.PodSpec{
-		Containers: []v1.Container{
-			{
-				Name:            "rss",
-				Image:           fmt.Sprintf("%s:%s", cluster.Spec.BaseImage, cluster.Spec.Version),
-				ImagePullPolicy: "Always", // Useful while testing
-
-				// TODO: Make ports configurable as part of the cluster/pod spec
-				Ports: cluster.Spec.ContainerPorts(),
-				Env: []v1.EnvVar{
-					{
-						Name:  "SERVICE_NAME",
-						Value: cluster.Spec.ServiceName(cluster.Name),
-					},
-					{
-						Name: "MY_POD_NAME",
-						ValueFrom: &v1.EnvVarSource{
-							FieldRef: &v1.ObjectFieldSelector{
-								APIVersion: "v1",
-								FieldPath:  "metadata.name",
-							},
-						},
-					},
-					{
-						// Used by peer-finder.go
-						Name: "POD_NAMESPACE",
-						ValueFrom: &v1.EnvVarSource{
-							FieldRef: &v1.ObjectFieldSelector{
-								APIVersion: "v1",
-								FieldPath:  "metadata.namespace",
-							},
-						},
+		// Now add and mount any secrets volumes
+		for _, s := range cluster.Spec.Secrets {
+			podSpec.Volumes = append(podSpec.Volumes, v1.Volume{
+				Name: "secret-" + s,
+				VolumeSource: v1.VolumeSource{
+					Secret: &v1.SecretVolumeSource{
+						SecretName: s,
 					},
 				},
-				// Args:         promArgs,
-				VolumeMounts: promVolumeMounts,
-				LivenessProbe: cluster.Spec.Pod.LivenessProbe
-				ReadinessProbe: cluster.Spec.Pod.ReadinessProbe
-				Resources: cluster.Spec.Resources,
-			},
-		},
-		SecurityContext:               &securityContext,
-		ServiceAccountName:            cluster.Spec.ServiceAccountName,
-		NodeSelector:                  cluster.Spec.NodeSelector,
-		TerminationGracePeriodSeconds: &terminationGracePeriod,
-		Volumes:     volumes,
-		Tolerations: cluster.Spec.Tolerations,
-		Affinity:    cluster.Spec.Affinity,
+			})
+			container.VolumeMounts = append(container.VolumeMounts, v1.VolumeMount{
+				Name:      "secret-" + s,
+				ReadOnly:  true,
+				MountPath: prometheusSecretsDir + s,
+			})
+		}
 	}
 
 	applyPodSpecPolicy(cluster.Name, &podSpec, cluster.Spec.Pod)
+
+	podAnnotations := map[string]string{}
+	if cluster.ObjectMeta.Annotations != nil {
+		podAnnotations = cluster.ObjectMeta.Annotations
+	}
 
 	return &v1beta1.StatefulSetSpec{
 		ServiceName:         cluster.Spec.Service.Name,
@@ -387,7 +289,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 		},
 		Template: v1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels:          mergeLabels(cluster.Spec.PodLabels(), podLabels),
+				Labels:          mergeLabels(k8sutil.LabelsForCluster(cluster.Name), cluster.ObjectMeta.Labels),
 				Annotations:     podAnnotations,
 				OwnerReferences: []metav1.OwnerReference{cluster.AsOwner()},
 			},
@@ -406,14 +308,6 @@ func volumeName(name string) string {
 
 func prefixedName(name string) string {
 	return fmt.Sprintf("rss-%s", name)
-}
-
-func subPathForStorage(s *v1.PersistentVolumeClaim) string {
-	if s == nil {
-		return ""
-	}
-
-	return "rss-storage"
 }
 
 func makeRuleConfigMap(cm *v1.ConfigMap) (*ConfigMapReference, error) {
@@ -463,7 +357,7 @@ func makeConfigSecret(cluster api.ReplicatedStatefulSet, configMaps []*v1.Config
 	return &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            configSecretName(cluster.Name),
-			Labels:          mergeLabels(cluster.Spec.PodLabels(), managedByOperatorLabels),
+			Labels:          mergeLabels(k8sutil.LabelsForCluster(cluster.Name), cluster.ObjectMeta.Labels),
 			OwnerReferences: []metav1.OwnerReference{cluster.AsOwner()},
 		},
 		Data: map[string][]byte{

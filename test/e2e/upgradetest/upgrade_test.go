@@ -47,7 +47,7 @@ func TestResize(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testClus, err := e2eutil.CreateCluster(t, testF.CRClient, testF.KubeNS, e2eutil.NewCluster("upgrade-test-", 3, nil, nil))
+	testClus, err := e2eutil.CreateCluster(t, testF.CRClient, testF.KubeNS, e2eutil.NewCluster("upgrade-test-", 3, "", nil, nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestHealOneMemberForOldCluster(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testEtcd, err := e2eutil.CreateCluster(t, testF.CRClient, testF.KubeNS, e2eutil.NewCluster("upgrade-test-", 3, nil, nil))
+	testEtcd, err := e2eutil.CreateCluster(t, testF.CRClient, testF.KubeNS, e2eutil.NewCluster("upgrade-test-", 3, "", nil, nil))
 	if err != nil {
 		t.Fatal(err)
 	}

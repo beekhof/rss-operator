@@ -70,19 +70,20 @@ func (c *Controller) handleClusterEvent(event *Event) error {
 			delete(c.clusters, clus.Name)
 			return nil
 		}
-		return fmt.Errorf("ignore failed cluster (%s). Please delete its CR", clus.Name)
+		return fmt.Errorf("Ignoring failed cluster (%s). Please delete its CR", clus.Name)
 	}
 
+	// Sets detaults
 	clus.Spec.Cleanup()
 
-	if err := clus.Spec.Validate(); err != nil {
-		return fmt.Errorf("invalid cluster spec. please fix the following problem with the cluster spec: %v", err)
+	if err := clus.Spec.Validate(clus.Labels); err != nil {
+		return fmt.Errorf("Invalid cluster spec: %v", err)
 	}
 
 	switch event.Type {
 	case kwatch.Added:
 		if _, ok := c.clusters[clus.Name]; ok {
-			return fmt.Errorf("unsafe state. cluster (%s) was created before but we received event (%s)", clus.Name, event.Type)
+			return fmt.Errorf("Unsafe state. Cluster (%s) was created before but we received event (%s)", clus.Name, event.Type)
 		}
 
 		nc := cluster.New(c.makeClusterConfig(), clus)
@@ -94,14 +95,14 @@ func (c *Controller) handleClusterEvent(event *Event) error {
 
 	case kwatch.Modified:
 		if _, ok := c.clusters[clus.Name]; !ok {
-			return fmt.Errorf("unsafe state. cluster (%s) was never created but we received event (%s)", clus.Name, event.Type)
+			return fmt.Errorf("Unsafe state. Cluster (%s) was never created but we received event (%s)", clus.Name, event.Type)
 		}
 		c.clusters[clus.Name].Update(clus)
 		clustersModified.Inc()
 
 	case kwatch.Deleted:
 		if _, ok := c.clusters[clus.Name]; !ok {
-			return fmt.Errorf("unsafe state. cluster (%s) was never created but we received event (%s)", clus.Name, event.Type)
+			return fmt.Errorf("Unsafe state. Cluster (%s) was never created but we received event (%s)", clus.Name, event.Type)
 		}
 		c.clusters[clus.Name].Delete()
 		delete(c.clusters, clus.Name)
@@ -122,7 +123,7 @@ func (c *Controller) makeClusterConfig() cluster.Config {
 func (c *Controller) initCRD() error {
 	err := k8sutil.CreateCRD(c.KubeExtCli, api.ReplicatedStatefulSetCRDName, api.ReplicatedStatefulSetResourceKind, api.ReplicatedStatefulSetResourcePlural, api.ReplicatedStatefulSetResourceShort)
 	if err != nil {
-		return fmt.Errorf("failed to create CRD: %v", err)
+		return fmt.Errorf("Failed to create CRD: %v", err)
 	}
 	return k8sutil.WaitCRDReady(c.KubeExtCli, api.ReplicatedStatefulSetCRDName)
 }

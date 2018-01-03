@@ -17,16 +17,21 @@ package e2eutil
 import (
 	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
 
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewCluster(genName string, size int, labels map[string]string, annotations map[string]string) *api.ReplicatedStatefulSet {
+func NewCluster(genName string, size int, image string, labels map[string]string, annotations map[string]string) *api.ReplicatedStatefulSet {
+	if image == "" {
+		image = "quay.io/beekhof/dummy:latest"
+	}
 	return &api.ReplicatedStatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       api.ReplicatedStatefulSetResourceKind,
 			APIVersion: api.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
+			// https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#idempotency
 			GenerateName: genName,
 			Labels:       labels,
 			Annotations:  annotations,
@@ -35,7 +40,13 @@ func NewCluster(genName string, size int, labels map[string]string, annotations 
 			Size: size,
 			Pod: &api.PodPolicy{
 				AntiAffinity: true,
-				Labels:       map[string]string{"origin": "e2e-test"},
+				Containers: []v1.Container{
+					{
+						Image:           image,
+						Name:            "rss",
+						ImagePullPolicy: v1.PullAlways,
+					},
+				},
 			},
 			StatusCommand:       []string{"/check.sh"},
 			SequenceCommand:     []string{"/sequence.sh"},
@@ -47,7 +58,7 @@ func NewCluster(genName string, size int, labels map[string]string, annotations 
 }
 
 func ClusterWithVersion(cl *api.ReplicatedStatefulSet, version string) *api.ReplicatedStatefulSet {
-	cl.Spec.Version = version
+	// cl.Spec.Version = version
 	return cl
 }
 

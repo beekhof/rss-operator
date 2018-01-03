@@ -29,7 +29,7 @@ func TestResizeCluster3to5(t *testing.T) {
 		t.Parallel()
 	}
 	f := framework.Global
-	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", 3, nil, nil))
+	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", 3, "", nil, nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestResizeCluster5to3(t *testing.T) {
 		t.Parallel()
 	}
 	f := framework.Global
-	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", 5, nil, nil))
+	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", 5, "", nil, nil))
 	if err != nil {
 		t.Fatal(err)
 	}

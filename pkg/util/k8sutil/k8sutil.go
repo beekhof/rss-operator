@@ -33,7 +33,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -46,21 +45,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const (
-	// EtcdClientPort is the client port on client service and etcd nodes.
-	EtcdClientPort           = 2379
-	EtcdVersionAnnotationKey = "rss.version"
-)
-
 const TolerateUnreadyEndpointsAnnotation = "service.alpha.kubernetes.io/tolerate-unready-endpoints"
-
-func GetEtcdVersion(pod *v1.Pod) string {
-	return pod.Annotations[EtcdVersionAnnotationKey]
-}
-
-func SetEtcdVersion(pod *v1.Pod, version string) {
-	pod.Annotations[EtcdVersionAnnotationKey] = version
-}
 
 func GetPodNames(pods []*v1.Pod) []string {
 	if len(pods) == 0 {
@@ -80,46 +65,6 @@ func ImageName(baseImage, version string) string {
 func PodWithNodeSelector(p *v1.Pod, ns map[string]string) *v1.Pod {
 	p.Spec.NodeSelector = ns
 	return p
-}
-
-func CreateClientService(kubecli kubernetes.Interface, clusterName, ns string, owner metav1.OwnerReference) error {
-	ports := []v1.ServicePort{{
-		Name:       "client",
-		Port:       EtcdClientPort,
-		TargetPort: intstr.FromInt(EtcdClientPort),
-		Protocol:   v1.ProtocolTCP,
-	}}
-	return createService(kubecli, ClientServiceName(clusterName), clusterName, ns, "", ports, owner)
-}
-
-func ClientServiceName(clusterName string) string {
-	return clusterName + "-client"
-}
-
-func CreatePeerService(kubecli kubernetes.Interface, clusterName, ns string, owner metav1.OwnerReference) error {
-	ports := []v1.ServicePort{{
-		Name:       "client",
-		Port:       EtcdClientPort,
-		TargetPort: intstr.FromInt(EtcdClientPort),
-		Protocol:   v1.ProtocolTCP,
-	}, {
-		Name:       "peer",
-		Port:       2380,
-		TargetPort: intstr.FromInt(2380),
-		Protocol:   v1.ProtocolTCP,
-	}}
-
-	return createService(kubecli, clusterName, clusterName, ns, v1.ClusterIPNone, ports, owner)
-}
-
-func createService(kubecli kubernetes.Interface, svcName, clusterName, ns, clusterIP string, ports []v1.ServicePort, owner metav1.OwnerReference) error {
-	svc := newEtcdServiceManifest(svcName, clusterName, clusterIP, ports)
-	AddOwnerRefToObject(svc.GetObjectMeta(), owner)
-	_, err := kubecli.CoreV1().Services(ns).Create(svc)
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return err
-	}
-	return nil
 }
 
 // CreateAndWaitPod is a workaround for self hosted and util for testing.
@@ -155,25 +100,6 @@ func CreateAndWaitPod(kubecli kubernetes.Interface, ns string, pod *v1.Pod, time
 	}
 
 	return retPod, nil
-}
-
-func newEtcdServiceManifest(svcName, clusterName, clusterIP string, ports []v1.ServicePort) *v1.Service {
-	labels := LabelsForCluster(clusterName)
-	svc := &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   svcName,
-			Labels: labels,
-			Annotations: map[string]string{
-				TolerateUnreadyEndpointsAnnotation: "true",
-			},
-		},
-		Spec: v1.ServiceSpec{
-			Ports:     ports,
-			Selector:  labels,
-			ClusterIP: clusterIP,
-		},
-	}
-	return svc
 }
 
 func AddOwnerRefToObject(o metav1.Object, r metav1.OwnerReference) {
@@ -267,8 +193,7 @@ func ClusterListOpt(clusterName string) metav1.ListOptions {
 
 func LabelsForCluster(clusterName string) map[string]string {
 	return map[string]string{
-		"app":                  clusterName,
-		"operated-rss":         "true",
+		"app": clusterName,
 		"rss-operator-managed": "true",
 	}
 }

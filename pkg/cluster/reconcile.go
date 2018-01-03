@@ -17,10 +17,7 @@ package cluster
 import (
 	"errors"
 
-	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
-	// "github.com/beekhof/galera-operator/pkg/util/constants"
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
-	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 
 	"k8s.io/api/core/v1"
 )
@@ -44,16 +41,6 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 	if c.peers.AppMembers() != sp.Size {
 		return c.reconcileMembers(running)
 	}
-
-	if needUpgrade(pods, sp) {
-		c.status.UpgradeVersionTo(sp.Version)
-
-		m := pickOneOldMember(pods, sp.Version)
-		return c.upgradeOneMember(m.Name)
-	}
-	c.status.ClearCondition(api.ClusterConditionUpgrading)
-
-	c.status.SetVersion(sp.Version)
 	c.status.SetReadyCondition()
 
 	return nil
@@ -81,20 +68,6 @@ func (c *Cluster) reconcileMembers(running etcdutil.MemberSet) error {
 	if c.peers.Size() < c.cluster.Spec.Size/2+1 {
 		c.logger.Infof("lost quorum")
 		return ErrLostQuorum
-	}
-	return nil
-}
-
-func needUpgrade(pods []*v1.Pod, cs api.ClusterSpec) bool {
-	return len(pods) == cs.Size && pickOneOldMember(pods, cs.Version) != nil
-}
-
-func pickOneOldMember(pods []*v1.Pod, newVersion string) *etcdutil.Member {
-	for _, pod := range pods {
-		if k8sutil.GetEtcdVersion(pod) == newVersion {
-			continue
-		}
-		return &etcdutil.Member{Name: pod.Name, Namespace: pod.Namespace}
 	}
 	return nil
 }

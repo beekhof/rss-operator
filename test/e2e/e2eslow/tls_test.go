@@ -55,7 +55,7 @@ func TestTLS(t *testing.T) {
 		}
 	}()
 
-	c := e2eutil.NewCluster("", 3, nil, nil)
+	c := e2eutil.NewCluster("", 3, "", nil, nil)
 	c.Name = clusterName
 	c.Spec.TLS = &api.TLSPolicy{
 		Static: &api.StaticTLS{

@@ -39,10 +39,7 @@ func TestCreateClusterDummy(t *testing.T) {
 		"testannotation": "testannotationvalue",
 	}
 
-	origEtcd := e2eutil.NewCluster("dummy-", 3, labels, annotations)
-	// origEtcd = e2eutil.ClusterWithVersion(origEtcd, "0.0.5")
-	origEtcd.Spec.Version = "latest"
-	origEtcd.Spec.BaseImage = "quay.io/beekhof/dummy"
+	origEtcd := e2eutil.NewCluster("dummy-", 3, "", labels, annotations)
 	// origEtcd.Spec.Pod.AntiAffinity = true
 	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, origEtcd)
 	if err != nil {
@@ -79,10 +76,7 @@ func TestCreateClusterGalera(t *testing.T) {
 		"testannotation": "testannotationvalue",
 	}
 
-	origEtcd := e2eutil.NewCluster("galera-", 3, labels, annotations)
-	// origEtcd = e2eutil.ClusterWithVersion(origEtcd, "0.0.5")
-	origEtcd.Spec.Version = "latest"
-	origEtcd.Spec.BaseImage = "quay.io/beekhof/galera"
+	origEtcd := e2eutil.NewCluster("galera-", 3, "quay.io/beekhof/galera:latest", labels, annotations)
 	// origEtcd.Spec.Pod.AntiAffinity = true
 	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, origEtcd)
 	if err != nil {
@@ -130,10 +124,7 @@ func TestCreateAClusterOnly(t *testing.T) {
 	}
 
 	f := framework.Global
-	origEtcd := e2eutil.NewCluster("test-galera-", 3, labels, annotations)
-	// origEtcd = e2eutil.ClusterWithVersion(origEtcd, "0.0.5")
-	origEtcd.Spec.Version = "0.0.5"
-	origEtcd.Spec.BaseImage = "quay.io/beekhof/centos"
+	origEtcd := e2eutil.NewCluster("test-galera-", 3, "", labels, annotations)
 	// origEtcd.Spec.Pod.AntiAffinity = true
 	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, origEtcd)
 	if err != nil {
@@ -154,7 +145,7 @@ func TestPauseControl(t *testing.T) {
 	}
 
 	f := framework.Global
-	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", 3, nil, nil))
+	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", 3, "", nil, nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,9 +198,7 @@ func TestEtcdUpgrade(t *testing.T) {
 		t.Parallel()
 	}
 	f := framework.Global
-	origEtcd := e2eutil.NewCluster("test-etcd-", 3, nil, nil)
-	origEtcd = e2eutil.ClusterWithVersion(origEtcd, "0.0.2")
-	origEtcd.Spec.BaseImage = "quay.io/beekhof/centos"
+	origEtcd := e2eutil.NewCluster("test-etcd-", 3, "", nil, nil)
 	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, origEtcd)
 	if err != nil {
 		t.Fatal(err)

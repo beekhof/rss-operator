@@ -15,6 +15,7 @@
 package cluster
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -30,15 +31,19 @@ import (
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 	"github.com/beekhof/galera-operator/pkg/util/retryutil"
-
-	// "github.com/pborman/uuid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	// "github.com/pborman/uuid"
+
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/cache"
 )
 
 var (
@@ -85,6 +90,10 @@ type Cluster struct {
 	tlsConfig *tls.Config
 
 	eventsCli corev1.EventInterface
+
+	// Watch for new config maps to be created so we can mount them into running containers
+	cmapInf cache.SharedIndexInformer
+	// secrInf cache.SharedIndexInformer
 }
 
 func New(config Config, cl *api.ReplicatedStatefulSet) *Cluster {
@@ -100,6 +109,19 @@ func New(config Config, cl *api.ReplicatedStatefulSet) *Cluster {
 		eventsCli:   config.KubeCli.Core().Events(cl.Namespace),
 	}
 
+	resyncPeriod := 5 * time.Minute
+
+	c.cmapInf = cache.NewSharedIndexInformer(
+		cache.NewListWatchFromClient(config.KubeCli.Core().RESTClient(), "configmaps", cl.Namespace, fields.Everything()),
+		&v1.ConfigMap{}, resyncPeriod, cache.Indexers{},
+	)
+	c.cmapInf.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.handleConfigMapAdd,
+		DeleteFunc: c.handleConfigMapDelete,
+		UpdateFunc: c.handleConfigMapUpdate,
+	})
+
+	// cl.Spec defaults set in makeStatefulSet(), should happen in ClusterSpec.Cleanup()
 	go func() {
 		c.logger.Infof("setting up cluster")
 		if err := c.setup(); err != nil {
@@ -153,6 +175,45 @@ func (c *Cluster) setup() error {
 	return nil
 }
 
+func (c *Cluster) handleConfigMapAdd(obj interface{}) {
+	// Recreate and update the ReplicatedStatefulSet
+}
+
+func (c *Cluster) handleConfigMapDelete(obj interface{}) {
+	// Recreate and update the ReplicatedStatefulSet
+}
+
+func (c *Cluster) handleConfigMapUpdate(old, cur interface{}) {
+	// Ignore
+}
+
+func (c *Cluster) keyFunc(obj interface{}) (string, bool) {
+	k, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+	if err != nil {
+		c.logger.Error("msg", "creating key failed", "err", err)
+		return k, false
+	}
+	return k, true
+}
+
+func (c *Cluster) ruleFileConfigMaps(cl *api.ReplicatedStatefulSet) ([]*v1.ConfigMap, error) {
+	res := []*v1.ConfigMap{}
+
+	ruleSelector, err := metav1.LabelSelectorAsSelector(cl.Spec.RuleSelector)
+	if err != nil {
+		return nil, err
+	}
+
+	cache.ListAllByNamespace(c.cmapInf.GetIndexer(), cl.Namespace, ruleSelector, func(obj interface{}) {
+		_, ok := c.keyFunc(obj)
+		if ok {
+			res = append(res, obj.(*v1.ConfigMap))
+		}
+	})
+
+	return res, nil
+}
+
 func (c *Cluster) createGalera() error {
 
 	// Create governing service if it doesn't exist.
@@ -161,8 +222,8 @@ func (c *Cluster) createGalera() error {
 		return errors.Wrap(err, "synchronizing governing service failed")
 	}
 
-	ruleFileConfigMaps := []*v1.ConfigMap{}
-	//ruleFileConfigMaps, err := c.ruleFileConfigMaps(p)
+	//ruleFileConfigMaps := []*v1.ConfigMap{}
+	ruleFileConfigMaps, err := c.ruleFileConfigMaps(c.cluster)
 
 	// Create Secret if it doesn't exist.
 	s, err := makeEmptyConfig(*c.cluster, ruleFileConfigMaps, c.config)
@@ -218,17 +279,16 @@ func (c *Cluster) send(ev *clusterEvent) {
 }
 
 func (c *Cluster) run() {
-	if err := c.setupServices(); err != nil {
-		c.logger.Errorf("fail to setup etcd services: %v", err)
-	}
-	c.status.ServiceName = k8sutil.ClientServiceName(c.cluster.Name)
-	c.status.ClientPort = k8sutil.EtcdClientPort
+	//	c.status.ServiceName = k8sutil.ClientServiceName(c.cluster.Name)
 
 	c.status.SetPhase(api.ClusterPhaseRunning)
 	if err := c.updateCRStatus(); err != nil {
 		c.logger.Warningf("update initial CR status failed: %v", err)
 	}
 	c.logger.Infof("start running...")
+
+	ctx := context.TODO()
+	go c.cmapInf.Run(ctx.Done()) //c.stopCh)
 
 	var rerr error
 	for {
@@ -333,7 +393,7 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 }
 
 func isSpecEqual(s1, s2 api.ClusterSpec) bool {
-	if s1.Size != s2.Size || s1.Paused != s2.Paused || s1.Version != s2.Version {
+	if s1.Size != s2.Size || s1.Paused != s2.Paused {
 		return false
 	}
 	return true
@@ -352,15 +412,6 @@ func (c *Cluster) Update(cl *api.ReplicatedStatefulSet) {
 		typ:     eventModifyCluster,
 		cluster: cl,
 	})
-}
-
-func (c *Cluster) setupServices() error {
-	err := k8sutil.CreateClientService(c.config.KubeCli, c.cluster.Name, c.cluster.Namespace, c.cluster.AsOwner())
-	if err != nil {
-		return err
-	}
-
-	return k8sutil.CreatePeerService(c.config.KubeCli, c.cluster.Name, c.cluster.Namespace, c.cluster.AsOwner())
 }
 
 func (c *Cluster) podOwner(pod *v1.Pod) bool {
