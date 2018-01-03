@@ -6,9 +6,12 @@ KUBECONFIG=$$HOME/.kube/config
 compile:
 	PASSES=simple hack/test
 
+clean: e2e-clean
+
 e2e-clean:
 #	kubectl -n testing delete svc,pods,sts --all
 	-ssh root@192.168.124.10 -- kubectl -n testing delete svc,pods,sts,rss,crd --all
+	sleep 10
 
 e2e: e2e-clean
 	@echo "Running tests: $(E2E_TEST_SELECTOR)"
@@ -17,16 +20,21 @@ e2e: e2e-clean
 build: 
 	OPERATOR_IMAGE=$(OPERATOR_IMAGE) PASSES="prep simple build" hack/test
 
+operator: deps
+	hack/build/operator/build
+	cp _output/bin/rss-operator /usr/local/bin/rss-operator
+
 all: build e2e-clean e2e
 
 generated:
 	-rm -rf pkg/generated
+	-find pkg -name zz_generated.deepcopy.go #delete
 	./hack/k8s/codegen/update-generated.sh 
 
 t: target 
 
 target:
-	make -C galera all
+	make -C apps/galera all
 
 init: target deps generated all
 
