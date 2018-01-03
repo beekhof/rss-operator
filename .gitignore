@@ -27,7 +27,3 @@ _testmain.go
 *.test
 *.prof
 
-# vendor
-vendor/
-vendor-good
-vendor_old

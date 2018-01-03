@@ -20,7 +20,7 @@ e2e: e2e-clean
 build: 
 	OPERATOR_IMAGE=$(OPERATOR_IMAGE) PASSES="prep simple build" hack/test
 
-operator: deps
+operator: 
 	hack/build/operator/build
 	cp _output/bin/rss-operator /usr/local/bin/rss-operator
 
