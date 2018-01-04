@@ -1,25 +1,79 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: etcd-operator
+  name: rss-operator
+  # labels:
+  #   name: rss-operator
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        name: etcd-operator
+        name: rss-operator
     spec:
       containers:
-      - name: etcd-operator
-        image: quay.io/coreos/etcd-operator:v0.7.0
-        command:
-        - etcd-operator
+      - name: rss-operator
+        image: quay.io/beekhof/rss-operator:latest
+        imagePullPolicy: Always
+        # restartPolicy: Never
         env:
         - name: MY_POD_NAMESPACE
           valueFrom:
             fieldRef:
+              apiVersion: v1
               fieldPath: metadata.namespace
         - name: MY_POD_NAME
           valueFrom:
             fieldRef:
+              apiVersion: v1
               fieldPath: metadata.name
+---
+apiVersion: clusterlabs.org/v1alpha1
+kind: ReplicatedStatefulSet
+metadata:
+  # https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#idempotency
+  generateName: galera-
+  labels:
+    kind: galera
+spec:
+  size: 3
+  pod:
+    antiAffinity: true
+  service:
+    name: galera-svc
+    sessionAffinity: None
+  servicePorts:
+  - name: galera
+    port: 13306
+    targetPort: 3306
+    # https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
+  volumes:
+  - emptyDir: {}
+    name: galera-vwsgr-db
+  containers:
+  - name: rss
+    image: quay.io/beekhof/galera:latest
+    imagePullPolicy: Always
+    ports:
+    - containerPort: 3306
+      name: galera
+      protocol: TCP
+      # http://galeracluster.com/documentation-webpages/firewallsettings.html
+      # 3306 For MySQL client connections and State Snapshot Transfer that use the mysqldump method.
+      # 4567 For Galera Cluster replication traffic, multicast replication uses both UDP transport and TCP on this port.
+      # 4568 For Incremental State Transfer.
+      # 4444 For all other State Snapshot Transfer.
+    volumeMounts:
+    - mountPath: /var/galera/data
+      name: galera-vwsgr-db
+  commands:
+    sequence:
+    - /sequence.sh
+    primary:
+    - /start.sh
+    seed:
+    - /seed.sh
+    status:
+    - /check.sh
+    stop:
+    - /stop.sh
