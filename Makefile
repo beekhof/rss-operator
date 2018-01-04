@@ -23,7 +23,7 @@ push: check build
 	@echo "upload complete"
 
 # Called from Dockerfile
-install: deps build
+install: deps check build
 	cp _output/bin/rss-operator /usr/local/bin/rss-operator
 
 all: build push e2e-clean e2e
@@ -32,8 +32,9 @@ clean: e2e-clean
 
 e2e-clean:
 #	kubectl -n testing delete svc,pods,sts --all
-	-ssh root@192.168.124.10 -- kubectl -n testing delete crd,rs,deploy,rss,sts,svc,pods --all
+	-ssh root@192.168.124.10 -- kubectl -n testing delete crd,deploy,rs,rss,sts,svc,pods --all
 	sleep 10
+
 
 e2e: test-quick e2e-clean
 	@echo "Running tests: $(E2E_TEST_SELECTOR)"
@@ -61,3 +62,13 @@ deps:
 	go get honnef.co/go/tools/cmd/gosimple
 	go get honnef.co/go/tools/cmd/unused
 	#glide install --strip-vendor 
+
+test:
+	-KUBECONFIG=$(KUBECONFIG) kubectl -n $(TEST_NAMESPACE) create -f example/operator.yaml
+	@echo "Waiting for the operator to become active"
+	while [ "x$(shell kubectl -n testing get crd | grep replicatedstatefulsets.clusterlabs.org)" = x ]; do sleep 5; /bin/echo -n .; done
+	@echo "Creating the cluster"
+	KUBECONFIG=$(KUBECONFIG) kubectl -n $(TEST_NAMESPACE) create -f apps/galera/cluster.yaml
+	KUBECONFIG=$(KUBECONFIG) kubectl -n $(TEST_NAMESPACE) logs -f $(shell kubectl -n $(TEST_NAMESPACE) get po | grep --color=never rss-operator | awk '{print $$1}')
+
+.PHONY: test

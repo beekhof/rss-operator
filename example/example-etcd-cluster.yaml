@@ -1,7 +1,0 @@
-apiVersion: "galera.database.beekhof.net/v1beta2"
-kind: "EtcdCluster"
-metadata:
-  name: "example-etcd-cluster"
-spec:
-  size: 3
-  version: "3.2.10"
