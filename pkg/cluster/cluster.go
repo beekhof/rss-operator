@@ -379,9 +379,9 @@ func (c *Cluster) run() {
 
 func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 	oldSpec := c.cluster.Spec.DeepCopy()
-	c.logger.Infof("Update event [%v] vs. [%v]", c.cluster, event.cluster.Spec)
 	c.cluster = event.cluster
 
+	// Most of the time, this will be c.status being updated
 	if isSpecEqual(event.cluster.Spec, *oldSpec) {
 		// We have some fields that once created could not be mutated.
 		if !reflect.DeepEqual(event.cluster.Spec, *oldSpec) {
@@ -391,7 +391,7 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 	}
 	// TODO: we can't handle another upgrade while an upgrade is in progress
 
-	c.logger.Infof("Handling update event: %#v", event.cluster.Spec)
+	c.logger.Infof("Update event\n \t[%v] vs.\n \t[%v]", c.cluster.Spec, event.cluster.Spec)
 	c.logSpecUpdate(*oldSpec, event.cluster.Spec)
 	return nil
 }

@@ -74,9 +74,7 @@ func (c *Controller) handleClusterEvent(event *Event) error {
 	}
 
 	// Sets detaults
-	logrus.Error("received", clus)
 	clus.Spec.Cleanup()
-	logrus.Error("cleaned", clus)
 
 	if err := clus.Validate(); err != nil {
 		logrus.Error("Bad RSS object", clus)
