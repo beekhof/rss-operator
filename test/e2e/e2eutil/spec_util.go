@@ -37,14 +37,16 @@ func NewCluster(genName string, size int, image string, labels map[string]string
 			Annotations:  annotations,
 		},
 		Spec: api.ClusterSpec{
-			Size: size,
+			Replicas: size,
 			Pod: api.PodPolicy{
 				AntiAffinity: true,
 			},
-			ManagedContainer: v1.Container{
-				Image:           image,
-				Name:            "rss",
-				ImagePullPolicy: v1.PullAlways,
+			Containers: []v1.Container{
+				{
+					Image:           image,
+					Name:            "test",
+					ImagePullPolicy: v1.PullAlways,
+				},
 			},
 			Commands: api.ClusterCommands{
 				Status:   []string{"/check.sh"},
@@ -54,6 +56,22 @@ func NewCluster(genName string, size int, image string, labels map[string]string
 				Stop:     []string{"/stop.sh"},
 			},
 		},
+	}
+}
+
+func NewClusterWithSpec(genName string, spec api.ClusterSpec, labels map[string]string, annotations map[string]string) *api.ReplicatedStatefulSet {
+	return &api.ReplicatedStatefulSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       api.ReplicatedStatefulSetResourceKind,
+			APIVersion: api.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			// https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#idempotency
+			GenerateName: genName,
+			Labels:       labels,
+			Annotations:  annotations,
+		},
+		Spec: spec,
 	}
 }
 

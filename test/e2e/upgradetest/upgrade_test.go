@@ -70,7 +70,7 @@ func TestResize(t *testing.T) {
 	}
 
 	updateFunc := func(cl *api.ReplicatedStatefulSet) {
-		cl.Spec.Size = 5
+		cl.Spec.Replicas = 5
 	}
 	_, err = e2eutil.UpdateCluster(testF.CRClient, testClus, 10, updateFunc)
 	if err != nil {

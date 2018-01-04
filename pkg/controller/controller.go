@@ -78,8 +78,8 @@ func (c *Controller) handleClusterEvent(event *Event) error {
 	clus.Spec.Cleanup()
 	logrus.Error("cleaned", clus)
 
-	if err := clus.Spec.Validate(clus.Labels); err != nil {
-		logrus.Error(clus)
+	if err := clus.Validate(); err != nil {
+		logrus.Error("Bad RSS object", clus)
 		return fmt.Errorf("Invalid cluster spec: %v", err)
 	}
 

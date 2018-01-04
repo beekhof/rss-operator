@@ -98,9 +98,7 @@ type Cluster struct {
 
 func New(config Config, cl *api.ReplicatedStatefulSet) *Cluster {
 	lg := logrus.WithField("pkg", "cluster").WithField("cluster-name", cl.Name)
-	lg.Infof("Creating %v", cl.Spec)
-	lg.Infof("   Pods %v", cl.Spec.Pod)
-	lg.Infof("   Containers %v", cl.Spec.ManagedContainer)
+	lg.Infof("Creating %v/%v", cl.Name, cl.GenerateName)
 
 	c := &Cluster{
 		logger:      lg,
@@ -399,7 +397,7 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 }
 
 func isSpecEqual(s1, s2 api.ClusterSpec) bool {
-	if s1.Size != s2.Size || s1.Paused != s2.Paused {
+	if s1.Replicas != s2.Replicas || s1.Paused != s2.Paused {
 		return false
 	}
 	return true

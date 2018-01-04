@@ -49,7 +49,7 @@ type ClusterStatus struct {
 	Conditions []ClusterCondition `json:"conditions,omitempty"`
 
 	// Size is the current size of the cluster
-	Size int `json:"size"`
+	Replicas int `json:"replicas"`
 
 	// ServiceName is the LB service for accessing galera nodes.
 	ServiceName string `json:"serviceName,omitempty"`

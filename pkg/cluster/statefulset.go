@@ -27,7 +27,6 @@ import (
 	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -166,8 +165,6 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	// Prometheus may take quite long to shut down to checkpoint existing data.
 	// Allow up to 10 minutes for clean termination.
 	terminationGracePeriod := int64(600)
-	lg := logrus.WithField("pkg", "RSS").WithField("cluster-name", cluster.Name)
-
 	securityContext := v1.PodSecurityContext{}
 
 	// ReadinessProbe: &v1.Probe{
@@ -182,10 +179,9 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	// 	FailureThreshold: 6,
 	// },
 
-	lg.Infof("Building spec from: pod=%v, all=%v", cluster.Spec.Pod, cluster.Spec)
-	intSize := int32(cluster.Spec.Size)
+	intSize := int32(cluster.Spec.Replicas)
 	podSpec := v1.PodSpec{
-		Containers:                    []v1.Container{cluster.Spec.ManagedContainer},
+		Containers:                    cluster.Spec.Containers,
 		ServiceAccountName:            cluster.Spec.ServiceAccountName,
 		NodeSelector:                  cluster.Spec.NodeSelector,
 		Tolerations:                   cluster.Spec.Tolerations,

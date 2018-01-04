@@ -46,7 +46,7 @@ func TestResizeCluster3to5(t *testing.T) {
 	fmt.Println("reached to 3 members cluster")
 
 	updateFunc := func(cl *api.ReplicatedStatefulSet) {
-		cl.Spec.Size = 5
+		cl.Spec.Replicas = 5
 	}
 	if _, err := e2eutil.UpdateCluster(f.CRClient, testEtcd, 10, updateFunc); err != nil {
 		t.Fatal(err)
@@ -79,7 +79,7 @@ func TestResizeCluster5to3(t *testing.T) {
 	fmt.Println("reached to 5 members cluster")
 
 	updateFunc := func(cl *api.ReplicatedStatefulSet) {
-		cl.Spec.Size = 3
+		cl.Spec.Replicas = 3
 	}
 	if _, err := e2eutil.UpdateCluster(f.CRClient, testEtcd, 10, updateFunc); err != nil {
 		t.Fatal(err)

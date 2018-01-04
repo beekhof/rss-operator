@@ -28,6 +28,10 @@ func (c *Cluster) replicate() error {
 	primaries := c.cluster.Spec.Primaries
 	var err error = nil
 
+	if primaries < 1 || primaries > c.cluster.Spec.Replicas {
+		primaries = c.cluster.Spec.Replicas
+	}
+
 	if c.peers.AppPrimaries() == 0 {
 		c.detectMembers()
 
@@ -40,13 +44,13 @@ func (c *Cluster) replicate() error {
 		err = c.demotePrimary()
 	}
 
-	for err == nil && c.peers.AppMembers() < c.cluster.Spec.Size {
+	for err == nil && c.peers.AppMembers() < c.cluster.Spec.Replicas {
 		err = c.startMember()
 	}
 
 	if err != nil {
 		return fmt.Errorf("Replication failed: %v of %v primaries, and %v of %v members available: %v",
-			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), c.cluster.Spec.Size, err)
+			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), c.cluster.Spec.Replicas, err)
 	}
 	return nil
 }
@@ -147,7 +151,7 @@ func (c *Cluster) startPrimary() error {
 func (c *Cluster) startMember() error {
 	m, err := chooseSeed(c)
 	if err != nil {
-		return fmt.Errorf("%v of %v members available: %v", c.peers.AppMembers(), c.cluster.Spec.Size, err)
+		return fmt.Errorf("%v of %v members available: %v", c.peers.AppMembers(), c.cluster.Spec.Replicas, err)
 	}
 	return c.startAppMember(m, false)
 }

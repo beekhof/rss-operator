@@ -33,12 +33,12 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 	defer c.logger.Infoln("Finish reconciling")
 
 	defer func() {
-		c.status.Size = c.peers.Size()
+		c.status.Replicas = c.peers.Size()
 	}()
 
 	sp := c.cluster.Spec
 	running := c.podsToMemberSet(pods, c.isSecureClient())
-	if c.peers.AppMembers() != sp.Size {
+	if c.peers.AppMembers() != sp.Replicas {
 		return c.reconcileMembers(running)
 	}
 	c.status.SetReadyCondition()
@@ -65,7 +65,7 @@ func (c *Cluster) reconcileMembers(running etcdutil.MemberSet) error {
 		c.updateMembers(running)
 	}
 
-	if c.peers.Size() < c.cluster.Spec.Size/2+1 {
+	if c.peers.Size() < c.cluster.Spec.Replicas/2+1 {
 		c.logger.Infof("lost quorum")
 		return ErrLostQuorum
 	}

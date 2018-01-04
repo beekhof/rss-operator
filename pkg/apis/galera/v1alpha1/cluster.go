@@ -95,9 +95,8 @@ type ClusterSpec struct {
 	// Size is the expected size of the galera cluster.
 	// The galera-operator will eventually make the size of the running
 	// cluster equal to the expected size.
-	Size      int   `json:"size"` // Replace with replicas
-	Replicas  int32 `json:"replicas"`
-	Primaries int   `json:"primaries"`
+	Replicas  int `json:"replicas"`
+	Primaries int `json:"primaries,omitempty"`
 
 	// An optional list of references to secrets in the same namespace
 	// to use for pulling prometheus and alertmanager images from registries
@@ -115,9 +114,9 @@ type ClusterSpec struct {
 
 	// Ideally these would be part of the PodPolicy or ServicePolicy, but they
 	// don't make it to the server side when they are :shrug:
-	ManagedContainer v1.Container     `json:"managedContainer"`
-	Volumes          []v1.Volume      `json:"volumes,omitempty"`
-	ServicePorts     []v1.ServicePort `json:"servicePorts,omitempty"`
+	Containers   []v1.Container   `json:"containers"`
+	Volumes      []v1.Volume      `json:"volumes,omitempty"`
+	ServicePorts []v1.ServicePort `json:"servicePorts,omitempty"`
 
 	Commands ClusterCommands `json:"commands"`
 
@@ -178,23 +177,28 @@ func (c *ClusterSpec) GetServicePorts() []v1.ServicePort {
 	}
 }
 
-func (c *ClusterSpec) Validate(labels map[string]string) error {
-	if c.TLS != nil {
-		if err := c.TLS.Validate(); err != nil {
+func (rss *ReplicatedStatefulSet) Validate() error {
+	if rss.Spec.TLS != nil {
+		if err := rss.Spec.TLS.Validate(); err != nil {
 			return err
 		}
 	}
 
-	for k := range labels {
+	for k := range rss.Labels {
 		if k == "app" || strings.HasPrefix(k, "rss") {
-			return errors.New(fmt.Sprintf("spec: cluster contains reserved label: %v=%v", k, labels[k]))
+			return errors.New(fmt.Sprintf("Validate: cluster contains reserved label: %v=%v", k, rss.Labels[k]))
 		}
 	}
 
-	if c.ManagedContainer.Image == "" {
-		return errors.New(fmt.Sprintf("spec: No image configured for container: %v", c.ManagedContainer))
-	}
+	if len(rss.Spec.Containers) < 1 {
+		return errors.New(fmt.Sprintf("Validate: No containers configured for: %v", rss.Name))
 
+	}
+	for n, c := range rss.Spec.Containers {
+		if c.Image == "" {
+			return errors.New(fmt.Sprintf("Validate: No image configured for container[%v]: %v", n, c.Name))
+		}
+	}
 	return nil
 }
 
@@ -203,16 +207,12 @@ func (c *ClusterSpec) Validate(labels map[string]string) error {
 func (c *ClusterSpec) Cleanup() {
 	minSize := 3
 
-	if c.Size > 0 && c.Size < minSize {
-		c.Size = minSize
+	if c.Replicas > 0 && c.Replicas < minSize {
+		c.Replicas = minSize
 	}
 
-	if c.Size < 0 {
-		c.Size = 0
-	}
-
-	if c.Primaries < 1 || c.Primaries > c.Size {
-		c.Primaries = c.Size
+	if c.Replicas < 0 {
+		c.Replicas = 0
 	}
 
 	if c.Resources.Requests == nil {
