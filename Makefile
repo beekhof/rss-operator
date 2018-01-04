@@ -66,7 +66,7 @@ deps:
 test:
 	-KUBECONFIG=$(KUBECONFIG) kubectl -n $(TEST_NAMESPACE) create -f example/operator.yaml
 	@echo "Waiting for the operator to become active"
-	while [ "x$(shell kubectl -n testing get crd | grep replicatedstatefulsets.clusterlabs.org)" = x ]; do sleep 5; /bin/echo -n .; done
+	while [ "x$$(KUBECONFIG=$(KUBECONFIG) kubectl -n testing get crd | grep replicatedstatefulsets.clusterlabs.org)" = x ]; do sleep 5; /bin/echo -n .; done
 	@echo "Creating the cluster"
 	KUBECONFIG=$(KUBECONFIG) kubectl -n $(TEST_NAMESPACE) create -f apps/galera/cluster.yaml
 	KUBECONFIG=$(KUBECONFIG) kubectl -n $(TEST_NAMESPACE) logs -f $(shell kubectl -n $(TEST_NAMESPACE) get po | grep --color=never rss-operator | awk '{print $$1}')

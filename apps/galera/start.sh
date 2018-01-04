@@ -6,7 +6,7 @@
 . ${OCF_FUNCTIONS_DIR}/mysql-common.sh
 . container-common.sh
 
-clog info "Replicating state from $(gcomm_from_args $*)..."
+ocf_log info "Replicating state from $(gcomm_from_args $*)..."
 OCF_RESKEY_enable_creation=false
 
 mysql_common_prepare_dirs

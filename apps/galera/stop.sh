@@ -6,7 +6,7 @@
 . ${OCF_FUNCTIONS_DIR}/mysql-common.sh
 . container-common.sh
 
-clog info "Stopping galera..."
+ocf_log info "Stopping galera..."
 mysql_common_stop
 handle_result "stop" $?
 

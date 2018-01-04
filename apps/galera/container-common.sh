@@ -15,9 +15,9 @@ function handle_result() {
 	action=$1; shift
 	if [ $1 = 0 ]; then
 		kubectl label --overwrite pods $HOSTNAME state=stopped
-		clog info "$action complete."
+		ocf_log info "$action complete."
 	else
-		clog info "$action failed: $1"
+		ocf_log info "$action failed: $1"
 	fi
 
 	exit $1
