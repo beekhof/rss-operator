@@ -76,8 +76,8 @@ func main() {
 	if ns == "" {
 		ns = os.Getenv("POD_NAMESPACE")
 	}
-	if svc == "" {
-		ns = os.Getenv("POD_SERVICE")
+	if *svc == "" {
+		*svc = os.Getenv("SERVICE_NAME")
 	}
 	hostname, err := os.Hostname()
 	if err != nil {
