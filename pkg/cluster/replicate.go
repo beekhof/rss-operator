@@ -172,7 +172,7 @@ func (c *Cluster) execCommand(podName string, stdin string, cmd ...string) (stri
 func (c *Cluster) appendPrimaries(cmd []string) []string {
 	for _, m := range c.peers {
 		if m.Online && m.AppPrimary {
-			cmd = append(cmd, fmt.Sprintf("%v.%v", m.Name, c.cluster.ServiceName()))
+			cmd = append(cmd, fmt.Sprintf("%v.%v", m.Name, c.cluster.ServiceName(true)))
 		}
 	}
 	return cmd

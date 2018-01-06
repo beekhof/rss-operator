@@ -117,19 +117,35 @@ func (l *ConfigMapReferenceList) Swap(i, j int) {
 	l.Items[i], l.Items[j] = l.Items[j], l.Items[i]
 }
 
-func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config) *v1.Service {
-	svc := &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   cluster.ServiceName(),
-			Labels: mergeLabels(cluster.Labels, k8sutil.LabelsForCluster(cluster.Name)),
-		},
-		Spec: v1.ServiceSpec{
-			Type:        "ClusterIP",
-			Ports:       cluster.Spec.GetServicePorts(),
-			Selector:    k8sutil.LabelsForCluster(cluster.Name),
-			ExternalIPs: cluster.Spec.ExternalIPs,
-			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
-		},
+func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config, internal bool) *v1.Service {
+	var svc *v1.Service
+	if internal {
+		svc = &v1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   cluster.ServiceName(internal),
+				Labels: mergeLabels(cluster.Labels, k8sutil.LabelsForCluster(cluster.Name)),
+			},
+			Spec: v1.ServiceSpec{
+				ClusterIP: "none",
+				Ports:     cluster.Spec.GetServicePorts(),
+				Selector:  k8sutil.LabelsForCluster(cluster.Name),
+				//SessionAffinity: cluster.Spec.Service.SessionAfinity,
+			},
+		}
+	} else {
+		svc = &v1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   cluster.ServiceName(internal),
+				Labels: mergeLabels(cluster.Labels, k8sutil.LabelsForCluster(cluster.Name)),
+			},
+			Spec: v1.ServiceSpec{
+				Type:        "ClusterIP",
+				Ports:       cluster.Spec.GetServicePorts(),
+				Selector:    k8sutil.LabelsForCluster(cluster.Name),
+				ExternalIPs: cluster.Spec.ExternalIPs,
+				//SessionAffinity: cluster.Spec.Service.SessionAfinity,
+			},
+		}
 	}
 	return svc
 }
@@ -181,27 +197,15 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	// },
 
 	intSize := int32(cluster.Spec.Replicas)
-	podSpec := v1.PodSpec{
-		Containers:                    cluster.Spec.Containers,
-		ServiceAccountName:            cluster.Spec.ServiceAccountName,
-		NodeSelector:                  cluster.Spec.NodeSelector,
-		Tolerations:                   cluster.Spec.Tolerations,
-		Affinity:                      cluster.Spec.Affinity,
-		SecurityContext:               &securityContext,
-		TerminationGracePeriodSeconds: &terminationGracePeriod,
-	}
+	volumes := cluster.Spec.Volumes
+	containers := cluster.Spec.Containers
 
-	if cluster.Spec.Volumes != nil {
-		podSpec.Volumes = cluster.Spec.Volumes
-	}
-
-	for _, container := range podSpec.Containers {
+	for _, container := range containers {
 		// Append generated details
 		container.Env = append(container.Env, v1.EnvVar{
 			Name:  "SERVICE_NAME",
-			Value: cluster.ServiceName(),
+			Value: cluster.ServiceName(true),
 		})
-
 		// The spec author could add themselves though...
 		container.Env = append(container.Env, v1.EnvVar{
 			Name: "POD_NAME",
@@ -224,7 +228,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 		})
 
 		// Now add and mount the downward API
-		podSpec.Volumes = append(podSpec.Volumes, v1.Volume{
+		volumes = append(volumes, v1.Volume{
 			Name: "podinfo",
 			VolumeSource: v1.VolumeSource{
 				DownwardAPI: &v1.DownwardAPIVolumeSource{
@@ -254,7 +258,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 
 		// Now add and mount any secrets volumes
 		for _, s := range cluster.Spec.Secrets {
-			podSpec.Volumes = append(podSpec.Volumes, v1.Volume{
+			volumes = append(volumes, v1.Volume{
 				Name: "secret-" + s,
 				VolumeSource: v1.VolumeSource{
 					Secret: &v1.SecretVolumeSource{
@@ -270,6 +274,17 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 		}
 	}
 
+	podSpec := v1.PodSpec{
+		Volumes:                       volumes,
+		Containers:                    containers,
+		ServiceAccountName:            cluster.Spec.ServiceAccountName,
+		NodeSelector:                  cluster.Spec.NodeSelector,
+		Tolerations:                   cluster.Spec.Tolerations,
+		Affinity:                      cluster.Spec.Affinity,
+		SecurityContext:               &securityContext,
+		TerminationGracePeriodSeconds: &terminationGracePeriod,
+	}
+
 	applyPodSpecPolicy(cluster.Name, &podSpec, &cluster.Spec.Pod)
 
 	podAnnotations := map[string]string{}
@@ -278,7 +293,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	}
 
 	return &v1beta1.StatefulSetSpec{
-		ServiceName:         cluster.ServiceName(),
+		ServiceName:         cluster.ServiceName(true),
 		Replicas:            &intSize,
 		PodManagementPolicy: v1beta1.ParallelPodManagement,
 		UpdateStrategy: v1beta1.StatefulSetUpdateStrategy{

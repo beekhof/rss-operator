@@ -220,8 +220,11 @@ func (c *Cluster) createGalera() error {
 
 	// Create governing service if it doesn't exist.
 	svcClient := c.config.KubeCli.Core().Services(c.cluster.Namespace)
-	if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.cluster, c.config)); err != nil {
+	if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.cluster, c.config, true)); err != nil {
 		return errors.Wrap(err, "synchronizing governing service failed")
+	}
+	if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.cluster, c.config, false)); err != nil {
+		return errors.Wrap(err, "synchronizing external service failed")
 	}
 
 	//ruleFileConfigMaps := []*v1.ConfigMap{}

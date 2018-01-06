@@ -3,13 +3,13 @@ NS=testing
 OPERATOR_IMAGE=quay.io/beekhof/rss-operator:latest
 export KUBECONFIG=$(HOME)/.kube/config
 export GOPATH=$(HOME)/go
-export GREP_OPTIONS=--color=never
+export GREP=grep --color=never
 
 PKGS=$(shell go list ./cmd/... ./pkg/... | grep -v -e generated -e apis/galera/v1alpha1)
 TEST_PKGS=$(shell go list ./test/... | grep -v -e generated -e apis/galera/v1alpha1)
 
-quick:
-	gosimple $(PKGS)
+simple:
+	$(GOPATH)/bin/gosimple $(PKGS)
 
 build: 
 	hack/build/operator/build
@@ -54,9 +54,6 @@ check: fmt unused simple verify-generated
 verify-generated:
 	./hack/k8s/codegen/update-generated.sh --verify-only 
 
-simple:
-	$(GOPATH)/bin/gosimple $(PKGS)
-
 fmt:
 	@echo "Checking gofmt..."
 	for file in $(shell ./go-list.sh); do o=`gofmt -l -s -d $$file`; if [ "x$$o" != x ]; then echo "$$o"; exit 1; fi; done
@@ -82,7 +79,8 @@ ns:
 test: ns
 	-kubectl -n $(NS) create -f apps/galera/deployment.yaml
 	@echo "Waiting for the operator to become active"
-	while [ "x$$(kubectl -n testing get crd | grep replicatedstatefulsets.clusterlabs.org)" = x ]; do sleep 5; /bin/echo -n .; done
-	kubectl -n $(NS) logs -f $(shell kubectl -n $(NS) get po | grep rss-operator | awk '{print $$1}')
+	while [ "x$$(kubectl -n $(NS) get po | grep rss-operator.*Running)" = x ]; do sleep 5; /bin/echo -n .; done
+	sleep 15
+	kubectl -n $(NS) logs -f $(shell kubectl -n $(NS) get po | $(GREP) rss-operator | awk '{print $$1}')
 
 .PHONY: test

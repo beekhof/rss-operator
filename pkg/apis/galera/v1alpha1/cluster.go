@@ -172,11 +172,17 @@ func (c *ClusterSpec) GetServicePorts() []v1.ServicePort {
 	}
 }
 
-func (rss *ReplicatedStatefulSet) ServiceName() string {
+func (rss *ReplicatedStatefulSet) ServiceName(internal bool) string {
+	var name string
 	if rss.Spec.ServiceName != "" {
-		return rss.Spec.ServiceName
+		name = rss.Spec.ServiceName
+	} else {
+		name = fmt.Sprintf("%s-svc", rss.Name)
 	}
-	return fmt.Sprintf("%s-svc", rss.Name)
+	if internal {
+		name = fmt.Sprintf("%s-int", name)
+	}
+	return name
 }
 
 func (rss *ReplicatedStatefulSet) Validate() error {
