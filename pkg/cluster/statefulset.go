@@ -124,8 +124,6 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config) *
 			Labels: mergeLabels(cluster.Labels, k8sutil.LabelsForCluster(cluster.Name)),
 		},
 		Spec: v1.ServiceSpec{
-
-			ClusterIP:   "",
 			Type:        "ClusterIP",
 			Ports:       cluster.Spec.GetServicePorts(),
 			Selector:    k8sutil.LabelsForCluster(cluster.Name),
