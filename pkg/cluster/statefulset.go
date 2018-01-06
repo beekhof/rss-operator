@@ -126,12 +126,13 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config, i
 				Labels: mergeLabels(cluster.Labels, k8sutil.LabelsForCluster(cluster.Name)),
 			},
 			Spec: v1.ServiceSpec{
-				ClusterIP: "none",
+				ClusterIP: "None",
 				Ports:     cluster.Spec.GetServicePorts(),
 				Selector:  k8sutil.LabelsForCluster(cluster.Name),
 				//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 			},
 		}
+
 	} else {
 		svc = &v1.Service{
 			ObjectMeta: metav1.ObjectMeta{

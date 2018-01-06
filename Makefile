@@ -80,7 +80,6 @@ test: ns
 	-kubectl -n $(NS) create -f apps/galera/deployment.yaml
 	@echo "Waiting for the operator to become active"
 	while [ "x$$(kubectl -n $(NS) get po | grep rss-operator.*Running)" = x ]; do sleep 5; /bin/echo -n .; done
-	sleep 15
-	kubectl -n $(NS) logs -f $(shell kubectl -n $(NS) get po | $(GREP) rss-operator | awk '{print $$1}')
+	kubectl -n $(NS) logs -f $$(kubectl -n $(NS) get po | $(GREP) rss-operator | awk '{print $$1}')
 
 .PHONY: test
