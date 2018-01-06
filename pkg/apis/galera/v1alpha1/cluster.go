@@ -176,7 +176,7 @@ func (rss *ReplicatedStatefulSet) ServiceName() string {
 	if rss.Spec.ServiceName != "" {
 		return rss.Spec.ServiceName
 	}
-	return fmt.Sprintf("%s-svc", rss.GenerateName)
+	return fmt.Sprintf("%s-svc", rss.Name)
 }
 
 func (rss *ReplicatedStatefulSet) Validate() error {
