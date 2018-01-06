@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
       - name: rss-operator
-        image: quay.io/beekhof/galera-experiment:latest
+        image: quay.io/beekhof/rss-operator:latest
         imagePullPolicy: Always
         # restartPolicy: Never
         env:
@@ -58,6 +58,7 @@ spec:
   service:
     name: galera-svc
     sessionAffinity: None
+  serviceName: galera-svc
   servicePorts:
   - name: galera
     port: 13306
