@@ -1,7 +1,9 @@
 E2E_TEST_SELECTOR=TestCreateCluster
 NS=testing
-OPERATOR_IMAGE=quay.io/beekhof/galera-experiment:mac
-KUBECONFIG=$$HOME/.kube/config
+OPERATOR_IMAGE=quay.io/beekhof/rss-operator:latest
+export KUBECONFIG=$(HOME)/.kube/config
+export GOPATH=$(HOME)/go
+export GREP_OPTIONS=--color=never
 
 PKGS=$(shell go list ./cmd/... ./pkg/... | grep -v -e generated -e apis/galera/v1alpha1)
 TEST_PKGS=$(shell go list ./test/... | grep -v -e generated -e apis/galera/v1alpha1)
@@ -38,7 +40,7 @@ e2e-clean:
 
 e2e: test-quick e2e-clean
 	@echo "Running tests: $(E2E_TEST_SELECTOR)"
-	PASSES=e2e KUBECONFIG=$(KUBECONFIG) TEST_NAMESPACE=$(TEST_NAMESPACE) OPERATOR_IMAGE=$(OPERATOR_IMAGE) E2E_TEST_SELECTOR="$(E2E_TEST_SELECTOR)" hack/test 
+	PASSES=e2e TEST_NAMESPACE=$(NS) OPERATOR_IMAGE=$(OPERATOR_IMAGE) E2E_TEST_SELECTOR="$(E2E_TEST_SELECTOR)" hack/test 
 
 generated:
 	-rm -rf pkg/generated
@@ -49,9 +51,9 @@ check:
 	@echo "Checking gofmt..."
 	for file in $(shell ./go-list.sh); do o=`gofmt -l -s -d $$file`; if [ "x$$o" != x ]; then echo "$$o"; exit 1; fi; done
 	@echo "Checking unused..."
-	unused $(PKGS)
+	$(GOPATH)/bin/unused $(PKGS)
 	./hack/k8s/codegen/update-generated.sh --verify-only 
-	gosimple $(PKGS)
+	$(GOPATH)/bin/gosimple $(PKGS)
 
 target:
 	make -C apps/galera all
@@ -64,15 +66,13 @@ deps:
 	#glide install --strip-vendor 
 
 ns:
-	-KUBECONFIG=$(KUBECONFIG) kubectl create ns $(NS)
-	-KUBECONFIG=$(KUBECONFIG) kubectl -n $(NS) create clusterrolebinding $(NS)-everything --clusterrole=cluster-admin --serviceaccount=$(NS):default
+	-kubectl create ns $(NS)
+	-kubectl -n $(NS) create clusterrolebinding $(NS)-everything --clusterrole=cluster-admin --serviceaccount=$(NS):default
 
 test: ns
-	-KUBECONFIG=$(KUBECONFIG) kubectl -n $(NS) create -f example/operator.yaml
+	-kubectl -n $(NS) create -f apps/galera/deployment.yaml
 	@echo "Waiting for the operator to become active"
-	while [ "x$$(KUBECONFIG=$(KUBECONFIG) kubectl -n testing get crd | grep replicatedstatefulsets.clusterlabs.org)" = x ]; do sleep 5; /bin/echo -n .; done
-	@echo "Creating the cluster"
-	KUBECONFIG=$(KUBECONFIG) kubectl -n $(NS) create -f apps/galera/cluster.yaml
-	KUBECONFIG=$(KUBECONFIG) kubectl -n $(NS) logs -f $(shell kubectl -n $(TEST_NAMESPACE) get po | grep --color=never rss-operator | awk '{print $$1}')
+	while [ "x$$(kubectl -n testing get crd | grep replicatedstatefulsets.clusterlabs.org)" = x ]; do sleep 5; /bin/echo -n .; done
+	kubectl -n $(NS) logs -f $(shell kubectl -n $(NS) get po | grep rss-operator | awk '{print $$1}')
 
 .PHONY: test

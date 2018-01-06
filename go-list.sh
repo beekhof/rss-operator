@@ -1,5 +1,7 @@
 #!/bin/bash
 
+: ${GOPATH=$HOME/go}
+
 function listPkgs() {
 	go list ./cmd/... ./pkg/... ./test/... 
 }
