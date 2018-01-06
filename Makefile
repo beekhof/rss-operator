@@ -25,7 +25,7 @@ push: check build
 	@echo "upload complete"
 
 # Called from Dockerfile
-install: deps check build
+install: dockerfile-checks build
 	cp _output/bin/rss-operator /usr/local/bin/rss-operator
 
 all: build push e2e-clean e2e
@@ -47,13 +47,23 @@ generated:
 	-find pkg -name zz_generated.deepcopy.go #delete
 	./hack/k8s/codegen/update-generated.sh 
 
-check:
+dockerfile-checks: deps fmt unused simple
+
+check: fmt unused simple verify-generated
+
+verify-generated:
+	./hack/k8s/codegen/update-generated.sh --verify-only 
+
+simple:
+	$(GOPATH)/bin/gosimple $(PKGS)
+
+fmt:
 	@echo "Checking gofmt..."
 	for file in $(shell ./go-list.sh); do o=`gofmt -l -s -d $$file`; if [ "x$$o" != x ]; then echo "$$o"; exit 1; fi; done
+
+unused:
 	@echo "Checking unused..."
 	$(GOPATH)/bin/unused $(PKGS)
-	./hack/k8s/codegen/update-generated.sh --verify-only 
-	$(GOPATH)/bin/gosimple $(PKGS)
 
 target:
 	make -C apps/galera all
