@@ -120,13 +120,16 @@ func (l *ConfigMapReferenceList) Swap(i, j int) {
 func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config) *v1.Service {
 	svc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   cluster.Spec.ServiceName(cluster.Name),
+			Name:   cluster.ServiceName(),
 			Labels: mergeLabels(cluster.Labels, k8sutil.LabelsForCluster(cluster.Name)),
 		},
 		Spec: v1.ServiceSpec{
-			ClusterIP: "None",
-			Ports:     cluster.Spec.GetServicePorts(),
-			Selector:  k8sutil.LabelsForCluster(cluster.Name),
+
+			ClusterIP:   "",
+			Type:        "ClusterIP",
+			Ports:       cluster.Spec.GetServicePorts(),
+			Selector:    k8sutil.LabelsForCluster(cluster.Name),
+			ExternalIPs: cluster.Spec.ExternalIPs,
 			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 		},
 	}
@@ -198,7 +201,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 		// Append generated details
 		container.Env = append(container.Env, v1.EnvVar{
 			Name:  "SERVICE_NAME",
-			Value: cluster.Spec.ServiceName(cluster.Name),
+			Value: cluster.ServiceName(),
 		})
 
 		// The spec author could add themselves though...
@@ -277,7 +280,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	}
 
 	return &v1beta1.StatefulSetSpec{
-		ServiceName:         cluster.Spec.ServiceName(cluster.Name),
+		ServiceName:         cluster.ServiceName(),
 		Replicas:            &intSize,
 		PodManagementPolicy: v1beta1.ParallelPodManagement,
 		UpdateStrategy: v1beta1.StatefulSetUpdateStrategy{

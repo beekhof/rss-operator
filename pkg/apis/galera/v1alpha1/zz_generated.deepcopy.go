@@ -183,6 +183,11 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 		*out = make([]v1.ServicePort, len(*in))
 		copy(*out, *in)
 	}
+	if in.ExternalIPs != nil {
+		in, out := &in.ExternalIPs, &out.ExternalIPs
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	in.Commands.DeepCopyInto(&out.Commands)
 	if in.TLS != nil {
 		in, out := &in.TLS, &out.TLS

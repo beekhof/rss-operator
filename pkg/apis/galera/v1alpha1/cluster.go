@@ -116,7 +116,9 @@ type ClusterSpec struct {
 	// don't make it to the server side when they are :shrug:
 	Containers   []v1.Container   `json:"containers"`
 	Volumes      []v1.Volume      `json:"volumes,omitempty"`
+	ServiceName  string           `json:"serviceName,omitempty"`
 	ServicePorts []v1.ServicePort `json:"servicePorts,omitempty"`
+	ExternalIPs  []string         `json:"externalIPs,omitempty"`
 
 	Commands ClusterCommands `json:"commands"`
 
@@ -156,13 +158,6 @@ type ClusterSpec struct {
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 }
 
-func (c *ClusterSpec) ServiceName(genName string) string {
-	if c.Service != nil && c.Service.Name != "" {
-		return c.Service.Name
-	}
-	return fmt.Sprintf("%s-svc", genName)
-}
-
 func (c *ClusterSpec) GetServicePorts() []v1.ServicePort {
 	if c.ServicePorts != nil {
 		return c.ServicePorts
@@ -175,6 +170,13 @@ func (c *ClusterSpec) GetServicePorts() []v1.ServicePort {
 			TargetPort: intstr.FromString("web"),
 		},
 	}
+}
+
+func (rss *ReplicatedStatefulSet) ServiceName() string {
+	if rss.Spec.ServiceName != "" {
+		return rss.Spec.ServiceName
+	}
+	return fmt.Sprintf("%s-svc", rss.GenerateName)
 }
 
 func (rss *ReplicatedStatefulSet) Validate() error {
