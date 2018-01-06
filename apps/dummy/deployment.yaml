@@ -1,0 +1,75 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: replicatedstatefulsets.clusterlabs.org
+spec:
+  group: clusterlabs.org
+  names:
+    kind: ReplicatedStatefulSet
+    listKind: ReplicatedStatefulSetList
+    plural: replicatedstatefulsets
+    shortNames:
+    - rss
+    singular: replicatedstatefulset
+  scope: Namespaced
+  version: v1alpha1
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: rss-operator
+  # labels:
+  #   name: rss-operator
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: rss-operator
+    spec:
+      containers:
+      - name: rss-operator
+        image: quay.io/beekhof/galera-experiment:latest
+        imagePullPolicy: Always
+        # restartPolicy: Never
+        env:
+        - name: MY_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+---
+apiVersion: clusterlabs.org/v1alpha1
+kind: ReplicatedStatefulSet
+metadata:
+  # https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#idempotency
+  generateName: dummy-
+  labels:
+    kind: dummy
+spec:
+  replicas: 3
+  pod:
+    antiAffinity: true
+  service:
+    name: dummy-svc
+    sessionAffinity: None
+  containers:
+  - name: rss
+    image: quay.io/beekhof/galera:latest
+    imagePullPolicy: Always
+  commands:
+    sequence:
+    - /sequence.sh
+    primary:
+    - /start.sh
+    seed:
+    - /seed.sh
+    status:
+    - /check.sh
+    stop:
+    - /stop.sh

@@ -15,5 +15,8 @@ fi
 
 mysql_common_prepare_dirs
 mysql_common_start "--wsrep-cluster-address=gcomm://"
+rc=$?
 
-handle_result "seed" $?
+mysql -B < database.sql
+
+handle_result "seed" $rc
