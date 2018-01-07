@@ -32,8 +32,9 @@ import (
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 	"github.com/beekhof/galera-operator/pkg/util/retryutil"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
+	"github.com/sirupsen/logrus"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 	// "github.com/pborman/uuid"
 
 	"k8s.io/api/core/v1"
@@ -97,7 +98,11 @@ type Cluster struct {
 }
 
 func New(config Config, cl *api.ReplicatedStatefulSet) *Cluster {
-	lg := logrus.WithField("pkg", "cluster").WithField("cluster-name", cl.Name)
+	l := logrus.New()
+	f := new(prefixed.TextFormatter)
+	f.ForceFormatting = true
+	l.Formatter = f
+	lg := l.WithField("pkg", "cluster").WithField("cluster-name", cl.Name)
 	lg.Infof("Creating %v/%v", cl.Name, cl.GenerateName)
 
 	c := &Cluster{
