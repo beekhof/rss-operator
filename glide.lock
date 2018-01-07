@@ -1,21 +1,24 @@
-hash: 37b623e140956c7cff2a8215033428e7c542f20b260f40a87486e5f768a764c9
-updated: 2018-01-03T18:56:00.426718722+11:00
+hash: 8b8a9d9f93bcaab43907a90d3a1490bd9b51618e4eb0f3a18787fb0a031b2d9d
+updated: 2018-01-07T19:43:47.185043357+11:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
 - name: github.com/coreos/etcd
-  version: 0f4a535c2fb7a2920e13e2e19b9eaf6b2e9285e5
+  version: 0520cb9304cb2385f7e72b8bc02d6e4d3257158a
   subpackages:
   - auth/authpb
+  - client
   - clientv3
   - etcdserver/api/v3rpc/rpctypes
   - etcdserver/etcdserverpb
   - mvcc/mvccpb
   - pkg/fileutil
+  - pkg/pathutil
   - pkg/tlsutil
   - pkg/transport
+  - pkg/types
 - name: github.com/coreos/go-systemd
   version: 48702e0da86bd25e76cfef347e2adeb434a0d0a6
   subpackages:
@@ -111,10 +114,16 @@ imports:
   - buffer
   - jlexer
   - jwriter
+- name: github.com/mattn/go-colorable
+  version: 586e6dcca296d085100876beb6dbf02287a247f7
+- name: github.com/mattn/go-isatty
+  version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
 - name: github.com/matttproud/golang_protobuf_extensions
   version: fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a
   subpackages:
   - pbutil
+- name: github.com/mgutz/ansi
+  version: 9520e82c474b0a04dd04f8a40959027271bab992
 - name: github.com/pborman/uuid
   version: a97ce2ca70fa5a848076093f05e639a89ca34d06
 - name: github.com/peterbourgon/diskv
@@ -126,7 +135,7 @@ imports:
   subpackages:
   - prometheus
 - name: github.com/prometheus/client_model
-  version: 99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c
+  version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
   subpackages:
   - go
 - name: github.com/prometheus/common
@@ -147,6 +156,8 @@ imports:
   version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
 - name: github.com/spf13/pflag
   version: 9ff6c6923cfffbcd502984b8e0c80539a94968b7
+- name: github.com/x-cray/logrus-prefixed-formatter
+  version: bb2702d423886830dee131692131d35648c382e2
 - name: golang.org/x/crypto
   version: 81e90905daefcd6fd217b62423c0908922eadb30
   subpackages:
@@ -184,7 +195,7 @@ imports:
   - unicode/norm
   - width
 - name: golang.org/x/time
-  version: 6dc17368e09b0e8634d71cac8168d853e869a0c7
+  version: a4bde12657593d5e90d0533a3e4fd95e635124cb
   subpackages:
   - rate
 - name: google.golang.org/genproto

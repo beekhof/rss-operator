@@ -1,4 +1,24 @@
 package: github.com/beekhof/galera-operator
+ignore:
+- airbrake
+- go-winio
+- libnetwork
+- azure-sdk-for-go
+- Azure
+- containernetworking
+- docker
+- go-openapi
+- doc
+- go
+- ww
+- gnostic
+- jwt-go
+- goautoneg
+- gengo
+- go-oidc
+excludeDirs:
+- cloudprovider
+- go/doc
 import:
 - package: k8s.io/client-go
   version: kubernetes-1.9.0
@@ -17,23 +37,4 @@ import:
 - package: github.com/prometheus/client_golang
   version: v0.8.0
 - package: golang.org/x/time
-ignore:
-  - airbrake
-  - go-winio
-  - libnetwork
-  - azure-sdk-for-go
-  - Azure
-  - containernetworking
-  - docker
-  - go-openapi
-  - doc
-  - go
-  - ww
-  - gnostic
-  - jwt-go
-  - goautoneg
-  - gengo
-  - go-oidc
-excludeDirs:
-  - cloudprovider
-  - go/doc
+- package: github.com/x-cray/logrus-prefixed-formatter
