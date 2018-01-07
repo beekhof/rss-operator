@@ -205,14 +205,21 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 
 	for n, container := range containers {
 		// Append generated details
-		logrus.Infof("container[%v].Env: %v", n, container.Env)
+		logrus.Infof("container[%v].Env: %v: %v", n, len(container.Env), container.Env)
 		if len(container.Env) == 0 {
-			container.Env = []v1.EnvVar{}
+			container.Env = []v1.EnvVar{
+				{
+					Name:  "SERVICE_NAME",
+					Value: cluster.ServiceName(true),
+				},
+			}
+
+		} else {
+			container.Env = append(container.Env, v1.EnvVar{
+				Name:  "SERVICE_NAME",
+				Value: cluster.ServiceName(true),
+			})
 		}
-		container.Env = append(container.Env, v1.EnvVar{
-			Name:  "SERVICE_NAME",
-			Value: cluster.ServiceName(true),
-		})
 		// The spec author could add themselves though...
 		container.Env = append(container.Env, v1.EnvVar{
 			Name: "POD_NAME",
