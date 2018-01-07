@@ -201,9 +201,9 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 
 	intSize := int32(cluster.Spec.Replicas)
 	volumes := cluster.Spec.Volumes
-	containers := cluster.Spec.Containers
+	var containers []v1.Container
 
-	for n, container := range containers {
+	for n, container := range cluster.Spec.Containers {
 		// Append generated details
 		logrus.Infof("container[%v].Env: %v: %v", n, len(container.Env), container.Env)
 		if len(container.Env) == 0 {
@@ -288,6 +288,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 		}
 
 		JsonLogObject(logrus.WithField("cluster-name", cluster.Name), container, fmt.Sprintf("container[%v]: %v", n, container.Env))
+		containers = append(containers, container)
 	}
 
 	podSpec := v1.PodSpec{
