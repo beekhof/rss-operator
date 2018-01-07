@@ -553,36 +553,28 @@ func (c *Cluster) name() string {
 }
 
 func (c *Cluster) logClusterCreation() {
-	specBytes, err := json.MarshalIndent(c.cluster.Spec, "", "    ")
+	c.LogObject("creating cluster with Spec:", c.cluster.Spec)
+}
+
+func JsonLogObject(logger logrus, spec interface{}, text string) {
+	specBytes, err := json.MarshalIndent(spec, "", "    ")
 	if err != nil {
-		c.logger.Errorf("failed to marshal cluster spec: %v", err)
+		logger.Errorf("failed to marshal spec for '%v': %v", text, err)
 	}
 
-	c.logger.Info("creating cluster with Spec:")
+	c.logger.Info(text)
 	for _, m := range strings.Split(string(specBytes), "\n") {
-		c.logger.Info(m)
+		logger.Info(m)
 	}
 }
 
+func (c *Cluster) LogObject(text string, spec interface{}) {
+	JsonLogObject(c.logger, spec, text)
+}
+
 func (c *Cluster) logSpecUpdate(oldSpec, newSpec api.ClusterSpec) {
-	oldSpecBytes, err := json.MarshalIndent(oldSpec, "", "    ")
-	if err != nil {
-		c.logger.Errorf("failed to marshal cluster spec: %v", err)
-	}
-	newSpecBytes, err := json.MarshalIndent(newSpec, "", "    ")
-	if err != nil {
-		c.logger.Errorf("failed to marshal cluster spec: %v", err)
-	}
-
-	c.logger.Infof("spec update: Old Spec:")
-	for _, m := range strings.Split(string(oldSpecBytes), "\n") {
-		c.logger.Info(m)
-	}
-
-	c.logger.Infof("New Spec:")
-	for _, m := range strings.Split(string(newSpecBytes), "\n") {
-		c.logger.Info(m)
-	}
+	c.LogObject("spec update: Old Spec:", oldSpec)
+	c.LogObject("spec update: New Spec:", newSpec)
 
 	if c.isDebugLoggerEnabled() {
 		c.debugLogger.LogClusterSpecUpdate(string(oldSpecBytes), string(newSpecBytes))
