@@ -20,6 +20,10 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/golang/glog"
+
+	"github.com/sirupsen/logrus"
+
 	"k8s.io/api/apps/v1beta1"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -201,8 +205,10 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	volumes := cluster.Spec.Volumes
 	containers := cluster.Spec.Containers
 
-	for _, container := range containers {
+	for n, container := range containers {
 		// Append generated details
+		glog.Info("beekhof")
+		logrus.Infof("container[%v].Env: %v", n, container.Env)
 		container.Env = append(container.Env, v1.EnvVar{
 			Name:  "SERVICE_NAME",
 			Value: cluster.ServiceName(true),
@@ -273,6 +279,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 				MountPath: prometheusSecretsDir + s,
 			})
 		}
+		logrus.Infof("container[%v]: %v", n, container)
 	}
 
 	podSpec := v1.PodSpec{
