@@ -556,13 +556,13 @@ func (c *Cluster) logClusterCreation() {
 	c.LogObject("creating cluster with Spec:", c.cluster.Spec)
 }
 
-func JsonLogObject(logger logrus, spec interface{}, text string) {
+func JsonLogObject(logger *logrus.Entry, spec interface{}, text string) {
 	specBytes, err := json.MarshalIndent(spec, "", "    ")
 	if err != nil {
 		logger.Errorf("failed to marshal spec for '%v': %v", text, err)
 	}
 
-	c.logger.Info(text)
+	logger.Info(text)
 	for _, m := range strings.Split(string(specBytes), "\n") {
 		logger.Info(m)
 	}
@@ -576,11 +576,11 @@ func (c *Cluster) logSpecUpdate(oldSpec, newSpec api.ClusterSpec) {
 	c.LogObject("spec update: Old Spec:", oldSpec)
 	c.LogObject("spec update: New Spec:", newSpec)
 
-	if c.isDebugLoggerEnabled() {
-		c.debugLogger.LogClusterSpecUpdate(string(oldSpecBytes), string(newSpecBytes))
-	}
+	// if c.isDebugLoggerEnabled() {
+	// 	c.debugLogger.LogClusterSpecUpdate(string(oldSpecBytes), string(newSpecBytes))
+	// }
 }
 
-func (c *Cluster) isDebugLoggerEnabled() bool {
-	return c.debugLogger != nil
-}
+// func (c *Cluster) isDebugLoggerEnabled() bool {
+// 	return c.debugLogger != nil
+// }

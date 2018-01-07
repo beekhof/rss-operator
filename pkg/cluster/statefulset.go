@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/golang/glog"
-
 	"github.com/sirupsen/logrus"
 
 	"k8s.io/api/apps/v1beta1"
@@ -281,7 +279,8 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 				MountPath: prometheusSecretsDir + s,
 			})
 		}
-		JsonLogObject(logrus, container, fmt.Sprintf("container[%v]: %v", n, container.Env))
+
+		JsonLogObject(logrus.WithField("cluster-name", cluster.Name), container, fmt.Sprintf("container[%v]: %v", n, container.Env))
 	}
 
 	podSpec := v1.PodSpec{
