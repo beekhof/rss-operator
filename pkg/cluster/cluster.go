@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-	"strings"
 	"time"
 
 	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
@@ -34,7 +33,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
-	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 	// "github.com/pborman/uuid"
 
 	"k8s.io/api/core/v1"
@@ -98,11 +96,7 @@ type Cluster struct {
 }
 
 func New(config Config, cl *api.ReplicatedStatefulSet) *Cluster {
-	l := logrus.New()
-	f := new(prefixed.TextFormatter)
-	f.ForceFormatting = true
-	l.Formatter = f
-	lg := l.WithField("pkg", "cluster").WithField("cluster-name", cl.Name)
+	lg := util.GetLogger("cluster").WithField("cluster-name", cl.Name)
 	lg.Infof("Creating %v/%v", cl.Name, cl.GenerateName)
 
 	c := &Cluster{
@@ -561,31 +555,21 @@ func (c *Cluster) logClusterCreation() {
 	c.LogObject("creating cluster with Spec:", c.cluster.Spec)
 }
 
-func JsonLogObject(logger *logrus.Entry, spec interface{}, text string) {
-	specBytes, err := json.MarshalIndent(spec, "", "    ")
-	if err != nil {
-		logger.Errorf("failed to marshal spec for '%v': %v", text, err)
-	}
-
-	logger.Info(text)
-	for _, m := range strings.Split(string(specBytes), "\n") {
-		logger.Info(m)
-	}
-}
-
 func (c *Cluster) LogObject(text string, spec interface{}) {
-	JsonLogObject(c.logger, spec, text)
+	util.JsonLogObject(c.logger, spec, text)
 }
 
 func (c *Cluster) logSpecUpdate(oldSpec, newSpec api.ClusterSpec) {
 	c.LogObject("spec update: Old Spec:", oldSpec)
 	c.LogObject("spec update: New Spec:", newSpec)
 
-	// if c.isDebugLoggerEnabled() {
-	// 	c.debugLogger.LogClusterSpecUpdate(string(oldSpecBytes), string(newSpecBytes))
-	// }
+	if c.isDebugLoggerEnabled() {
+		newSpecBytes, _ := json.MarshalIndent(newSpec, "", "    ")
+		oldSpecBytes, _ := json.MarshalIndent(oldSpec, "", "    ")
+		c.debugLogger.LogClusterSpecUpdate(string(oldSpecBytes), string(newSpecBytes))
+	}
 }
 
-// func (c *Cluster) isDebugLoggerEnabled() bool {
-// 	return c.debugLogger != nil
-// }
+func (c *Cluster) isDebugLoggerEnabled() bool {
+	return c.debugLogger != nil
+}

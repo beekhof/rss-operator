@@ -15,9 +15,11 @@
 package util
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
 // PresentIn returns true if the given string is part of an array of strings
@@ -36,5 +38,25 @@ func LogOutput(logger *logrus.Entry, id string, result string) {
 		for n, l := range lines {
 			logger.WithField("pod", id).Infof("[%v][%v]", n, l)
 		}
+	}
+}
+
+func GetLogger(component string) *logrus.Entry {
+	l := logrus.New()
+	f := new(prefixed.TextFormatter)
+	f.ForceFormatting = true
+	l.Formatter = f
+	return l.WithField("pkg", component)
+}
+
+func JsonLogObject(logger *logrus.Entry, spec interface{}, text string) {
+	specBytes, err := json.MarshalIndent(spec, "", "    ")
+	if err != nil {
+		logger.Errorf("failed to marshal spec for '%v': %v", text, err)
+	}
+
+	logger.Info(text)
+	for _, m := range strings.Split(string(specBytes), "\n") {
+		logger.Info(m)
 	}
 }

@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/galera-operator/pkg/util"
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 	"github.com/pkg/errors"
 
@@ -308,7 +309,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 			})
 		}
 
-		JsonLogObject(logrus.WithField("cluster-name", cluster.Name), container, fmt.Sprintf("container[%v]: %v", n, container.Env))
+		util.JsonLogObject(util.GetLogger("statefulset").WithField("cluster-name", cluster.Name), container, fmt.Sprintf("container[%v]: %v", n, container.Env))
 		containers = append(containers, container)
 	}
 
