@@ -207,8 +207,10 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 
 	for n, container := range containers {
 		// Append generated details
-		glog.Info("beekhof")
 		logrus.Infof("container[%v].Env: %v", n, container.Env)
+		if len(container.Env) == 0 {
+			container.Env = []v1.EnvVar{}
+		}
 		container.Env = append(container.Env, v1.EnvVar{
 			Name:  "SERVICE_NAME",
 			Value: cluster.ServiceName(true),
@@ -279,7 +281,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 				MountPath: prometheusSecretsDir + s,
 			})
 		}
-		logrus.Infof("container[%v]: %v", n, container)
+		JsonLogObject(logrus, container, fmt.Sprintf("container[%v]: %v", n, container.Env))
 	}
 
 	podSpec := v1.PodSpec{
