@@ -199,6 +199,27 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	// 	FailureThreshold: 6,
 	// },
 
+	// We need to be very particular how the spec is built, items need to be
+	// fully formed before being added to their parent.
+	//
+	// For example, if .Env was empty in the cluster.Spec.Containers
+	// definiton, we cannot:
+	//
+	// - assign cluster.Spec.Containers to PodSpec.Containers
+	// - cycle through the PodSpec.Containers adding .Env entries
+	//
+	// or even:
+	//
+	// - copy cluster.Spec.Containers to 'containers'
+	// - cycle through the 'containers' adding .Env entries
+	// - assign 'containers' to PodSpec.Containers
+	//
+	// the only way that works is:
+	//
+	// - cycle through the cluster.Spec.Containers
+	// - adding .Env entries and appending to 'containers'
+	// - assign 'containers' to PodSpec.Containers
+
 	intSize := int32(cluster.Spec.Replicas)
 	volumes := cluster.Spec.Volumes
 	var containers []v1.Container
