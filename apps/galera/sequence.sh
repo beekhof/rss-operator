@@ -7,6 +7,7 @@
 . container-common.sh
 
 # TODO: Do something sane if galera is already running (might be useful during recovery of the operator)
+# SHOW STATUS LIKE 'wsrep_%';
 
 ocf_log info "Detecting replication version"
 detect_last_commit 

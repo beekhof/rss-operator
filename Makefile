@@ -14,10 +14,13 @@ simple:
 build: 
 	hack/build/operator/build
 
+push: dockerfile-checks
+	git push
+
 test-quick:
 	gosimple $(TEST_PKGS)
 
-push: check build
+publish: check build
 	@echo "building container..."
 	docker build --tag "${OPERATOR_IMAGE}" -f hack/build/Dockerfile .
 	@echo "Uploading to $(OPERATOR_IMAGE)"

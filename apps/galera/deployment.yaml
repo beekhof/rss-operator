@@ -66,23 +66,31 @@ spec:
     # https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
   volumes:
   - emptyDir: {}
-    name: galera-vwsgr-db
+    name: galera-db
+  externalIPs:
+  - 192.168.124.101
   containers:
   - name: rss
     image: quay.io/beekhof/galera:latest
     imagePullPolicy: Always
+    # env:
+    # - name: SOME_POD_NAMESPACE
+    #   valueFrom:
+    #     fieldRef:
+    #       apiVersion: v1
+    #       fieldPath: metadata.namespace
     ports:
     - containerPort: 3306
       name: galera
       protocol: TCP
-      # http://galeracluster.com/documentation-webpages/firewallsettings.html
+     # http://galeracluster.com/documentation-webpages/firewallsettings.html
       # 3306 For MySQL client connections and State Snapshot Transfer that use the mysqldump method.
       # 4567 For Galera Cluster replication traffic, multicast replication uses both UDP transport and TCP on this port.
       # 4568 For Incremental State Transfer.
       # 4444 For all other State Snapshot Transfer.
     volumeMounts:
     - mountPath: /var/galera/data
-      name: galera-vwsgr-db
+      name: galera-db
   commands:
     sequence:
     - /sequence.sh
