@@ -1,12 +1,15 @@
 E2E_TEST_SELECTOR=TestCreateCluster
 NS=testing
 OPERATOR_IMAGE=quay.io/beekhof/rss-operator:latest
+PROJECT=github.com/beekhof/galera-operator
+DOCKER_REPO_ROOT="/go/src/$(PROJECT)"
 export KUBECONFIG=$(HOME)/.kube/config
 export GOPATH=$(HOME)/go
 export GREP=grep --color=never
 
 PKGS=$(shell go list ./cmd/... ./pkg/... | grep -v -e generated -e apis/galera/v1alpha1)
 TEST_PKGS=$(shell go list ./test/... | grep -v -e generated -e apis/galera/v1alpha1)
+GENERATE_CMD=docker run --rm -v "$(PWD):$(DOCKER_REPO_ROOT)" -w "$(DOCKER_REPO_ROOT)" gcr.io/coreos-k8s-scale-testing/codegen /go/src/k8s.io/code-generator/generate-groups.sh all $(PROJECT)/pkg/generated $(PROJECT)/pkg/apis galera:v1alpha1 --go-header-file "./hack/k8s/codegen/boilerplate.go.txt"
 
 simple:
 	$(GOPATH)/bin/gosimple $(PKGS)
@@ -48,14 +51,14 @@ e2e: test-quick e2e-clean
 generated:
 	-rm -rf pkg/generated
 	-find pkg -name zz_generated.deepcopy.go #delete
-	./hack/k8s/codegen/update-generated.sh 
+	$(GENERATE_CMD)
 
 dockerfile-checks: deps fmt unused simple
 
 check: fmt unused simple verify-generated
 
 verify-generated:
-	./hack/k8s/codegen/update-generated.sh --verify-only 
+	$(GENERATE_CMD) --verify-only 
 
 fmt:
 	@echo "Checking gofmt..."
