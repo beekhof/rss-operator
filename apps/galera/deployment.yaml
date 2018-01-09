@@ -102,3 +102,13 @@ spec:
     - /check.sh
     stop:
     - /stop.sh
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+spec:
+  containers:
+  - image: quay.io/beekhof/galera:latest
+    imagePullPolicy: Always
+    name: mysql
