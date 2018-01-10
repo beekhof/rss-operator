@@ -339,7 +339,7 @@ func (f *TextFormatter) printColored(b *bytes.Buffer, entry *logrus.Entry, keys 
 	for _, k := range keys {
 		if k != "prefix" {
 			v := entry.Data[k]
-			fmt.Fprintf(b, " %s=%+v", levelColor(k), v)
+			fmt.Fprintf(b, " %s=%+v", k, levelColor(fmt.Sprintf("%v", v)))
 		}
 	}
 	fmt.Fprintf(b, ":\t %s", levelColor(fmt.Sprintf(""+messageFormat, message)))
