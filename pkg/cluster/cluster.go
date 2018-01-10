@@ -35,10 +35,12 @@ import (
 	"github.com/sirupsen/logrus"
 	// "github.com/pborman/uuid"
 
+	"k8s.io/api/apps/v1beta1"
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/types"
 
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -384,24 +386,62 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 	c.cluster = event.cluster
 
 	// Most of the time, this will be c.status being updated
+
+	// We need to identify whether the changes relate to the containers and or
+	// services and update those
+
 	if isSpecEqual(event.cluster.Spec, *oldSpec) {
-		// We have some fields that once created could not be mutated.
+		// We have some fields that once created can not be mutated.
 		if !reflect.DeepEqual(event.cluster.Spec, *oldSpec) {
-			c.logger.Warnf("ignoring update event: %#v", event.cluster.Spec)
+			c.logger.Warnf("Ignoring update event: %#v", event.cluster.Spec)
 		}
 		return nil
 	}
-	// TODO: we can't handle another upgrade while an upgrade is in progress
 
-	c.logger.Infof("Update event\n \t[%v] vs.\n \t[%v]", c.cluster.Spec, event.cluster.Spec)
 	c.logSpecUpdate(*oldSpec, event.cluster.Spec)
+
+	// TODO: Handle "Paused"
+	// Changes to Primaries will be handled at the next reconciliation interval
+
+	// Patch the Stateful Set
+	stsname := prefixedName(c.cluster.Name)
+	sts, err := c.config.KubeCli.AppsV1beta1().StatefulSets(c.cluster.Namespace).Get(stsname, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("fail to get sts (%s): %v", stsname, err)
+	}
+	oldsts := sts.DeepCopy()
+
+	c.logger.Infof("Changing the sts %v size from %s to %s", stsname, oldSpec.Replicas, c.cluster.Spec.Replicas)
+	intVal := int32(c.cluster.Spec.Replicas)
+	sts.Spec.Replicas = &intVal
+	patchdata, err := k8sutil.CreatePatch(oldsts, sts, v1beta1.StatefulSet{})
+	if err != nil {
+		return fmt.Errorf("error creating patch: %v", err)
+	}
+
+	_, err = c.config.KubeCli.AppsV1beta1().StatefulSets(c.cluster.Namespace).Patch(sts.GetName(), types.StrategicMergePatchType, patchdata)
+	if err != nil {
+		return fmt.Errorf("fail to update the sts (%s): %v", stsname, err)
+	}
+	c.logger.Infof("finished upgrading the sts %v", stsname)
+
 	return nil
 }
 
 func isSpecEqual(s1, s2 api.ClusterSpec) bool {
-	if s1.Replicas != s2.Replicas || s1.Paused != s2.Paused {
+
+	if s1.Replicas != s2.Replicas {
 		return false
 	}
+
+	if s1.Paused != s2.Paused {
+		return false
+	}
+
+	if s1.Primaries != s2.Primaries {
+		return false
+	}
+
 	return true
 }
 
