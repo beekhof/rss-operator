@@ -19,6 +19,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/beekhof/galera-operator/pkg/util"
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
@@ -58,8 +60,8 @@ func (c *Cluster) replicate() error {
 func (c *Cluster) detectMembers() {
 	for _, m := range c.peers {
 		stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.Commands.Sequence...)
-		util.LogOutput(c.logger.WithField("source", "detectMembers:stdout"), m.Name, stdout)
-		util.LogOutput(c.logger.WithField("source", "detectMembers:stderr"), m.Name, stderr)
+		util.LogOutput(c.logger.WithField("source", "detectMembers:stdout"), logrus.InfoLevel, m.Name, stdout)
+		util.LogOutput(c.logger.WithField("source", "detectMembers:stderr"), logrus.InfoLevel, m.Name, stderr)
 
 		if err != nil {
 			c.logger.Errorf("detectMembers:  pod %v: exec failed: %v", m.Name, err)
@@ -193,11 +195,15 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 		c.logger.Infof("Seeding from pod %v: %v", m.Name, m.SEQ)
 	}
 	stdout, stderr, err := c.execCommand(m.Name, "beekhof", startCmd...)
-	c.logger.WithField("pod", m.Name).Errorf("startAppMember:  result start =========")
-	util.LogOutput(c.logger.WithField("source", "startAppMember:stdout"), m.Name, stdout)
-	util.LogOutput(c.logger.WithField("source", "startAppMember:stderr"), m.Name, stderr)
+	level := logrus.DebugLevel
 	if err != nil {
+		level = logrus.ErrorLevel
 		c.logger.Errorf("startAppMember: pod %v: exec failed: %v", m.Name, err)
+	}
+	c.logger.WithField("pod", m.Name).Errorf("startAppMember:  result start =========")
+	util.LogOutput(c.logger.WithField("source", "startAppMember:stdout"), level, m.Name, stdout)
+	util.LogOutput(c.logger.WithField("source", "startAppMember:stderr"), level, m.Name, stderr)
+	if err != nil {
 		m.AppFailed = true
 		if asPrimary {
 			return fmt.Errorf("Could not seed app on %v: %v", m.Name, err)
@@ -218,8 +224,13 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
 	c.logger.Infof("Stopping pod %v: %v", m.Name, m.SEQ)
 	stdout, stderr, err := c.execCommand(m.Name, "", c.cluster.Spec.Commands.Stop...)
-	util.LogOutput(c.logger.WithField("source", "stopAppMember:stdout"), m.Name, stdout)
-	util.LogOutput(c.logger.WithField("source", "stopAppMember:stderr"), m.Name, stderr)
+	level := logrus.DebugLevel
+	if err != nil {
+		level = logrus.ErrorLevel
+		c.logger.Errorf("stopAppMember: pod %v: exec failed: %v", m.Name, err)
+	}
+	util.LogOutput(c.logger.WithField("source", "stopAppMember:stdout"), level, m.Name, stdout)
+	util.LogOutput(c.logger.WithField("source", "stopAppMember:stderr"), level, m.Name, stderr)
 	if err != nil {
 		c.logger.Errorf("stopAppMember: pod %v: exec failed: %v", m.Name, err)
 		m.AppFailed = true

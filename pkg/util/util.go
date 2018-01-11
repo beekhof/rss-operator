@@ -43,11 +43,23 @@ func PresentIn(a string, list []string) bool {
 	return false
 }
 
-func LogOutput(logger *logrus.Entry, id string, result string) {
+func LogOutput(logger *logrus.Entry, level logrus.Level, id string, result string) {
 	if result != "" {
 		lines := strings.Split(result, "\n")
 		for n, l := range lines {
-			logger.WithField("pod", id).Infof("[%v][%v]", n, l)
+			switch level {
+			case logrus.DebugLevel:
+				logger.WithField("pod", id).Debugf("[%v][%v]", n, l)
+			case logrus.InfoLevel:
+				logger.WithField("pod", id).Infof("[%v][%v]", n, l)
+			case logrus.WarnLevel:
+				logger.WithField("pod", id).Warnf("[%v][%v]", n, l)
+			case logrus.ErrorLevel:
+			case logrus.FatalLevel:
+			case logrus.PanicLevel:
+				logger.WithField("pod", id).Errorf("[%v][%v]", n, l)
+			}
+
 		}
 	}
 }
@@ -78,7 +90,7 @@ const defaultTimestampFormat = time.RFC3339
 var (
 	baseTimestamp      time.Time    = time.Now()
 	defaultColorScheme *ColorScheme = &ColorScheme{
-		InfoLevelStyle:  "green",
+		InfoLevelStyle:  "black",
 		WarnLevelStyle:  "yellow",
 		ErrorLevelStyle: "red",
 		FatalLevelStyle: "red",
