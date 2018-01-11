@@ -73,15 +73,18 @@ spec:
   - name: rss
     image: quay.io/beekhof/galera:latest
     imagePullPolicy: Always
-    # env:
-    # - name: SOME_POD_NAMESPACE
-    #   valueFrom:
-    #     fieldRef:
-    #       apiVersion: v1
-    #       fieldPath: metadata.namespace
     ports:
     - containerPort: 3306
       name: galera
+      protocol: TCP
+    - containerPort: 4567
+      name: galera-rep
+      protocol: TCP
+    - containerPort: 4568
+      name: galera-state
+      protocol: TCP
+    - containerPort: 4444
+      name: galera-snap
       protocol: TCP
      # http://galeracluster.com/documentation-webpages/firewallsettings.html
       # 3306 For MySQL client connections and State Snapshot Transfer that use the mysqldump method.
