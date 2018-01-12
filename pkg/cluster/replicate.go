@@ -181,11 +181,14 @@ func (c *Cluster) appendPrimaries(cmd []string) []string {
 
 }
 func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
+	action := "primary"
 	startCmd := c.cluster.Spec.Commands.Primary
 
 	if asPrimary && c.peers.AppPrimaries() == 0 && len(c.cluster.Spec.Commands.Seed) > 0 {
+		action = "seed"
 		startCmd = c.cluster.Spec.Commands.Seed
 	} else if !asPrimary && len(c.cluster.Spec.Commands.Secondary) > 0 {
+		action = "secondary"
 		startCmd = c.cluster.Spec.Commands.Secondary
 	}
 
@@ -195,14 +198,13 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 		c.logger.Infof("Seeding from pod %v: %v", m.Name, m.SEQ)
 	}
 	stdout, stderr, err := c.execCommand(m.Name, "beekhof", startCmd...)
-	level := logrus.DebugLevel
+	level := logrus.InfoLevel
 	if err != nil {
 		level = logrus.ErrorLevel
-		c.logger.Errorf("startAppMember: pod %v: exec failed: %v", m.Name, err)
+		c.logger.Errorf("%v: pod %v: exec failed: %v", action, m.Name, err)
 	}
-	c.logger.WithField("pod", m.Name).Errorf("startAppMember:  result start =========")
-	util.LogOutput(c.logger.WithField("source", "startAppMember:stdout"), level, m.Name, stdout)
-	util.LogOutput(c.logger.WithField("source", "startAppMember:stderr"), level, m.Name, stderr)
+	util.LogOutput(c.logger.WithField("src", fmt.Sprintf("%v:stdout", action)), level, m.Name, stdout)
+	util.LogOutput(c.logger.WithField("src", fmt.Sprintf("%v:stderr", action)), level, m.Name, stderr)
 	if err != nil {
 		m.AppFailed = true
 		if asPrimary {
@@ -217,24 +219,21 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 		m.AppRunning = true
 		m.AppFailed = false
 	}
-	c.logger.WithField("pod", m.Name).Errorf("startAppMember:  result end =========")
 	return nil
 }
 
 func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
-	c.logger.Infof("Stopping pod %v: %v", m.Name, m.SEQ)
 	stdout, stderr, err := c.execCommand(m.Name, "", c.cluster.Spec.Commands.Stop...)
-	level := logrus.DebugLevel
+	level := logrus.InfoLevel
 	if err != nil {
 		level = logrus.ErrorLevel
-		c.logger.Errorf("stopAppMember: pod %v: exec failed: %v", m.Name, err)
+		c.logger.Errorf("stop: pod %v: exec failed: %v", m.Name, err)
 	}
-	util.LogOutput(c.logger.WithField("source", "stopAppMember:stdout"), level, m.Name, stdout)
-	util.LogOutput(c.logger.WithField("source", "stopAppMember:stderr"), level, m.Name, stderr)
+	action := "stop"
+	util.LogOutput(c.logger.WithField("src", fmt.Sprintf("%v:stdout", action)), level, m.Name, stdout)
+	util.LogOutput(c.logger.WithField("src", fmt.Sprintf("%v:stderr", action)), level, m.Name, stderr)
 	if err != nil {
-		c.logger.Errorf("stopAppMember: pod %v: exec failed: %v", m.Name, err)
 		m.AppFailed = true
-
 		return fmt.Errorf("Could not stop %v: %v", m.Name, err)
 
 	} else {
