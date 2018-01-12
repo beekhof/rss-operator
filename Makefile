@@ -41,8 +41,7 @@ clean: e2e-clean
 e2e-clean:
 #	kubectl -n testing delete svc,pods,sts --all
 	-ssh root@192.168.124.10 -- kubectl -n testing delete crd,deploy,rs,rss,sts,svc,pods --all
-	sleep 10
-
+	while [ "x$$(kubectl -n $(NS) get po)" != "x" ]; do sleep 5; /bin/echo -n .; done
 
 e2e: test-quick e2e-clean
 	@echo "Running tests: $(E2E_TEST_SELECTOR)"
