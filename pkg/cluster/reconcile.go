@@ -54,7 +54,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 
 		} else if len(c.cluster.Spec.Commands.Status) > 0 {
 			action := "check"
-			level := logrus.InfoLevel
+			level := logrus.DebugLevel
 
 			stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.Commands.Status...)
 			if err != nil {

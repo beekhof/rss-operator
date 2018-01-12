@@ -224,7 +224,7 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 
 func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
 	stdout, stderr, err := c.execCommand(m.Name, "", c.cluster.Spec.Commands.Stop...)
-	level := logrus.InfoLevel
+	level := logrus.DebugLevel
 	if err != nil {
 		level = logrus.ErrorLevel
 		c.logger.Errorf("stop: pod %v: exec failed: %v", m.Name, err)
