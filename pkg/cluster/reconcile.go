@@ -16,8 +16,12 @@ package cluster
 
 import (
 	"errors"
+	"fmt"
 
+	"github.com/beekhof/galera-operator/pkg/util"
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
+	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
+	"github.com/sirupsen/logrus"
 
 	"k8s.io/api/core/v1"
 )
@@ -40,6 +44,26 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 	running := c.podsToMemberSet(pods, c.isSecureClient())
 	if c.peers.AppMembers() != sp.Replicas {
 		return c.reconcileMembers(running)
+	}
+
+	for _, m := range c.peers {
+		if !m.AppPrimary || m.AppFailed {
+			continue
+		} else if !m.Online {
+			continue
+
+		} else if len(c.cluster.Spec.Commands.Status) > 0 {
+			action := "check"
+			level := logrus.InfoLevel
+
+			stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.Commands.Status...)
+			if err != nil {
+				level = logrus.ErrorLevel
+				c.logger.Errorf("check:  pod %v: exec failed: %v", m.Name, err)
+			}
+			util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stdout", action)), level, m.Name, stdout)
+			util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stderr", action)), level, m.Name, stderr)
+		}
 	}
 	c.status.SetReadyCondition()
 

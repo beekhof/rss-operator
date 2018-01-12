@@ -16,7 +16,6 @@ package cluster
 
 import (
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
-	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 
 	"k8s.io/api/core/v1"
 )
@@ -32,19 +31,6 @@ func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
 		}
 
 		c.peers[m.Name].Online = true
-
-		if len(c.cluster.Spec.Commands.Status) > 0 {
-			stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.Commands.Status...)
-			if err != nil {
-				c.logger.Errorf("updateMembers:  pod %v: exec failed: %v", m.Name, err)
-			}
-			if stdout != "" {
-				c.logger.Infof("updateMembers:  pod %v stdout: %v", m.Name, stdout)
-			}
-			if stderr != "" {
-				c.logger.Errorf("updateMembers:  pod %v stderr: %v", m.Name, stderr)
-			}
-		}
 	}
 
 	missing := c.peers.Diff(known)

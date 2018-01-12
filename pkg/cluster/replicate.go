@@ -203,8 +203,8 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 		level = logrus.ErrorLevel
 		c.logger.Errorf("%v: pod %v: exec failed: %v", action, m.Name, err)
 	}
-	util.LogOutput(c.logger.WithField("src", fmt.Sprintf("%v:stdout", action)), level, m.Name, stdout)
-	util.LogOutput(c.logger.WithField("src", fmt.Sprintf("%v:stderr", action)), level, m.Name, stderr)
+	util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stdout", action)), level, m.Name, stdout)
+	util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stderr", action)), level, m.Name, stderr)
 	if err != nil {
 		m.AppFailed = true
 		if asPrimary {
@@ -230,8 +230,8 @@ func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
 		c.logger.Errorf("stop: pod %v: exec failed: %v", m.Name, err)
 	}
 	action := "stop"
-	util.LogOutput(c.logger.WithField("src", fmt.Sprintf("%v:stdout", action)), level, m.Name, stdout)
-	util.LogOutput(c.logger.WithField("src", fmt.Sprintf("%v:stderr", action)), level, m.Name, stderr)
+	util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stdout", action)), level, m.Name, stdout)
+	util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stderr", action)), level, m.Name, stderr)
 	if err != nil {
 		m.AppFailed = true
 		return fmt.Errorf("Could not stop %v: %v", m.Name, err)
