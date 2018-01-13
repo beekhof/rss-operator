@@ -47,10 +47,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-var (
-	reconcileInterval = 8 * time.Second
-)
-
 type clusterEventType string
 
 const (
@@ -315,7 +311,7 @@ func (c *Cluster) run() {
 				panic("unknown event type" + event.typ)
 			}
 
-		case <-time.After(reconcileInterval):
+		case <-time.After(*c.cluster.Spec.ReconcileInterval):
 			start := time.Now()
 
 			if c.cluster.Spec.Paused {
@@ -412,7 +408,7 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 	oldsts := sts.DeepCopy()
 
 	c.logger.Infof("Changing the sts %v size from %s to %s", stsname, oldSpec.Replicas, c.cluster.Spec.Replicas)
-	intVal := int32(c.cluster.Spec.Replicas)
+	intVal := int32(*c.cluster.Spec.Replicas)
 	sts.Spec.Replicas = &intVal
 	patchdata, err := k8sutil.CreatePatch(oldsts, sts, v1beta1.StatefulSet{})
 	if err != nil {

@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -95,8 +96,9 @@ type ClusterSpec struct {
 	// Size is the expected size of the galera cluster.
 	// The galera-operator will eventually make the size of the running
 	// cluster equal to the expected size.
-	Replicas  int `json:"replicas"`
-	Primaries int `json:"primaries,omitempty"`
+	Replicas          *int           `json:"replicas"`
+	Primaries         *int           `json:"primaries,omitempty"`
+	ReconcileInterval *time.Duration `json:"reconcileInterval,omitempty"`
 
 	// An optional list of references to secrets in the same namespace
 	// to use for pulling prometheus and alertmanager images from registries
@@ -215,14 +217,22 @@ func (rss *ReplicatedStatefulSet) Validate() error {
 func (c *ClusterSpec) Cleanup() {
 	minSize := 3
 
-	if c.Replicas > 0 && c.Replicas < minSize {
-		c.Replicas = minSize
+	if c.Replicas == nil {
+		c.Replicas = &minSize
+
+	} else if *c.Replicas < 0 {
+		// Treat as stopped
+		intVal := 0
+		c.Replicas = &intVal
+
+	} else if *c.Replicas > 0 && *c.Replicas < minSize {
+		c.Replicas = &minSize
 	}
 
-	if c.Replicas < 0 {
-		c.Replicas = 0
+	if c.ReconcileInterval == nil {
+		intVal := 60 * time.Second
+		c.ReconcileInterval = &intVal
 	}
-
 	if c.Resources.Requests == nil {
 		c.Resources.Requests = v1.ResourceList{}
 	}
