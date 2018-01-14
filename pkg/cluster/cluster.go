@@ -407,8 +407,8 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 	}
 	oldsts := sts.DeepCopy()
 
-	c.logger.Infof("Changing the sts %v size from %s to %s", stsname, oldSpec.Replicas, c.cluster.Spec.Replicas)
-	intVal := int32(*c.cluster.Spec.Replicas)
+	c.logger.Infof("Changing the sts %v size from %v to %v", stsname, oldSpec.GetNumReplicas(), c.cluster.Spec.GetNumReplicas())
+	intVal := int32(c.cluster.Spec.GetNumReplicas())
 	sts.Spec.Replicas = &intVal
 	patchdata, err := k8sutil.CreatePatch(oldsts, sts, v1beta1.StatefulSet{})
 	if err != nil {
@@ -426,7 +426,7 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 
 func isSpecEqual(s1, s2 api.ClusterSpec) bool {
 
-	if s1.Replicas != s2.Replicas {
+	if s1.GetNumReplicas() != s2.GetNumReplicas() {
 		return false
 	}
 
@@ -434,7 +434,7 @@ func isSpecEqual(s1, s2 api.ClusterSpec) bool {
 		return false
 	}
 
-	if s1.Primaries != s2.Primaries {
+	if s1.GetNumPrimaries() != s2.GetNumPrimaries() {
 		return false
 	}
 

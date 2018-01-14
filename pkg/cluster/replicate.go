@@ -28,15 +28,7 @@ import (
 
 func (c *Cluster) replicate() error {
 	var err error = nil
-	primaries := 0
-
-	if c.cluster.Spec.Primaries != nil {
-		primaries = *c.cluster.Spec.Primaries
-	}
-
-	if primaries < 1 || primaries > *c.cluster.Spec.Replicas {
-		primaries = *c.cluster.Spec.Replicas
-	}
+	primaries := c.cluster.Spec.GetNumPrimaries()
 
 	if c.peers.AppPrimaries() == 0 {
 		c.detectMembers()
@@ -50,13 +42,13 @@ func (c *Cluster) replicate() error {
 		err = c.demotePrimary()
 	}
 
-	for err == nil && c.peers.AppMembers() < *c.cluster.Spec.Replicas {
+	for err == nil && c.peers.AppMembers() < c.cluster.Spec.GetNumReplicas() {
 		err = c.startMember()
 	}
 
 	if err != nil {
 		return fmt.Errorf("Replication failed: %v of %v primaries, and %v of %v members available: %v",
-			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), c.cluster.Spec.Replicas, err)
+			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), c.cluster.Spec.GetNumReplicas(), err)
 	}
 	return nil
 }
@@ -157,7 +149,7 @@ func (c *Cluster) startPrimary() error {
 func (c *Cluster) startMember() error {
 	m, err := chooseSeed(c)
 	if err != nil {
-		return fmt.Errorf("%v of %v members available: %v", c.peers.AppMembers(), c.cluster.Spec.Replicas, err)
+		return fmt.Errorf("%v of %v members available: %v", c.peers.AppMembers(), c.cluster.Spec.GetNumReplicas(), err)
 	}
 	return c.startAppMember(m, false)
 }

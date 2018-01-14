@@ -29,6 +29,7 @@ import (
 var (
 	// TODO: move validation code into separate package.
 	ErrBackupUnsetRestoreSet = errors.New("spec: backup policy must be set if restore policy is set")
+	minClusterSize           = 3
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -212,22 +213,38 @@ func (rss *ReplicatedStatefulSet) Validate() error {
 	return nil
 }
 
-// Cleanup cleans up user passed spec, e.g. defaulting, transforming fields.
-// TODO: move this to admission controller
-func (c *ClusterSpec) Cleanup() {
-	minSize := 3
-
+func (c *ClusterSpec) GetNumReplicas() int {
 	if c.Replicas == nil {
-		c.Replicas = &minSize
+		return minClusterSize
 
 	} else if *c.Replicas < 0 {
 		// Treat as stopped
-		intVal := 0
-		c.Replicas = &intVal
+		return 0
 
-	} else if *c.Replicas > 0 && *c.Replicas < minSize {
-		c.Replicas = &minSize
+	} else if *c.Replicas > 0 && *c.Replicas < minClusterSize {
+		return minClusterSize
 	}
+	return *c.Replicas
+}
+
+func (c *ClusterSpec) GetNumPrimaries() int {
+	replicas := c.GetNumReplicas()
+	if c.Primaries == nil {
+		return replicas
+
+	} else if *c.Primaries < 0 {
+		// Treat as stopped
+		return 1
+
+	} else if *c.Primaries > replicas {
+		return replicas
+	}
+	return *c.Primaries
+}
+
+// Cleanup cleans up user passed spec, e.g. defaulting, transforming fields.
+// TODO: move this to admission controller
+func (c *ClusterSpec) Cleanup() {
 
 	if c.ReconcileInterval == nil {
 		intVal := 60 * time.Second

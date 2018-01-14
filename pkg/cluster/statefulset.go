@@ -221,7 +221,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	// - adding .Env entries and appending to 'containers'
 	// - assign 'containers' to PodSpec.Containers
 
-	intSize := int32(*cluster.Spec.Replicas)
+	intSize := int32(cluster.Spec.GetNumReplicas())
 	volumes := cluster.Spec.Volumes
 	var containers []v1.Container
 
