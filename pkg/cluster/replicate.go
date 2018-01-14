@@ -27,8 +27,12 @@ import (
 )
 
 func (c *Cluster) replicate() error {
-	primaries := *c.cluster.Spec.Primaries
 	var err error = nil
+	primaries := 0
+
+	if c.cluster.Spec.Primaries != nil {
+		primaries = *c.cluster.Spec.Primaries
+	}
 
 	if primaries < 1 || primaries > *c.cluster.Spec.Replicas {
 		primaries = *c.cluster.Spec.Replicas
@@ -36,8 +40,8 @@ func (c *Cluster) replicate() error {
 
 	if c.peers.AppPrimaries() == 0 {
 		c.detectMembers()
-
 	}
+
 	for err == nil && c.peers.AppPrimaries() < primaries {
 		err = c.startPrimary()
 	}
