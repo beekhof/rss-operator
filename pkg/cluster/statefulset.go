@@ -20,14 +20,11 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/sirupsen/logrus"
-
 	"k8s.io/api/apps/v1beta1"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
-	"github.com/beekhof/galera-operator/pkg/util"
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 	"github.com/pkg/errors"
 
@@ -225,9 +222,8 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	volumes := cluster.Spec.Volumes
 	var containers []v1.Container
 
-	for n, container := range cluster.Spec.Containers {
+	for _, container := range cluster.Spec.Containers {
 		// Append generated details
-		logrus.Infof("container[%v].Env: %v: %v", n, len(container.Env), container.Env)
 		if len(container.Env) == 0 {
 			container.Env = []v1.EnvVar{
 				{
@@ -309,7 +305,6 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 			})
 		}
 
-		util.JsonLogObject(util.GetLogger("statefulset").WithField("cluster-name", cluster.Name), container, fmt.Sprintf("container[%v]: %v", n, container.Env))
 		containers = append(containers, container)
 	}
 

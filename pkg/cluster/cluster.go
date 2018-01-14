@@ -236,7 +236,7 @@ func (c *Cluster) createGalera() error {
 		return errors.Wrap(err, "creating empty config file failed")
 	}
 
-	c.logger.Errorf("beekhof: creating Galera STS")
+	c.logger.Infof("Creating cluster STS in %v", c.cluster.Namespace)
 	sts, err := makeStatefulSet(*c.cluster, nil, &c.config, ruleFileConfigMaps)
 	if err != nil {
 		return errors.Wrap(err, "creating statefulset definition failed")
@@ -246,7 +246,8 @@ func (c *Cluster) createGalera() error {
 	if _, err := ssetClient.Create(sts); err != nil {
 		return errors.Wrap(err, "creating statefulset failed")
 	}
-	c.logger.Errorf("beekhof: created Galera STS in %v", c.cluster.Namespace)
+
+	util.JsonLogObject(c.logger, sts, "StatefulSet")
 	return nil
 }
 

@@ -56,23 +56,24 @@ func (c *Cluster) replicate() error {
 func (c *Cluster) detectMembers() {
 	for _, m := range c.peers {
 		stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.Commands.Sequence...)
-		util.LogOutput(c.logger.WithField("source", "detectMembers:stdout"), logrus.InfoLevel, m.Name, stdout)
-		util.LogOutput(c.logger.WithField("source", "detectMembers:stderr"), logrus.InfoLevel, m.Name, stderr)
 
 		if err != nil {
-			c.logger.Errorf("detectMembers:  pod %v: exec failed: %v", m.Name, err)
+			c.logger.Errorf("discover:  pod %v: exec failed: %v", m.Name, err)
 
 		} else {
 			if stdout != "" {
 				c.peers[m.Name].SEQ, err = strconv.ParseUint(stdout, 10, 64)
 				if err != nil {
-					c.logger.WithField("pod", m.Name).Errorf("detectMembers:  pod %v: could not parse '%v' into uint64: %v", m.Name, stdout, err)
+					c.logger.WithField("pod", m.Name).Errorf("discover:  pod %v: could not parse '%v' into uint64: %v", m.Name, stdout, err)
 				}
 
 			} else {
-				c.logger.WithField("pod", m.Name).Infof("detectMembers:  pod %v sequence now: %v", m.Name, c.peers[m.Name].SEQ)
+				c.logger.WithField("pod", m.Name).Infof("discover:  pod %v sequence now: %v", m.Name, c.peers[m.Name].SEQ)
 			}
 		}
+
+		util.LogOutput(c.logger.WithField("source", "detectMembers:stdout"), logrus.InfoLevel, m.Name, stdout)
+		util.LogOutput(c.logger.WithField("source", "detectMembers:stderr"), logrus.InfoLevel, m.Name, stderr)
 	}
 }
 
