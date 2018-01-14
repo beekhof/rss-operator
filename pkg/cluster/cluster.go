@@ -597,8 +597,16 @@ func (c *Cluster) LogObject(text string, spec interface{}) {
 }
 
 func (c *Cluster) logSpecUpdate(oldSpec, newSpec api.ClusterSpec) {
-	c.LogObject("spec update: Old Spec:", oldSpec)
+	//c.LogObject("spec update: Old Spec:", oldSpec)
 	c.LogObject("spec update: New Spec:", newSpec)
+
+	patchdata, err := k8sutil.CreatePatch(oldSpec, newSpec, api.ClusterSpec{})
+	if err != nil {
+		c.logger.Errorf("Error calculating diff: %v", err)
+	} else {
+		c.logger.Info("Cluster spec changed")
+		util.JsonLogObject(c.logger, patchdata, "Spec Diff")
+	}
 
 	if c.isDebugLoggerEnabled() {
 		newSpecBytes, _ := json.MarshalIndent(newSpec, "", "    ")

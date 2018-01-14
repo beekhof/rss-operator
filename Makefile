@@ -21,6 +21,7 @@ gitpush:
 	git push
 
 wait:
+	sleep 5
 	while [ "x$$(curl -s https://quay.io/repository/beekhof/rss-operator/status | tr '<' '\n' | grep -v -e '\>$$' | sed 's/.*>//' | tail -n 1)" = xbuilding ]; do sleep 5; /bin/echo -n .; done
 	curl -s https://quay.io/repository/beekhof/rss-operator/status | tr '<' '\n' | grep -v -e ">$$" | sed 's/.*>//' | tail -n 1
 
