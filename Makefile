@@ -17,8 +17,14 @@ simple:
 build: 
 	hack/build/operator/build
 
-push: dockerfile-checks
+gitpush:
 	git push
+
+wait:
+	while [ "x$$(curl -s https://quay.io/repository/beekhof/rss-operator/status | tr '<' '\n' | grep -v -e '\>$$' | sed 's/.*>//' | tail -n 1)" = xbuilding ]; do sleep 5; /bin/echo -n .; done
+	curl -s https://quay.io/repository/beekhof/rss-operator/status | tr '<' '\n' | grep -v -e ">$$" | sed 's/.*>//' | tail -n 1
+
+push: dockerfile-checks gitpush wait
 
 test-quick:
 	gosimple $(TEST_PKGS)
