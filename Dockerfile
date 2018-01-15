@@ -12,4 +12,4 @@ RUN make install
 WORKDIR $GOPATH/src/github.com/beekhof/
 RUN rm -rf galera-operator
 
-CMD ["/usr/local/bin/rss-operator"]
+CMD ["/usr/local/bin/rss-operator", "-alsologtostderr"]

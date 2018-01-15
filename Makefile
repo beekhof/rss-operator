@@ -24,7 +24,7 @@ gitpush:
 wait:
 	@echo "Waiting for the container to build..." 
 	sleep 5
-	-while [ "x$$(curl -s $(BUILD_STATUS) | tr '<' '\n' | grep -v -e '>$$'  -e '^/' | sed 's/.*>//' | tail -n 1)" = xbuilding ]; do sleep 5; /bin/echo -n .; done
+	-while [ "x$$(curl -s $(BUILD_STATUS) | tr '<' '\n' | grep -v -e '>$$'  -e '^/' | sed 's/.*>//' | tail -n 1)" = xbuilding ]; do sleep 50; /bin/echo -n .; done
 	curl -s $(BUILD_STATUS) | tr '<' '\n' | grep -v -e ">$$"  -e '^/' | sed 's/.*>//' | tail -n 1
 
 push: dockerfile-checks gitpush wait
