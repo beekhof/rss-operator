@@ -80,17 +80,18 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 // 4. If len(L) < len(members)/2 + 1, return quorum lost error.
 // 5. Add one missing member. END.
 func (c *Cluster) reconcileMembers(running etcdutil.MemberSet) error {
-	c.logger.Infof("running members: %s", running)
-	c.logger.Infof("cluster membership: %s", c.peers)
+	c.logger.Infof(" current membership: %s", running)
+	c.logger.Infof("previous membership: %s", c.peers)
 
+	lostMembers := c.peers.Diff(running)
 	unknownMembers := running.Diff(c.peers)
-	if unknownMembers.Size() > 0 {
-		c.logger.Infof("updating pods: %v", unknownMembers)
+	if unknownMembers.Size() > 0 || lostMembers.Size() > 0 {
+		c.logger.Infof("Updating membership: new=[%v], lost=[%v]", unknownMembers, lostMembers)
 		c.updateMembers(running)
 	}
 
 	if c.peers.Size() < c.cluster.Spec.GetNumReplicas()/2+1 {
-		c.logger.Infof("lost quorum")
+		c.logger.Infof("Quorum lost")
 		return ErrLostQuorum
 	}
 	return nil

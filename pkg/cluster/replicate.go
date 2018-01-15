@@ -47,7 +47,7 @@ func (c *Cluster) replicate() error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("Replication failed: %v of %v primaries, and %v of %v members available: %v",
+		return fmt.Errorf("%v of %v primaries, and %v of %v members available: %v",
 			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), c.cluster.Spec.GetNumReplicas(), err)
 	}
 	c.logger.Infof("Replication complete: %v of %v primaries, and %v of %v members available",

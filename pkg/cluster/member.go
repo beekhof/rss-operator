@@ -27,7 +27,12 @@ func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
 	for _, m := range known {
 
 		if _, ok := c.peers[m.Name]; !ok {
+			c.logger.Infof("Pod %v added", m.Name)
 			c.peers[m.Name] = c.newMember(m.Name, m.Namespace)
+		}
+
+		if !c.peers[m.Name].Online {
+			c.logger.Infof("Pod %v online", m.Name)
 		}
 
 		c.peers[m.Name].Online = true
@@ -36,7 +41,7 @@ func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
 	missing := c.peers.Diff(known)
 	for _, m := range missing {
 		c.peers[m.Name].Online = false
-		c.logger.Warnf("updateMembers:  pod %v offline", m.Name)
+		c.logger.Warnf("Pod %v offline", m.Name)
 	}
 
 	return nil

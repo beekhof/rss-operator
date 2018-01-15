@@ -358,7 +358,7 @@ func (c *Cluster) run() {
 
 		if rerr != nil {
 			reconcileFailed.WithLabelValues(rerr.Error()).Inc()
-			c.logger.Errorf("reconciliation failed: %v", rerr)
+			c.logger.Errorf("Reconciliation failed: %v", rerr)
 		}
 
 		if isFatalError(rerr) {
