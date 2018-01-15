@@ -316,7 +316,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 		PodManagementPolicy:  v1beta1.ParallelPodManagement,
 		VolumeClaimTemplates: cluster.Spec.VolumeClaimTemplates,
 		UpdateStrategy: v1beta1.StatefulSetUpdateStrategy{
-			Type: v1beta1.RollingUpdateStatefulSetStrategyType,
+			Type: v1beta1.OnDeleteStatefulSetStrategyType,
 		},
 		Template: v1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
