@@ -91,8 +91,8 @@ func chooseSeed(c *Cluster) (*etcdutil.Member, error) {
 			bestPeer = m
 		} else if m.SEQ > bestPeer.SEQ {
 			bestPeer = m
-		} else if strings.Compare(m.Name, bestPeer.Name) > 0 {
-			// Prefer sts members towards the start of the range
+		} else if strings.Compare(m.Name, bestPeer.Name) < 0 {
+			// Prefer sts members towards the start of the range to be the seed
 			bestPeer = m
 		}
 	}
@@ -112,8 +112,10 @@ func chooseCurrentPrimary(c *Cluster) (*etcdutil.Member, error) {
 			continue
 		} else if !m.Online {
 			return m, nil
+		} else if bestPeer == nil {
+			bestPeer = m
 		} else if strings.Compare(m.Name, bestPeer.Name) > 0 {
-			// Prefer sts members towards the start of the range
+			// Prefer sts members towards the end of the range to stop/demote
 			bestPeer = m
 		}
 	}
