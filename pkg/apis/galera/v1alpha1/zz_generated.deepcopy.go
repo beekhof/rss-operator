@@ -192,38 +192,6 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 			(*in).DeepCopyInto(*out)
 		}
 	}
-	if in.Containers != nil {
-		in, out := &in.Containers, &out.Containers
-		*out = make([]v1.Container, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
-	}
-	if in.Volumes != nil {
-		in, out := &in.Volumes, &out.Volumes
-		*out = make([]v1.Volume, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
-	}
-	if in.VolumeClaimTemplates != nil {
-		in, out := &in.VolumeClaimTemplates, &out.VolumeClaimTemplates
-		*out = make([]v1.PersistentVolumeClaim, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
-	}
-	if in.ServicePorts != nil {
-		in, out := &in.ServicePorts, &out.ServicePorts
-		*out = make([]v1.ServicePort, len(*in))
-		copy(*out, *in)
-	}
-	if in.ExternalIPs != nil {
-		in, out := &in.ExternalIPs, &out.ExternalIPs
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
-	in.Commands.DeepCopyInto(&out.Commands)
 	if in.TLS != nil {
 		in, out := &in.TLS, &out.TLS
 		if *in == nil {
@@ -398,6 +366,7 @@ func (in *PodPolicy) DeepCopyInto(out *PodPolicy) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	in.Commands.DeepCopyInto(&out.Commands)
 	return
 }
 

@@ -14,6 +14,25 @@ spec:
   scope: Namespaced
   version: v1alpha1
 ---
+# cat ceph.client.admin.keyring | tail -n 1 | awk '{print $3}' >> admin.secret
+# kubectl create secret generic ceph-secret-admin --type="kubernetes.io/rbd" --from-file=admin.secret --namespace=kube-system
+apiVersion: v1
+data:
+  admin.secret: QVFBQkt5VmF0K0FhSXhBQU5xcElISnlZY2krQ2t6UFNsNWpZQ1E9PQo=
+kind: Secret
+metadata:
+  name: ceph-secret-admin
+type: kubernetes.io/rbd
+---
+# kubectl create secret generic ceph-secret-user --type="kubernetes.io/rbd" --from-file=admin.secret
+apiVersion: v1
+data:
+  admin.secret: QVFBQkt5VmF0K0FhSXhBQU5xcElISnlZY2krQ2t6UFNsNWpZQ1E9PQo=
+kind: Secret
+metadata:
+  name: ceph-secret-user
+type: kubernetes.io/rbd
+---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -73,62 +92,70 @@ spec:
   replicas: 3
   pod:
     antiAffinity: true
+    volumeClaimTemplates:
+    - metadata:
+        name: mysql-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: my-storage-class
+        resources:
+          requests:
+            storage: 1Gi
+    - metadata:
+        name: mysql-logs
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: my-storage-class
+        resources:
+          requests:
+            storage: 1Gi
+    containers:
+    - name: rss
+      image: quay.io/beekhof/galera:latest
+      imagePullPolicy: Always
+      lifecycle:
+        preStop:
+            exec:
+              command: ["/stop.sh"]
+      ports:
+      - containerPort: 3306
+        name: galera
+        protocol: TCP
+      - containerPort: 4567
+        name: galera-rep
+        protocol: TCP
+      - containerPort: 4568
+        name: galera-state
+        protocol: TCP
+      - containerPort: 4444
+        name: galera-snap
+        protocol: TCP
+        # http://galeracluster.com/documentation-webpages/firewallsettings.html
+        # 3306 For MySQL client connections and State Snapshot Transfer that use the mysqldump method.
+        # 4567 For Galera Cluster replication traffic, multicast replication uses both UDP transport and TCP on this port.
+        # 4568 For Incremental State Transfer.
+        # 4444 For all other State Snapshot Transfer.
+      volumeMounts:
+      - mountPath: /var/lib/mysql
+        name: mysql-data
+      - mountPath: /var/log
+        name: mysql-logs
   service:
-    name: galera-svc
+    serviceName: galera-svc
     sessionAffinity: None
-  serviceName: galera-svc
-  servicePorts:
-  - name: galera
-    port: 13306
-    targetPort: 3306
-    # https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
-  # externalIPs:
-  # - 192.168.124.101
-  volumeClaimTemplates:
-  - metadata:
-      name: mysql-data
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: my-storage-class
-      resources:
-        requests:
-          storage: 1Gi
-  containers:
-  - name: rss
-    image: quay.io/beekhof/galera:latest
-    imagePullPolicy: Always
-    ports:
-    - containerPort: 3306
-      name: galera
-      protocol: TCP
-    - containerPort: 4567
-      name: galera-rep
-      protocol: TCP
-    - containerPort: 4568
-      name: galera-state
-      protocol: TCP
-    - containerPort: 4444
-      name: galera-snap
-      protocol: TCP
-     # http://galeracluster.com/documentation-webpages/firewallsettings.html
-      # 3306 For MySQL client connections and State Snapshot Transfer that use the mysqldump method.
-      # 4567 For Galera Cluster replication traffic, multicast replication uses both UDP transport and TCP on this port.
-      # 4568 For Incremental State Transfer.
-      # 4444 For all other State Snapshot Transfer.
-    volumeMounts:
-    - mountPath: /var/lib/mysql
-      name: mysql-data
+    servicePorts:
+    - name: galera
+      port: 13306
+      targetPort: 3306
+      # https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
+    externalIPs:
+    - 192.168.124.101
   commands:
-    sequence:
-    - /sequence.sh
-    primary:
-    - /start.sh
-    seed:
-    - /seed.sh
-    status:
-    - /check.sh
-    stop:
-    - /stop.sh
+    sequence: ["/sequence.sh"]
+    primary: ["/start.sh"]
+    seed: ["/seed.sh"]
+    status: ["/check.sh"]
+    stop: ["/stop.sh"]
 ---
 apiVersion: v1
 kind: Pod

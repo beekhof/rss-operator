@@ -52,11 +52,11 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 		} else if !m.Online {
 			continue
 
-		} else if len(c.cluster.Spec.Commands.Status) > 0 {
+		} else if len(c.cluster.Spec.Pod.Commands.Status) > 0 {
 			action := "check"
 			level := logrus.DebugLevel
 
-			stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.Commands.Status...)
+			stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.Pod.Commands.Status...)
 			if err != nil {
 				level = logrus.ErrorLevel
 				c.logger.Errorf("check:  pod %v: exec failed: %v", m.Name, err)

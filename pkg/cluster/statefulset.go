@@ -127,7 +127,7 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config, i
 				Type:        "ClusterIP",
 				Ports:       cluster.Spec.GetServicePorts(),
 				Selector:    k8sutil.LabelsForCluster(cluster.Name),
-				ExternalIPs: cluster.Spec.ExternalIPs,
+				ExternalIPs: cluster.Spec.Service.ExternalIPs,
 				//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 			},
 		}
@@ -203,10 +203,10 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	// - assign 'containers' to PodSpec.Containers
 
 	intSize := int32(cluster.Spec.GetNumReplicas())
-	volumes := cluster.Spec.Volumes
+	volumes := cluster.Spec.Pod.Volumes
 	var containers []v1.Container
 
-	for _, container := range cluster.Spec.Containers {
+	for _, container := range cluster.Spec.Pod.Containers {
 		// Append generated details
 		if len(container.Env) == 0 {
 			container.Env = []v1.EnvVar{
@@ -314,7 +314,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 		ServiceName:          cluster.ServiceName(true),
 		Replicas:             &intSize,
 		PodManagementPolicy:  v1beta1.ParallelPodManagement,
-		VolumeClaimTemplates: cluster.Spec.VolumeClaimTemplates,
+		VolumeClaimTemplates: cluster.Spec.Pod.VolumeClaimTemplates,
 		UpdateStrategy: v1beta1.StatefulSetUpdateStrategy{
 			Type: v1beta1.OnDeleteStatefulSetStrategyType,
 		},

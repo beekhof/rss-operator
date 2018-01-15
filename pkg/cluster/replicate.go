@@ -57,7 +57,7 @@ func (c *Cluster) replicate() error {
 
 func (c *Cluster) detectMembers() {
 	for _, m := range c.peers {
-		stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.Commands.Sequence...)
+		stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.Pod.Commands.Sequence...)
 
 		if err != nil {
 			c.logger.Errorf("discover:  pod %v: exec failed: %v", m.Name, err)
@@ -183,14 +183,14 @@ func (c *Cluster) appendPrimaries(cmd []string) []string {
 }
 func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 	action := "primary"
-	startCmd := c.cluster.Spec.Commands.Primary
+	startCmd := c.cluster.Spec.Pod.Commands.Primary
 
-	if asPrimary && c.peers.AppPrimaries() == 0 && len(c.cluster.Spec.Commands.Seed) > 0 {
+	if asPrimary && c.peers.AppPrimaries() == 0 && len(c.cluster.Spec.Pod.Commands.Seed) > 0 {
 		action = "seed"
-		startCmd = c.cluster.Spec.Commands.Seed
-	} else if !asPrimary && len(c.cluster.Spec.Commands.Secondary) > 0 {
+		startCmd = c.cluster.Spec.Pod.Commands.Seed
+	} else if !asPrimary && len(c.cluster.Spec.Pod.Commands.Secondary) > 0 {
 		action = "secondary"
-		startCmd = c.cluster.Spec.Commands.Secondary
+		startCmd = c.cluster.Spec.Pod.Commands.Secondary
 	}
 
 	startCmd = c.appendPrimaries(startCmd)
@@ -222,7 +222,7 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 }
 
 func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
-	stdout, stderr, err := c.execCommand(m.Name, "", c.cluster.Spec.Commands.Stop...)
+	stdout, stderr, err := c.execCommand(m.Name, "", c.cluster.Spec.Pod.Commands.Stop...)
 	level := logrus.DebugLevel
 	if err != nil {
 		level = logrus.ErrorLevel

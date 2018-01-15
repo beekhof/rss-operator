@@ -99,6 +99,8 @@ type PodPolicy struct {
 	Containers           []v1.Container             `json:"containers"`
 	Volumes              []v1.Volume                `json:"volumes,omitempty"`
 	VolumeClaimTemplates []v1.PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty"`
+
+	Commands ClusterCommands `json:"commands"`
 }
 
 type ClusterSpec struct {
@@ -122,18 +124,6 @@ type ClusterSpec struct {
 	// Updating Pod does not take effect on any existing galera pods.
 	Pod     PodPolicy      `json:"pod"`
 	Service *ServicePolicy `json:"service,omitempty"`
-
-	// Ideally these would be part of the PodPolicy or ServicePolicy, but they
-	// don't make it to the server side when they are :shrug:
-	Containers           []v1.Container             `json:"containers"`
-	Volumes              []v1.Volume                `json:"volumes,omitempty"`
-	VolumeClaimTemplates []v1.PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty"`
-
-	ServiceName  string           `json:"serviceName,omitempty"`
-	ServicePorts []v1.ServicePort `json:"servicePorts,omitempty"`
-	ExternalIPs  []string         `json:"externalIPs,omitempty"`
-
-	Commands ClusterCommands `json:"commands"`
 
 	// galera cluster TLS configuration
 	TLS *TLSPolicy `json:"TLS,omitempty"`
@@ -171,8 +161,8 @@ type ClusterSpec struct {
 }
 
 func (c *ClusterSpec) GetServicePorts() []v1.ServicePort {
-	if c.ServicePorts != nil {
-		return c.ServicePorts
+	if c.Service.ServicePorts != nil {
+		return c.Service.ServicePorts
 	}
 
 	return []v1.ServicePort{
@@ -186,8 +176,8 @@ func (c *ClusterSpec) GetServicePorts() []v1.ServicePort {
 
 func (rss *ReplicatedStatefulSet) ServiceName(internal bool) string {
 	var name string
-	if rss.Spec.ServiceName != "" {
-		name = rss.Spec.ServiceName
+	if rss.Spec.Service.ServiceName != "" {
+		name = rss.Spec.Service.ServiceName
 	} else {
 		name = fmt.Sprintf("%s-svc", rss.Name)
 	}
@@ -212,11 +202,11 @@ func (rss *ReplicatedStatefulSet) Validate() error {
 		}
 	}
 
-	if len(rss.Spec.Containers) < 1 {
+	if len(rss.Spec.Pod.Containers) < 1 {
 		return errors.New(fmt.Sprintf("Validate: No containers configured for: %v", rss.Name))
 
 	}
-	for n, c := range rss.Spec.Containers {
+	for n, c := range rss.Spec.Pod.Containers {
 		if c.Image == "" {
 			return errors.New(fmt.Sprintf("Validate: No image configured for container[%v]: %v", n, c.Name))
 		}
