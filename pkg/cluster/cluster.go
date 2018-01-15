@@ -213,18 +213,22 @@ func (c *Cluster) ruleFileConfigMaps(cl *api.ReplicatedStatefulSet) ([]*v1.Confi
 	return res, nil
 }
 
-func (c *Cluster) createGalera() error {
+func (c *Cluster) create() error {
+	c.status.SetPhase(api.ClusterPhaseCreating)
+
+	if err := c.updateCRStatus(); err != nil {
+		return fmt.Errorf("cluster create: failed to update cluster phase (%v): %v", api.ClusterPhaseCreating, err)
+	}
 
 	// Create governing service if it doesn't exist.
 	svcClient := c.config.KubeCli.Core().Services(c.cluster.Namespace)
 	if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.cluster, c.config, true)); err != nil {
-		return errors.Wrap(err, "synchronizing governing service failed")
+		return errors.Wrap(err, "synchronizing internal service failed")
 	}
 	if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.cluster, c.config, false)); err != nil {
 		return errors.Wrap(err, "synchronizing external service failed")
 	}
 
-	//ruleFileConfigMaps := []*v1.ConfigMap{}
 	ruleFileConfigMaps, err := c.ruleFileConfigMaps(c.cluster)
 
 	// Create Secret if it doesn't exist.
@@ -247,21 +251,8 @@ func (c *Cluster) createGalera() error {
 		return errors.Wrap(err, "creating statefulset failed")
 	}
 
-	util.JsonLogObject(c.logger, sts, "StatefulSet")
-	return nil
-}
-
-func (c *Cluster) create() error {
-	c.status.SetPhase(api.ClusterPhaseCreating)
-
-	if err := c.updateCRStatus(); err != nil {
-		return fmt.Errorf("cluster create: failed to update cluster phase (%v): %v", api.ClusterPhaseCreating, err)
-	}
-	if err := c.createGalera(); err != nil {
-		c.logger.Errorf("beekhof: starting sts failed %v", err)
-		return err
-	}
-	c.logClusterCreation()
+	c.LogObject("creating cluster with Spec:", c.cluster.Spec)
+	//util.JsonLogObject(c.logger, sts, "StatefulSet")
 	return nil
 }
 
@@ -588,25 +579,20 @@ func (c *Cluster) name() string {
 	return c.cluster.GetName()
 }
 
-func (c *Cluster) logClusterCreation() {
-	c.LogObject("creating cluster with Spec:", c.cluster.Spec)
-}
-
 func (c *Cluster) LogObject(text string, spec interface{}) {
 	util.JsonLogObject(c.logger, spec, text)
 }
 
 func (c *Cluster) logSpecUpdate(oldSpec, newSpec api.ClusterSpec) {
-	//c.LogObject("spec update: Old Spec:", oldSpec)
+	c.LogObject("spec update: Old Spec:", oldSpec)
 	c.LogObject("spec update: New Spec:", newSpec)
 
-	patchdata, err := k8sutil.CreatePatch(oldSpec, newSpec, api.ClusterSpec{})
-	if err != nil {
-		c.logger.Errorf("Error calculating diff: %v", err)
-	} else {
-		c.logger.Info("Cluster spec changed")
-		util.JsonLogObject(c.logger, patchdata, "Spec Diff")
-	}
+	// TODO: Maybe this with the MarshalIndent() output
+	// "github.com/sergi/go-diff/diffmatchpatch"
+	//
+	// dmp := diffmatchpatch.New()
+	// diffs := dmp.DiffMain(specText1, specText2, false)
+	// fmt.Println(dmp.DiffPrettyText(diffs))
 
 	if c.isDebugLoggerEnabled() {
 		newSpecBytes, _ := json.MarshalIndent(newSpec, "", "    ")
