@@ -1,5 +1,6 @@
 E2E_TEST_SELECTOR=TestCreateCluster
 NS=testing
+BUILD_STATUS=https://quay.io/repository/beekhof/rss-operator/status
 OPERATOR_IMAGE=quay.io/beekhof/rss-operator:latest
 PROJECT=github.com/beekhof/galera-operator
 DOCKER_REPO_ROOT="/go/src/$(PROJECT)"
@@ -21,9 +22,10 @@ gitpush:
 	git push
 
 wait:
+	@echo "Waiting for the container to build..." 
 	sleep 5
-	while [ "x$$(curl -s https://quay.io/repository/beekhof/rss-operator/status | tr '<' '\n' | grep -v -e '\>$$' | sed 's/.*>//' | tail -n 1)" = xbuilding ]; do sleep 5; /bin/echo -n .; done
-	curl -s https://quay.io/repository/beekhof/rss-operator/status | tr '<' '\n' | grep -v -e ">$$" | sed 's/.*>//' | tail -n 1
+	-while [ "x$$(curl -s $(BUILD_STATUS) | tr '<' '\n' | grep -v -e '>$$'  -e '^/' | sed 's/.*>//' | tail -n 1)" = xbuilding ]; do sleep 5; /bin/echo -n .; done
+	curl -s $(BUILD_STATUS) | tr '<' '\n' | grep -v -e ">$$"  -e '^/' | sed 's/.*>//' | tail -n 1
 
 push: dockerfile-checks gitpush wait
 
