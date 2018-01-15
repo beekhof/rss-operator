@@ -36,6 +36,10 @@ func (c *Cluster) replicate() error {
 		c.detectMembers()
 	}
 
+	if err == nil && c.peers.AppMembers() > c.cluster.Spec.GetNumReplicas() {
+		err = fmt.Errorf("Waiting for %v peers to be stopped", c.peers.AppMembers()-primaries)
+	}
+
 	for err == nil && c.peers.AppPrimaries() < primaries {
 		err = c.startPrimary()
 	}
