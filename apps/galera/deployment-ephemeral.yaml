@@ -14,24 +14,6 @@ spec:
   scope: Namespaced
   version: v1alpha1
 ---
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: my-storage-class
-parameters:
-  adminId: admin
-  adminSecretName: ceph-secret-admin
-  adminSecretNamespace: kube-system
-  fsType: ext4
-  imageFeatures: layering
-  imageFormat: "1"
-  monitors: ceph2-1:6789,ceph2-2:6789,ceph2-3:6789
-  pool: rbd
-  userId: admin
-  userSecretName: ceph-secret-user
-provisioner: kubernetes.io/rbd
-reclaimPolicy: Delete
----
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -82,8 +64,11 @@ spec:
     port: 13306
     targetPort: 3306
     # https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
-  # externalIPs:
-  # - 192.168.124.101
+  volumes:
+  - emptyDir: {}
+    name: galera-db
+  externalIPs:
+  - 192.168.124.101
   containers:
   - name: rss
     image: quay.io/beekhof/galera:latest
@@ -106,18 +91,9 @@ spec:
       # 4567 For Galera Cluster replication traffic, multicast replication uses both UDP transport and TCP on this port.
       # 4568 For Incremental State Transfer.
       # 4444 For all other State Snapshot Transfer.
-    volumeClaims:
-    - metadata:
-        name: mysql-data
-      spec:
-        accessModes: [ "ReadWriteOnce" ]
-        storageClassName: my-storage-class
-        resources:
-          requests:
-            storage: 1Gi
     volumeMounts:
-    - mountPath: /var/lib/mysql
-      name: mysql-data
+    - mountPath: /var/galera/data
+      name: galera-db
   commands:
     sequence:
     - /sequence.sh
