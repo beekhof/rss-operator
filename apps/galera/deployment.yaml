@@ -84,6 +84,15 @@ spec:
     # https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
   # externalIPs:
   # - 192.168.124.101
+  volumeClaimTemplates:
+  - metadata:
+      name: mysql-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: my-storage-class
+      resources:
+        requests:
+          storage: 1Gi
   containers:
   - name: rss
     image: quay.io/beekhof/galera:latest
@@ -109,15 +118,6 @@ spec:
     volumeMounts:
     - mountPath: /var/lib/mysql
       name: mysql-data
-    volumeClaimTemplates:
-    - metadata:
-        name: mysql-data
-      spec:
-        accessModes: [ "ReadWriteOnce" ]
-        storageClassName: my-storage-class
-        resources:
-          requests:
-            storage: 1Gi
   commands:
     sequence:
     - /sequence.sh
