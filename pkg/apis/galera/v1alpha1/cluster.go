@@ -121,7 +121,7 @@ type ClusterSpec struct {
 	//
 	// Updating Pod does not take effect on any existing galera pods.
 	Pod     PodPolicy      `json:"pod"`
-	Service *ServicePolicy `json:"pod,omitempty"`
+	Service *ServicePolicy `json:"service,omitempty"`
 
 	// Ideally these would be part of the PodPolicy or ServicePolicy, but they
 	// don't make it to the server side when they are :shrug:
