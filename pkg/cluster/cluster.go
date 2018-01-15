@@ -503,6 +503,7 @@ func (c *Cluster) pollPods() (running, pending []*v1.Pod, err error) {
 }
 
 func (c *Cluster) updateMemberStatus(members etcdutil.MemberSet, running []string) {
+	var failed []string
 	var unready []string
 	var primary []string
 	var secondary []string
@@ -511,6 +512,8 @@ func (c *Cluster) updateMemberStatus(members etcdutil.MemberSet, running []strin
 		if !util.PresentIn(m.Name, running) {
 			c.logger.Infof("updateMemberStatus:  pod %v: not ready", m.Name)
 			unready = append(unready, m.Name)
+		} else if m.AppFailed {
+			failed = append(failed, m.Name)
 		} else if m.AppRunning && m.AppPrimary {
 			primary = append(primary, m.Name)
 		} else if m.AppRunning {
@@ -519,6 +522,7 @@ func (c *Cluster) updateMemberStatus(members etcdutil.MemberSet, running []strin
 	}
 
 	c.status.Members.Ready = running
+	c.status.Members.Failed = failed
 	c.status.Members.Unready = unready
 	c.status.Members.Primary = primary
 	c.status.Members.Secondary = secondary

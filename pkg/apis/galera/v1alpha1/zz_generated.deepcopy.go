@@ -313,6 +313,11 @@ func (in *MembersStatus) DeepCopyInto(out *MembersStatus) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.Failed != nil {
+		in, out := &in.Failed, &out.Failed
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

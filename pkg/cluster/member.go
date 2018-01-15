@@ -20,6 +20,14 @@ import (
 	"k8s.io/api/core/v1"
 )
 
+func (c *Cluster) memberOffline(m *etcdutil.Member) {
+	m.Online = false
+	m.AppPrimary = false
+	m.AppRunning = false
+	m.AppFailed = false
+	c.logger.Warnf("Pod %v offline", m.Name)
+}
+
 func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
 	if c.peers == nil {
 		c.peers = etcdutil.MemberSet{}
@@ -40,11 +48,7 @@ func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
 
 	missing := c.peers.Diff(known)
 	for _, m := range missing {
-		c.peers[m.Name].Online = false
-		c.peers[m.Name].AppPrimary = false
-		c.peers[m.Name].AppRunning = false
-		c.peers[m.Name].AppFailed = false
-		c.logger.Warnf("Pod %v offline", m.Name)
+		c.memberOffline(c.peers[m.Name])
 	}
 
 	return nil

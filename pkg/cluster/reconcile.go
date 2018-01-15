@@ -24,6 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ErrLostQuorum indicates that the etcd cluster lost its quorum.
@@ -47,9 +48,30 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 	}
 
 	for _, m := range c.peers {
-		if !m.AppPrimary || m.AppFailed {
-			continue
-		} else if !m.Online {
+
+		// TODO: Make the threshold configurable
+		// ' > 1' means that we tried at least a start and a stop
+		if m.AppFailed && m.Failures > 1 {
+			err := c.config.KubeCli.CoreV1().Pods(c.cluster.Namespace).Delete(m.Name, &metav1.DeleteOptions{})
+			if err != nil {
+				c.logger.Errorf("reconcile: could not delete pod %v  (%v failures): %v", m.Name, m.Failures, err)
+
+			} else {
+				c.logger.Warnf("reconcile: deleted pod %v (%v failures)", m.Name, m.Failures)
+				c.memberOffline(m)
+			}
+
+		} else if m.AppFailed {
+			err := c.stopAppMember(m)
+			if err != nil {
+				c.logger.Errorf("reconcile: could not stop pod %v: %v", m.Name, err)
+			} else {
+				m.AppFailed = false
+				m.AppPrimary = false
+				m.AppRunning = false
+			}
+
+		} else if !m.AppRunning || m.AppFailed || !m.Online {
 			continue
 
 		} else if len(c.cluster.Spec.Pod.Commands.Status) > 0 {
@@ -59,7 +81,12 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 			stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.Pod.Commands.Status...)
 			if err != nil {
 				level = logrus.ErrorLevel
-				c.logger.Errorf("check:  pod %v: exec failed: %v", m.Name, err)
+				if m.AppRunning {
+					m.AppFailed = true
+					c.logger.Errorf("check:  pod %v: exec failed: %v", m.Name, err)
+				} else {
+					c.logger.Warnf("check:  pod %v: exec failed: %v", m.Name, err)
+				}
 			}
 			util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stdout", action)), level, m.Name, stdout)
 			util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stderr", action)), level, m.Name, stderr)

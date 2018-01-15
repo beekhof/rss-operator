@@ -95,6 +95,7 @@ type MembersStatus struct {
 	Unready   []string `json:"unready,omitempty"`
 	Primary   []string `json:"primary,omitempty"`
 	Secondary []string `json:"secondary,omitempty"`
+	Failed    []string `json:"failed,omitempty"`
 }
 
 func (cs *ClusterStatus) IsFailed() bool {
