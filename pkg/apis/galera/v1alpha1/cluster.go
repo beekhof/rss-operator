@@ -76,7 +76,9 @@ type ClusterCommands struct {
 }
 
 type ServicePolicy struct {
-	Name            string             `json:"name,omitempty"`
+	ServiceName     string             `json:"serviceName,omitempty"`
+	ServicePorts    []v1.ServicePort   `json:"servicePorts,omitempty"`
+	ExternalIPs     []string           `json:"externalIPs,omitempty"`
 	SessionAffinity v1.ServiceAffinity `json:"sessionAffinity,omitempty"`
 }
 
@@ -93,6 +95,10 @@ type PodPolicy struct {
 	// By default, kubernetes will mount a service account token into the galera pods.
 	// AutomountServiceAccountToken indicates whether pods running with the service account should have an API token automatically mounted.
 	AutomountServiceAccountToken *bool `json:"automountServiceAccountToken,omitempty"`
+
+	Containers           []v1.Container             `json:"containers"`
+	Volumes              []v1.Volume                `json:"volumes,omitempty"`
+	VolumeClaimTemplates []v1.PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty"`
 }
 
 type ClusterSpec struct {
@@ -198,7 +204,7 @@ func (rss *ReplicatedStatefulSet) Validate() error {
 		}
 	}
 
-	glog.Error("Validating build with VolumeClaimTemplates")
+	glog.Error("Validating build with updated PodSpec")
 
 	for k := range rss.Labels {
 		if k == "app" || strings.HasPrefix(k, "rss") {
