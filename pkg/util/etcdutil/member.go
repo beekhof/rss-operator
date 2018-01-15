@@ -29,6 +29,7 @@ type Member struct {
 	Namespace string
 
 	SEQ        uint64
+	Failures   uint64
 	Online     bool
 	AppPrimary bool
 	AppRunning bool
