@@ -55,6 +55,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 			err := c.config.KubeCli.CoreV1().Pods(c.cluster.Namespace).Delete(m.Name, &metav1.DeleteOptions{})
 			if err != nil {
 				c.logger.Errorf("reconcile: could not delete pod %v  (%v failures): %v", m.Name, m.Failures, err)
+				return fmt.Errorf("Pod deletion failed: %v", err)
 
 			} else {
 				c.logger.Warnf("reconcile: deleted pod %v (%v failures)", m.Name, m.Failures)
@@ -65,13 +66,13 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 			err := c.stopAppMember(m)
 			if err != nil {
 				c.logger.Errorf("reconcile: could not stop pod %v: %v", m.Name, err)
+				return fmt.Errorf("Application stop failed on %v: %v", m.Name, err)
+
 			} else {
-				m.AppFailed = false
-				m.AppPrimary = false
-				m.AppRunning = false
+				c.logger.Infof("reconcile: pod %v cleaned up", m.Name)
 			}
 
-		} else if !m.AppRunning || m.AppFailed || !m.Online {
+		} else if !m.AppRunning || !m.Online {
 			continue
 
 		} else if len(c.cluster.Spec.Pod.Commands.Status) > 0 {
