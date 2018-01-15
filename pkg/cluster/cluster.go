@@ -353,12 +353,12 @@ func (c *Cluster) run() {
 			}
 
 			rerr = c.replicate()
-
 			reconcileHistogram.WithLabelValues(c.name()).Observe(time.Since(start).Seconds())
 		}
 
 		if rerr != nil {
 			reconcileFailed.WithLabelValues(rerr.Error()).Inc()
+			c.logger.Errorf("reconciliation failed: %v", rerr)
 		}
 
 		if isFatalError(rerr) {
