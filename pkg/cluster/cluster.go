@@ -225,10 +225,11 @@ func (c *Cluster) create() error {
 	if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.cluster, c.config, true)); err != nil {
 		return errors.Wrap(err, "synchronizing internal service failed")
 	}
-	if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.cluster, c.config, false)); err != nil {
-		return errors.Wrap(err, "synchronizing external service failed")
+	if len(c.cluster.Spec.ExternalIPs) > 0 {
+		if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.cluster, c.config, false)); err != nil {
+			return errors.Wrap(err, "synchronizing external service failed")
+		}
 	}
-
 	ruleFileConfigMaps, err := c.ruleFileConfigMaps(c.cluster)
 
 	// Create Secret if it doesn't exist.
