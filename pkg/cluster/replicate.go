@@ -221,7 +221,9 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 		// TODO: Delete after a threshold
 		delete_err := c.config.KubeCli.CoreV1().Pods(c.cluster.Namespace).Delete(m.Name, &metav1.DeleteOptions{})
 		if delete_err != nil {
-			c.logger.Errorf("%v: could not delete pod %v after start failure: %v", action, m.Name, err)
+			c.logger.Errorf("%v: could not delete pod %v after start failure: %v", action, m.Name, delete_err)
+		} else {
+			c.logger.Warnf("%v: deleted pod %v after start failure: %v", action, m.Name, err)
 		}
 		return fmt.Errorf("Could not create app %v on %v: %v", action, m.Name, err)
 	}
