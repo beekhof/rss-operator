@@ -41,6 +41,9 @@ func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
 	missing := c.peers.Diff(known)
 	for _, m := range missing {
 		c.peers[m.Name].Online = false
+		c.peers[m.Name].AppPrimary = false
+		c.peers[m.Name].AppRunning = false
+		c.peers[m.Name].AppFailed = false
 		c.logger.Warnf("Pod %v offline", m.Name)
 	}
 
