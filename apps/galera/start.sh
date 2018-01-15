@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 : ${OCF_ROOT=/usr/lib/ocf}
 : ${OCF_FUNCTIONS_DIR=${OCF_ROOT}/lib/heartbeat}
 . ${OCF_FUNCTIONS_DIR}/ocf-shellfuncs

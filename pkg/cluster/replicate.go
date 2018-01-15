@@ -50,6 +50,8 @@ func (c *Cluster) replicate() error {
 		return fmt.Errorf("Replication failed: %v of %v primaries, and %v of %v members available: %v",
 			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), c.cluster.Spec.GetNumReplicas(), err)
 	}
+	c.logger.Infof("Replication complete: %v of %v primaries, and %v of %v members available",
+		c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), c.cluster.Spec.GetNumReplicas())
 	return nil
 }
 
@@ -204,20 +206,18 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 	}
 	util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stdout", action)), level, m.Name, stdout)
 	util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stderr", action)), level, m.Name, stderr)
+
 	if err != nil {
 		m.AppFailed = true
-		if asPrimary {
-			return fmt.Errorf("Could not seed app on %v: %v", m.Name, err)
-		} else {
-			return fmt.Errorf("Could not start app on %v: %v", m.Name, err)
-		}
-
-	} else {
-		c.logger.WithField("pod", m.Name).Infof("startAppMember: pod %v running: %v", m.Name, asPrimary)
-		m.AppPrimary = asPrimary
-		m.AppRunning = true
-		m.AppFailed = false
+		m.AppPrimary = false
+		m.AppRunning = false
+		return fmt.Errorf("Could not create app %v on %v: %v", action, m.Name, err)
 	}
+
+	c.logger.Infof("Created app %v on %v", action, m.Name)
+	m.AppPrimary = asPrimary
+	m.AppRunning = true
+	m.AppFailed = false
 	return nil
 }
 

@@ -68,6 +68,7 @@ func GetLogger(component string) *logrus.Entry {
 	l := logrus.New()
 	f := new(TextFormatter)
 	f.ForceFormatting = true
+	f.FullTimestamp = true
 	f.ForceColors = true
 	l.Formatter = f
 	return l.WithField("pkg", component)
