@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/glog"
+
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -117,9 +119,9 @@ type ClusterSpec struct {
 
 	// Ideally these would be part of the PodPolicy or ServicePolicy, but they
 	// don't make it to the server side when they are :shrug:
-	Containers   []v1.Container             `json:"containers"`
-	Volumes      []v1.Volume                `json:"volumes,omitempty"`
-	VolumeClaims []v1.PersistentVolumeClaim `json:"volumeClaims,omitempty"`
+	Containers           []v1.Container             `json:"containers"`
+	Volumes              []v1.Volume                `json:"volumes,omitempty"`
+	VolumeClaimTemplates []v1.PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty"`
 
 	ServiceName  string           `json:"serviceName,omitempty"`
 	ServicePorts []v1.ServicePort `json:"servicePorts,omitempty"`
@@ -195,6 +197,8 @@ func (rss *ReplicatedStatefulSet) Validate() error {
 			return err
 		}
 	}
+
+	glog.Error("Validating build with VolumeClaimTemplates")
 
 	for k := range rss.Labels {
 		if k == "app" || strings.HasPrefix(k, "rss") {

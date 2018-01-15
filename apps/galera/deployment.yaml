@@ -106,7 +106,10 @@ spec:
       # 4567 For Galera Cluster replication traffic, multicast replication uses both UDP transport and TCP on this port.
       # 4568 For Incremental State Transfer.
       # 4444 For all other State Snapshot Transfer.
-    volumeClaims:
+    volumeMounts:
+    - mountPath: /var/lib/mysql
+      name: mysql-data
+    volumeClaimTemplates:
     - metadata:
         name: mysql-data
       spec:
@@ -115,9 +118,6 @@ spec:
         resources:
           requests:
             storage: 1Gi
-    volumeMounts:
-    - mountPath: /var/lib/mysql
-      name: mysql-data
   commands:
     sequence:
     - /sequence.sh
