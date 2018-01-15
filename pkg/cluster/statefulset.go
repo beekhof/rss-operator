@@ -70,22 +70,6 @@ func makeStatefulSet(cluster api.ReplicatedStatefulSet, old *v1beta1.StatefulSet
 	// 	statefulset.Spec.Template.Spec.ImagePullSecrets = cluster.Spec.ImagePullSecrets
 	// }
 
-	if cluster.Spec.VolumeClaimTemplate == nil {
-		statefulset.Spec.Template.Spec.Volumes = append(statefulset.Spec.Template.Spec.Volumes, v1.Volume{
-			Name: volumeName(cluster.Name),
-			VolumeSource: v1.VolumeSource{
-				EmptyDir: &v1.EmptyDirVolumeSource{},
-			},
-		})
-	} else {
-		pvcTemplate := cluster.Spec.VolumeClaimTemplate
-		pvcTemplate.Name = volumeName(cluster.Name)
-		pvcTemplate.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce}
-		pvcTemplate.Spec.Resources = cluster.Spec.VolumeClaimTemplate.Spec.Resources
-		pvcTemplate.Spec.Selector = cluster.Spec.VolumeClaimTemplate.Spec.Selector
-		statefulset.Spec.VolumeClaimTemplates = append(statefulset.Spec.VolumeClaimTemplates, *pvcTemplate)
-	}
-
 	if old != nil {
 		statefulset.Annotations = old.Annotations
 
@@ -327,9 +311,10 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	}
 
 	return &v1beta1.StatefulSetSpec{
-		ServiceName:         cluster.ServiceName(true),
-		Replicas:            &intSize,
-		PodManagementPolicy: v1beta1.ParallelPodManagement,
+		ServiceName:          cluster.ServiceName(true),
+		Replicas:             &intSize,
+		PodManagementPolicy:  v1beta1.ParallelPodManagement,
+		VolumeClaimTemplates: cluster.Spec.VolumeClaims,
 		UpdateStrategy: v1beta1.StatefulSetUpdateStrategy{
 			Type: v1beta1.RollingUpdateStatefulSetStrategyType,
 		},
@@ -346,10 +331,6 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 
 func configSecretName(name string) string {
 	return prefixedName(name)
-}
-
-func volumeName(name string) string {
-	return fmt.Sprintf("%s-db", prefixedName(name))
 }
 
 func prefixedName(name string) string {

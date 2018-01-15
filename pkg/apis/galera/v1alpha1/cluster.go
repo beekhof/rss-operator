@@ -117,8 +117,10 @@ type ClusterSpec struct {
 
 	// Ideally these would be part of the PodPolicy or ServicePolicy, but they
 	// don't make it to the server side when they are :shrug:
-	Containers   []v1.Container   `json:"containers"`
-	Volumes      []v1.Volume      `json:"volumes,omitempty"`
+	Containers   []v1.Container             `json:"containers"`
+	Volumes      []v1.Volume                `json:"volumes,omitempty"`
+	VolumeClaims []v1.PersistentVolumeClaim `json:"volumeClaims,omitempty"`
+
 	ServiceName  string           `json:"serviceName,omitempty"`
 	ServicePorts []v1.ServicePort `json:"servicePorts,omitempty"`
 	ExternalIPs  []string         `json:"externalIPs,omitempty"`
@@ -130,7 +132,6 @@ type ClusterSpec struct {
 
 	// Storage spec to specify how storage shall be used.
 	//Storage *StorageSpec `json:"storage,omitempty"`
-	VolumeClaimTemplate *v1.PersistentVolumeClaim `json:"volumeClaimTemplate,omitempty"`
 
 	// A selector to select which ConfigMaps to mount for loading rule files from.
 	RuleSelector *metav1.LabelSelector `json:"ruleSelector,omitempty"`

@@ -206,6 +206,13 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.VolumeClaims != nil {
+		in, out := &in.VolumeClaims, &out.VolumeClaims
+		*out = make([]v1.PersistentVolumeClaim, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.ServicePorts != nil {
 		in, out := &in.ServicePorts, &out.ServicePorts
 		*out = make([]v1.ServicePort, len(*in))
@@ -223,15 +230,6 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 			*out = nil
 		} else {
 			*out = new(TLSPolicy)
-			(*in).DeepCopyInto(*out)
-		}
-	}
-	if in.VolumeClaimTemplate != nil {
-		in, out := &in.VolumeClaimTemplate, &out.VolumeClaimTemplate
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(v1.PersistentVolumeClaim)
 			(*in).DeepCopyInto(*out)
 		}
 	}
