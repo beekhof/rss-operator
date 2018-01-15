@@ -1,5 +1,7 @@
 E2E_TEST_SELECTOR=TestCreateCluster
 NS=testing
+TEST_APP=galera
+KUBEHOST=192.168.124.10
 BUILD_STATUS=https://quay.io/repository/beekhof/rss-operator/status
 OPERATOR_IMAGE=quay.io/beekhof/rss-operator:latest
 PROJECT=github.com/beekhof/galera-operator
@@ -22,10 +24,12 @@ gitpush:
 	git push
 
 wait:
+	date
 	@echo "Waiting for the container to build..." 
 	sleep 5
 	-while [ "x$$(curl -s $(BUILD_STATUS) | tr '<' '\n' | grep -v -e '>$$'  -e '^/' | sed 's/.*>//' | tail -n 1)" = xbuilding ]; do sleep 50; /bin/echo -n .; done
 	curl -s $(BUILD_STATUS) | tr '<' '\n' | grep -v -e ">$$"  -e '^/' | sed 's/.*>//' | tail -n 1
+	date
 
 push: dockerfile-checks gitpush wait
 
@@ -48,9 +52,12 @@ all: build push e2e-clean e2e
 clean: e2e-clean
 
 e2e-clean:
-#	kubectl -n testing delete svc,pods,sts --all
-	-ssh root@192.168.124.10 -- kubectl -n testing delete crd,deploy,rs,rss,sts,svc,pods --all
-	while [ "x$$(kubectl -n $(NS) get po)" != "x" ]; do sleep 5; /bin/echo -n .; done
+	# Delete stuff, wait for the pods to die, then delete the entire namespace
+	-ssh root@$(KUBEHOST) -- kubectl -n $(NS) delete crd,deploy,rs,rss,sts,svc,pods --all
+	while [ "x$$(kubectl -n $(NS) get po 2>/dev/null)" != "x" ]; do sleep 5; /bin/echo -n .; done
+	-ssh root@$(KUBEHOST) -- kubectl delete ns $(NS)
+	while [ "x$$(kubectl get ns $(NS) 2>/dev/null)" != "x" ]; do sleep 5; /bin/echo -n .; done
+
 
 e2e: test-quick e2e-clean
 	@echo "Running tests: $(E2E_TEST_SELECTOR)"
@@ -76,10 +83,11 @@ unused:
 	@echo "Checking unused..."
 	$(GOPATH)/bin/unused $(PKGS)
 
-target:
-	make -C apps/galera all
-
 init: target deps generated all
+
+apps:
+	make -C apps/galera all
+	make -C apps/dummy all
 
 deps:
 	go get honnef.co/go/tools/cmd/gosimple
@@ -90,10 +98,18 @@ ns:
 	-kubectl create ns $(NS)
 	-kubectl -n $(NS) create clusterrolebinding $(NS)-everything --clusterrole=cluster-admin --serviceaccount=$(NS):default
 
+galera: 
+	make TEST_APP=$@ NS=$@ clean test
+
+dummy:
+	make TEST_APP=$@ NS=$@ clean test
+
 test: ns
-	-kubectl -n $(NS) create -f apps/galera/deployment.yaml
+	@echo "Loading apps/$(TEST_APP)/deployment.yaml..."
+	-kubectl -n $(NS) create -f apps/$(TEST_APP)/deployment.yaml
 	@echo "Waiting for the operator to become active"
 	while [ "x$$(kubectl -n $(NS) get po | grep rss-operator.*Running)" = x ]; do sleep 5; /bin/echo -n .; done
+	kubectl -n $(NS) get po | $(GREP) rss-operator | awk '{print $$1}'
 	kubectl -n $(NS) logs -f $$(kubectl -n $(NS) get po | $(GREP) rss-operator | awk '{print $$1}')
 
 .PHONY: test

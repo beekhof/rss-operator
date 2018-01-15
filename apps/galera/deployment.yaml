@@ -92,6 +92,12 @@ spec:
   replicas: 3
   pod:
     antiAffinity: true
+    commands:
+      sequence: ["/sequence.sh"]
+      primary: ["/start.sh"]
+      seed: ["/seed.sh"]
+      status: ["/check.sh"]
+      stop: ["/stop.sh"]
     volumeClaimTemplates:
     - metadata:
         name: mysql-data
@@ -148,14 +154,8 @@ spec:
       port: 13306
       targetPort: 3306
       # https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
-    externalIPs:
-    - 192.168.124.101
-  commands:
-    sequence: ["/sequence.sh"]
-    primary: ["/start.sh"]
-    seed: ["/seed.sh"]
-    status: ["/check.sh"]
-    stop: ["/stop.sh"]
+    #externalIPs:
+    #- 192.168.124.101
 ---
 apiVersion: v1
 kind: Pod
