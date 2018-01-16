@@ -318,6 +318,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 		UpdateStrategy: v1beta1.StatefulSetUpdateStrategy{
 			Type: v1beta1.OnDeleteStatefulSetStrategyType,
 		},
+		PodManagementPolicy: v1beta1.ParallelPodManagement,
 		Template: v1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels:          mergeLabels(k8sutil.LabelsForCluster(cluster.Name), cluster.ObjectMeta.Labels),
