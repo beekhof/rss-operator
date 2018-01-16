@@ -331,6 +331,7 @@ func (c *Cluster) run() {
 			if len(running) == 0 {
 				// TODO: how to handle this case?
 				c.logger.Warningf("all %v pods are dead.", c.cluster.Name)
+				c.updateMembers(etcdutil.MemberSet{})
 				break
 			}
 
