@@ -38,16 +38,22 @@ func (c *Cluster) replicate() error {
 		err = fmt.Errorf("Waiting for %v peers to be stopped", c.peers.AppMembers()-primaries)
 	}
 
-	for err == nil && c.peers.AppPrimaries() < primaries {
-		err = c.startPrimary()
+	if err == nil {
+		for c.peers.AppPrimaries() < primaries {
+			err = c.startPrimary()
+		}
 	}
 
-	for err == nil && c.peers.AppPrimaries() > primaries {
-		err = c.demotePrimary()
+	if err == nil {
+		for c.peers.AppPrimaries() > primaries {
+			err = c.demotePrimary()
+		}
 	}
 
-	for err == nil && c.peers.AppMembers() < c.cluster.Spec.GetNumReplicas() {
-		err = c.startMember()
+	if err == nil {
+		for c.peers.AppMembers() < c.cluster.Spec.GetNumReplicas() {
+			err = c.startMember()
+		}
 	}
 
 	if err != nil {
@@ -134,15 +140,15 @@ func chooseCurrentPrimary(c *Cluster) (*etcdutil.Member, error) {
 func (c *Cluster) demotePrimary() error {
 	seed, err := chooseCurrentPrimary(c)
 	if err != nil {
-		return fmt.Errorf("Could not demote seed: %v", err)
+		return err
 	}
 	err = c.stopAppMember(seed)
 	if err != nil {
-		return fmt.Errorf("Could not stop app on %v: %v", seed.Name, err)
+		return err
 	}
 	err = c.startAppMember(seed, false)
 	if err != nil {
-		return fmt.Errorf("Could not start app on %v: %v", seed.Name, err)
+		return err
 	}
 	return nil
 }
@@ -158,7 +164,7 @@ func (c *Cluster) startPrimary() error {
 func (c *Cluster) startMember() error {
 	m, err := chooseSeed(c)
 	if err != nil {
-		return fmt.Errorf("%v of %v members available: %v", c.peers.AppMembers(), c.cluster.Spec.GetNumReplicas(), err)
+		return err
 	}
 	return c.startAppMember(m, false)
 }
