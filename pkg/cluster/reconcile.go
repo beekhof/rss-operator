@@ -41,10 +41,13 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 		c.status.Replicas = c.peers.Size()
 	}()
 
+	var err error = nil
 	sp := c.cluster.Spec
 	running := c.podsToMemberSet(pods, c.isSecureClient())
 	if c.peers.AppMembers() != sp.GetNumReplicas() {
-		return c.reconcileMembers(running)
+		err = c.reconcileMembers(running)
+	} else {
+		c.status.SetReadyCondition()
 	}
 
 	for _, m := range c.peers {
@@ -52,7 +55,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 		// TODO: Make the threshold configurable
 		// ' > 1' means that we tried at least a start and a stop
 		if m.AppFailed && m.Failures > 1 {
-			err := c.config.KubeCli.CoreV1().Pods(c.cluster.Namespace).Delete(m.Name, &metav1.DeleteOptions{})
+			err = c.config.KubeCli.CoreV1().Pods(c.cluster.Namespace).Delete(m.Name, &metav1.DeleteOptions{})
 			if err != nil {
 				c.logger.Errorf("reconcile: could not delete pod %v  (%v failures): %v", m.Name, m.Failures, err)
 				return fmt.Errorf("Pod deletion failed: %v", err)
@@ -63,7 +66,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 			}
 
 		} else if m.AppFailed {
-			err := c.stopAppMember(m)
+			err = c.stopAppMember(m)
 			if err != nil {
 				c.logger.Errorf("reconcile: could not stop pod %v: %v", m.Name, err)
 				return fmt.Errorf("Application stop failed on %v: %v", m.Name, err)
@@ -94,8 +97,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 		}
 	}
 	c.status.SetReadyCondition()
-
-	return nil
+	return err
 }
 
 // reconcileMembers reconciles
