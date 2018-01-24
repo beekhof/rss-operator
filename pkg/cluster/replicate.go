@@ -139,34 +139,29 @@ func chooseCurrentPrimary(c *Cluster) (*etcdutil.Member, error) {
 
 func (c *Cluster) demotePrimary() error {
 	seed, err := chooseCurrentPrimary(c)
-	if err != nil {
-		return err
+	if err == nil {
+		err = c.stopAppMember(seed)
 	}
-	err = c.stopAppMember(seed)
-	if err != nil {
-		return err
+	if err == nil {
+		err = c.startAppMember(seed, false)
 	}
-	err = c.startAppMember(seed, false)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (c *Cluster) startPrimary() error {
 	seed, err := chooseSeed(c)
-	if err != nil {
-		return err
+	if err == nil {
+		err = c.startAppMember(seed, true)
 	}
-	return c.startAppMember(seed, true)
+	return err
 }
 
 func (c *Cluster) startMember() error {
 	m, err := chooseSeed(c)
-	if err != nil {
-		return err
+	if err == nil {
+		err = c.startAppMember(m, false)
 	}
-	return c.startAppMember(m, false)
+	return err
 }
 
 func (c *Cluster) execCommand(podName string, stdin string, cmd ...string) (string, string, error) {
