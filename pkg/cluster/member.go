@@ -21,11 +21,13 @@ import (
 )
 
 func (c *Cluster) memberOffline(m *etcdutil.Member) {
+	if m.Online {
+		c.logger.Warnf("Pod %v offline", m.Name)
+	}
 	m.Online = false
 	m.AppPrimary = false
 	m.AppRunning = false
 	m.AppFailed = false
-	c.logger.Warnf("Pod %v offline", m.Name)
 }
 
 func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
