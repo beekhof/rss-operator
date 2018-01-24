@@ -328,9 +328,14 @@ func (c *Cluster) run() {
 				reconcileFailed.WithLabelValues("not all pods are running").Inc()
 				continue
 			}
-			if len(running) == 0 {
-				// TODO: how to handle this case?
-				c.logger.Warningf("all %v pods are dead.", c.cluster.Name)
+			if len(running) == 0 && c.cluster.Spec.GetNumReplicas() == 0 {
+				// TODO: More to do here?
+				if c.cluster.Spec.GetNumReplicas() == 0 {
+					c.logger.Infof("all %v pods are stopped.", c.cluster.Name)
+				} else {
+					c.logger.Warningf("all %v pods are dead.", c.cluster.Name)
+				}
+
 				c.updateMembers(etcdutil.MemberSet{})
 				break
 			}
@@ -401,14 +406,16 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 	}
 	oldsts := sts.DeepCopy()
 
-	c.logger.Infof("Changing the sts %v size from %v to %v", stsname, oldSpec.GetNumReplicas(), c.cluster.Spec.GetNumReplicas())
-	intVal := int32(c.cluster.Spec.GetNumReplicas())
-	sts.Spec.Replicas = &intVal
+	if c.cluster.Spec.GetNumReplicas() != oldSpec.GetNumReplicas() {
+		c.logger.Infof("Changing the Replica count for %v from %v to %v", stsname, oldSpec.GetNumReplicas(), c.cluster.Spec.GetNumReplicas())
+		intVal := int32(c.cluster.Spec.GetNumReplicas())
+		sts.Spec.Replicas = &intVal
+	}
+
 	patchdata, err := k8sutil.CreatePatch(oldsts, sts, v1beta1.StatefulSet{})
 	if err != nil {
 		return fmt.Errorf("error creating patch: %v", err)
 	}
-
 	_, err = c.config.KubeCli.AppsV1beta1().StatefulSets(c.cluster.Namespace).Patch(sts.GetName(), types.StrategicMergePatchType, patchdata)
 	if err != nil {
 		return fmt.Errorf("fail to update the sts (%s): %v", stsname, err)
@@ -522,6 +529,7 @@ func (c *Cluster) updateMemberStatus(members etcdutil.MemberSet, running []strin
 		}
 	}
 
+	c.status.Replicas = len(running)
 	c.status.Members.Ready = running
 	c.status.Members.Failed = failed
 	c.status.Members.Unready = unready
