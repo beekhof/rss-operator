@@ -15,4 +15,12 @@ function ocf_log() {
 }
 
 ocf_log info "Detecting replication version"
-detect_last_commit 
+mysql_common_prepare_dirs
+
+mysql_common_status info
+if [ $? = 0 ]; then
+	# Its alive
+	mysql  -e "SHOW STATUS LIKE 'wsrep_last_%';" | grep wsrep_last_committed | awk '{print $2}'
+else
+	detect_last_commit 
+fi
