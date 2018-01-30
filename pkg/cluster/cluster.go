@@ -323,6 +323,9 @@ func (c *Cluster) run() {
 			}
 
 			c.updateMemberStatus(c.peers, k8sutil.GetPodNames(running))
+			if err := c.updateCRStatus(); err != nil {
+				c.logger.Warningf("periodic update CR status failed: %v", err)
+			}
 			if len(pending) > 0 {
 				// Pod startup might take long, e.g. pulling image. It would deterministically become running or succeeded/failed later.
 				c.logger.Infof("skip reconciliation: running (%v), pending (%v)", k8sutil.GetPodNames(running), k8sutil.GetPodNames(pending))
