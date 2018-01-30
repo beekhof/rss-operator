@@ -40,19 +40,31 @@ func (c *Cluster) replicate() error {
 
 	if err == nil {
 		for c.peers.AppPrimaries() < primaries {
-			err = c.startPrimary()
+			c.logger.Infof("Starting %v additional primaries", primaries-c.peers.AppPrimaries())
+			errOne := c.startPrimary()
+			if err == nil && errOne != nil {
+				err = errOne
+			}
 		}
 	}
 
 	if err == nil {
 		for c.peers.AppPrimaries() > primaries {
-			err = c.demotePrimary()
+			c.logger.Infof("Demoting %v primaries", c.peers.AppPrimaries()-primaries)
+			errOne := c.demotePrimary()
+			if err == nil && errOne != nil {
+				err = errOne
+			}
 		}
 	}
 
 	if err == nil {
 		for c.peers.AppMembers() < c.cluster.Spec.GetNumReplicas() {
-			err = c.startMember()
+			c.logger.Infof("Starting %v secondaries", c.cluster.Spec.GetNumReplicas()-c.peers.AppMembers())
+			errOne := c.startMember()
+			if err == nil && errOne != nil {
+				err = errOne
+			}
 		}
 	}
 
