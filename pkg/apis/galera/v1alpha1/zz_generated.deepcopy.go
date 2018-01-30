@@ -182,6 +182,15 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 		*out = make([]v1.LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
+	if in.ChaosLevel != nil {
+		in, out := &in.ChaosLevel, &out.ChaosLevel
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(int)
+			**out = **in
+		}
+	}
 	in.Pod.DeepCopyInto(&out.Pod)
 	if in.Service != nil {
 		in, out := &in.Service, &out.Service

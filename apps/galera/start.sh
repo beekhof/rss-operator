@@ -8,8 +8,14 @@
 
 ocf_log info "Replicating state from $(gcomm_from_args $*)..."
 OCF_RESKEY_enable_creation=false
+: ${CHAOS_LEVEL=0}
 
 for peer in $* ; do nslookup $peer; done
+
+if [ ${CHAOS_LEVEL} -gt 2 -a $(($RANDOM % $CHAOS_LEVEL)) = 0 ]; then
+	ocf_log info "Monkeys everywhere!!"
+	exit 1
+fi
 
 chown mysql:mysql $OCF_RESKEY_datadir
 mysql_common_prepare_dirs

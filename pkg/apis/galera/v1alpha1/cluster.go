@@ -117,7 +117,8 @@ type ClusterSpec struct {
 	ImagePullSecrets []v1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
 	// Paused is to pause the control of the operator for the galera cluster.
-	Paused bool `json:"paused,omitempty"`
+	Paused     bool `json:"paused,omitempty"`
+	ChaosLevel *int `json:"chaosLevel"`
 
 	// Pod defines the policy to create pod for the galera pod.
 	//
