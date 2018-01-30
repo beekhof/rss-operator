@@ -246,7 +246,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 		if cluster.Spec.ChaosLevel != nil {
 			container.Env = append(container.Env, v1.EnvVar{
 				Name:  "CHAOS_LEVEL",
-				Value: string(*cluster.Spec.ChaosLevel),
+				Value: fmt.Sprintf("%v", *cluster.Spec.ChaosLevel),
 			})
 		}
 
