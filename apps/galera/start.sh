@@ -12,7 +12,7 @@ OCF_RESKEY_enable_creation=false
 
 for peer in $* ; do nslookup $peer; done
 
-if [ ${CHAOS_LEVEL} -gt 2 -a $(($RANDOM % $CHAOS_LEVEL)) = 0 ]; then
+if [ ${CHAOS_LEVEL} -gt 2 -a $(( $RANDOM % ${CHAOS_LEVEL} )) = 0 ]; then
 	ocf_log info "Monkeys everywhere!!"
 	exit 1
 fi

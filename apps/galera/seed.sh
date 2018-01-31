@@ -13,6 +13,11 @@ if [ -e ${OCF_RESKEY_datadir}/grastate.dat ]; then
     sed -ie 's/^\(safe_to_bootstrap:\) 0/\1 1/' ${OCF_RESKEY_datadir}/grastate.dat
 fi
 
+if [ ${CHAOS_LEVEL} -gt 2 -a $(( $RANDOM % ${CHAOS_LEVEL} )) = 0 ]; then
+	ocf_log info "Monkeys everywhere!!"
+	exit 1
+fi
+
 mysql_common_prepare_dirs
 mysql_common_start "--wsrep-cluster-address=gcomm://"
 rc=$?
