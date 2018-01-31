@@ -191,12 +191,12 @@ func startChaos(ctx context.Context, kubecli kubernetes.Interface, ns string, ch
 
 	switch chaosLevel {
 	case 1:
-		logrus.Info("chaos level = 1: randomly kill one etcd pod every 30 seconds at 50%")
+		logrus.Info("chaos level = 1: randomly kill one cluster pod every minute at 50%")
 		c := &chaos.CrashConfig{
 			Namespace: ns,
 			Selector:  ls,
 
-			KillRate:        rate.Every(30 * time.Second),
+			KillRate:        rate.Every(5 * time.Minute),
 			KillProbability: 0.5,
 			KillMax:         1,
 		}
@@ -206,14 +206,14 @@ func startChaos(ctx context.Context, kubecli kubernetes.Interface, ns string, ch
 		}()
 
 	case 2:
-		logrus.Info("chaos level = 2: randomly kill at most five etcd pods every 30 seconds at 50%")
+		logrus.Info("chaos level = 2: randomly kill at most 3 cluster pods every 3 minutes at 50%")
 		c := &chaos.CrashConfig{
 			Namespace: ns,
 			Selector:  ls,
 
-			KillRate:        rate.Every(30 * time.Second),
+			KillRate:        rate.Every(3 * time.Minute),
 			KillProbability: 0.5,
-			KillMax:         5,
+			KillMax:         3,
 		}
 
 		go m.CrushPods(ctx, c)
