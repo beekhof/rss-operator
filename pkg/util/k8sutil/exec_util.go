@@ -132,8 +132,14 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 	select {
 	case <-readOutStop:
 	case <-readErrStop:
-	case err = <-resChan:
 	}
+
+	select {
+	case <-readOutStop:
+	case <-readErrStop:
+	}
+
+	err = <-resChan
 
 	// logger.Infof("out: %v, err: %v", stdout.String(), stderr.String())
 
