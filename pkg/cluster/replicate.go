@@ -38,10 +38,19 @@ func (c *Cluster) replicate() error {
 		err = fmt.Errorf("Waiting for %v peers to be stopped", c.peers.AppMembers()-primaries)
 	}
 
+	// Whichever stage we're up to... do as much as we can before exiting rather than giving up at the first error
+
 	if err == nil {
 		for c.peers.AppPrimaries() < primaries {
-			c.logger.Infof("Starting %v additional primaries", primaries-c.peers.AppPrimaries())
-			errOne := c.startPrimary()
+			c.logger.Infof("Starting %v primaries", primaries-c.peers.AppPrimaries())
+
+			seed, noPeers := chooseSeed(c)
+			if noPeers != nil {
+				err = noPeers
+				break
+			}
+
+			errOne := c.startAppMember(seed, true)
 			if err == nil && errOne != nil {
 				err = errOne
 			}
@@ -51,7 +60,14 @@ func (c *Cluster) replicate() error {
 	if err == nil {
 		for c.peers.AppPrimaries() > primaries {
 			c.logger.Infof("Demoting %v primaries", c.peers.AppPrimaries()-primaries)
-			errOne := c.demotePrimary()
+
+			seed, noPeers := chooseCurrentPrimary(c)
+			if noPeers != nil {
+				err = noPeers
+				break
+			}
+
+			errOne := c.stopAppMember(seed)
 			if err == nil && errOne != nil {
 				err = errOne
 			}
@@ -61,7 +77,14 @@ func (c *Cluster) replicate() error {
 	if err == nil {
 		for c.peers.AppMembers() < c.cluster.Spec.GetNumReplicas() {
 			c.logger.Infof("Starting %v secondaries", c.cluster.Spec.GetNumReplicas()-c.peers.AppMembers())
-			errOne := c.startMember()
+
+			seed, noPeers := chooseSeed(c)
+			if noPeers != nil {
+				err = noPeers
+				break
+			}
+
+			errOne := c.startAppMember(seed, false)
 			if err == nil && errOne != nil {
 				err = errOne
 			}
@@ -147,33 +170,6 @@ func chooseCurrentPrimary(c *Cluster) (*etcdutil.Member, error) {
 		return nil, fmt.Errorf("No peers available")
 	}
 	return bestPeer, nil
-}
-
-func (c *Cluster) demotePrimary() error {
-	seed, err := chooseCurrentPrimary(c)
-	if err == nil {
-		err = c.stopAppMember(seed)
-	}
-	if err == nil {
-		err = c.startAppMember(seed, false)
-	}
-	return err
-}
-
-func (c *Cluster) startPrimary() error {
-	seed, err := chooseSeed(c)
-	if err == nil {
-		err = c.startAppMember(seed, true)
-	}
-	return err
-}
-
-func (c *Cluster) startMember() error {
-	m, err := chooseSeed(c)
-	if err == nil {
-		err = c.startAppMember(m, false)
-	}
-	return err
 }
 
 func (c *Cluster) execCommand(podName string, stdin string, cmd ...string) (string, string, error) {
