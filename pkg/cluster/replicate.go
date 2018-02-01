@@ -26,8 +26,16 @@ import (
 	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 )
 
+func appendNonNil(errors []error, err error) []error {
+	if err == nil || err.Error() == "" {
+		return errors
+	}
+	return append(errors, err)
+}
+
 func (c *Cluster) replicate() error {
-	var err error = nil
+	errors := []error{}
+
 	primaries := c.cluster.Spec.GetNumPrimaries()
 
 	if c.peers.AppPrimaries() == 0 {
@@ -40,66 +48,54 @@ func (c *Cluster) replicate() error {
 
 	// Whichever stage we're up to... do as much as we can before exiting rather than giving up at the first error
 
-	if err == nil {
+	if len(errors) == 0 {
 		for c.peers.AppPrimaries() < primaries {
 			c.logger.Infof("Starting %v primaries", primaries-c.peers.AppPrimaries())
 
-			seed, noPeers := chooseSeed(c)
-			if noPeers != nil {
-				err = noPeers
+			seed, err := chooseSeed(c)
+			errors = appendNonNil(errors, err)
+			if err != nil {
 				break
 			}
 
-			errOne := c.startAppMember(seed, true)
-
+			errors = appendNonNil(errors, c.startAppMember(seed, true))
 			if c.peers.AppPrimaries() == 0 {
-				// Couldn't seed
-				return errOne
-
-			} else if err == nil && errOne != nil {
-				err = errOne
+				break
 			}
-
 		}
 	}
 
-	if err == nil {
+	if len(errors) == 0 {
 		for c.peers.AppPrimaries() > primaries {
 			c.logger.Infof("Demoting %v primaries", c.peers.AppPrimaries()-primaries)
 
-			seed, noPeers := chooseCurrentPrimary(c)
-			if noPeers != nil {
-				err = noPeers
+			seed, err := chooseCurrentPrimary(c)
+			errors = appendNonNil(errors, err)
+			if err != nil {
 				break
 			}
 
-			errOne := c.stopAppMember(seed)
-			if err == nil && errOne != nil {
-				err = errOne
-			}
+			errors = appendNonNil(errors, c.stopAppMember(seed))
 		}
 	}
 
-	if err == nil {
+	if len(errors) == 0 {
 		for c.peers.AppMembers() < c.cluster.Spec.GetNumReplicas() {
 			c.logger.Infof("Starting %v secondaries", c.cluster.Spec.GetNumReplicas()-c.peers.AppMembers())
 
-			seed, noPeers := chooseSeed(c)
-			if noPeers != nil {
-				err = noPeers
+			seed, err := chooseSeed(c)
+			errors = appendNonNil(errors, err)
+			if err != nil {
 				break
 			}
 
-			errOne := c.startAppMember(seed, false)
-			if err == nil && errOne != nil {
-				err = errOne
-			}
+			errors = appendNonNil(errors, c.startAppMember(seed, false))
 		}
 	}
 
-	if err != nil {
+	if len(errors) != 0 {
 		return fmt.Errorf("%v of %v primaries, and %v of %v members available: %v",
-			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), c.cluster.Spec.GetNumReplicas(), err)
+			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), c.cluster.Spec.GetNumReplicas(), strings.Join(errors, ", "))
 	}
 	c.logger.Infof("Replication complete: %v of %v primaries, and %v of %v members available",
 		c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), c.cluster.Spec.GetNumReplicas())
@@ -173,7 +169,7 @@ func chooseCurrentPrimary(c *Cluster) (*etcdutil.Member, error) {
 		}
 	}
 	if bestPeer == nil {
-		return nil, fmt.Errorf("No peers available")
+		return nil, fmt.Errorf("No peers remaining")
 	}
 	return bestPeer, nil
 }
