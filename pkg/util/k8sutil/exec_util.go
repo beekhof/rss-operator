@@ -58,7 +58,7 @@ func GetOutput(pReader *io.PipeReader, result *bytes.Buffer, wg *sync.WaitGroup,
 		for {
 			n, err := pReader.Read(buf)
 			if n > 0 {
-				logger.Infof("writing %v", n)
+				logger.Infof("writing %v: %v", n, buf[0:n])
 				_, werr := result.Write(buf[0:n])
 				if werr == io.EOF {
 					logger.Infof("output EOF")
@@ -168,7 +168,7 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 	// Now wait for IO to complete
 	wg.Wait()
 
-	// logger.Infof("out: %v, err: %v", stdout.String(), stderr.String())
+	logger.Infof("out: %v, err: %v, raw: %v", stdout.Len(), stderr.Len(), stdout.String())
 
 	if options.PreserveWhitespace {
 		return stdout.String(), stderr.String(), err
