@@ -43,6 +43,7 @@ type ExecOptions struct {
 	ContainerName string
 
 	Stdin         io.Reader
+	StdinText     *string
 	CaptureStdout bool
 	CaptureStderr bool
 	// If false, whitespace in std{err,out} will be removed.
@@ -99,7 +100,19 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 
 	} else {
 		config, _ = InClusterConfig()
+	}
 
+	if options.ContainerName == "" {
+		pod, err := cli.CoreV1().Pods(options.Namespace).Get(options.PodName, metav1.GetOptions{})
+		if err != nil {
+			logger.Errorf("failed to get pod %v: %v", options.PodName, err)
+			return "", "", nil
+		}
+		if len(pod.Spec.Containers) <= 0 {
+			logger.Errorf("No containers in %v", options.PodName)
+			return "", "", nil
+		}
+		options.ContainerName = pod.Spec.Containers[0].Name
 	}
 
 	// // restClient := f.KubeClient.CoreV1().RESTClient()
@@ -206,26 +219,10 @@ func ExecCommandInContainer(logger *logrus.Entry, cli kubernetes.Interface, name
 }
 
 func ExecCommandInPod(logger *logrus.Entry, cli kubernetes.Interface, namespace string, podName string, cmd ...string) string {
-	pod, err := cli.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
-	if err != nil {
-		logger.Errorf("failed to get pod %v: %v", podName, err)
-	}
-	if len(pod.Spec.Containers) <= 0 {
-		logger.Errorf("No containers in %v", podName)
-		return ""
-	}
-	return ExecCommandInContainer(logger, cli, namespace, podName, pod.Spec.Containers[0].Name, cmd...)
+	return ExecCommandInContainer(logger, cli, namespace, podName, "", cmd...)
 }
 
 func ExecCommandInPodWithFullOutput(logger *logrus.Entry, cli kubernetes.Interface,
 	namespace string, podName string, cmd ...string) (string, string, error) {
-	pod, err := cli.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
-	if err != nil {
-		logger.Errorf("failed to get pod %v: %v", podName, err)
-	}
-	if len(pod.Spec.Containers) <= 0 {
-		logger.Errorf("No containers in %v", podName)
-		return "", "", nil
-	}
-	return ExecCommandInContainerWithFullOutput(logger, cli, namespace, podName, pod.Spec.Containers[0].Name, cmd...)
+	return ExecCommandInContainerWithFullOutput(logger, cli, namespace, podName, "", cmd...)
 }

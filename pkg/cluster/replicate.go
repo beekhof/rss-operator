@@ -177,7 +177,7 @@ func (c *Cluster) execCommand(podName string, stdin string, cmd ...string) (stri
 		Command:       cmd,
 		Namespace:     c.cluster.Namespace,
 		PodName:       podName,
-		ContainerName: "rss",
+		ContainerName: "",
 
 		CaptureStdout:      true,
 		CaptureStderr:      true,
