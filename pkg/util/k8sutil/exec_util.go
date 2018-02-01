@@ -16,11 +16,13 @@ package k8sutil
 
 import (
 	"bytes"
+	"flag"
 	"io"
 	"net/url"
 	"strings"
 	"sync"
 
+	"github.com/beekhof/galera-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 
 	"k8s.io/api/core/v1"
@@ -28,6 +30,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 )
 
@@ -46,14 +49,58 @@ type ExecOptions struct {
 	PreserveWhitespace bool
 }
 
+func GetOutput(pReader *io.PipeReader, result *bytes.Buffer, wg *sync.WaitGroup, tag string) {
+	buf := make([]byte, 1024)
+	logger := util.GetLogger(tag)
+	go func() {
+		defer wg.Done()
+		for {
+			n, err := pReader.Read(buf)
+			if n > 0 {
+				logger.Infof("writing %v", n)
+				_, werr := result.Write(buf[0:n])
+				if werr == io.EOF {
+					logger.Infof("output EOF")
+					return
+				}
+			}
+
+			if err == io.EOF || err == io.ErrClosedPipe {
+				logger.Infof("EOF")
+				return
+			} else if err != nil {
+				logger.Infof("non-EOF read error: %v", err)
+				return
+			}
+			// }()
+			// time.AfterFunc(time.Second, func() { ch <- false })
+		}
+	}()
+}
+
 // ExecWithOptions executes a command in the specified container,
 // returning stdout, stderr and error. `options` allowed for
 // additional parameters to be passed.
 func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options ExecOptions) (string, string, error) {
 	logger.Infof("ExecWithOptions %+v", options)
-
+	var config *rest.Config
 	const tty = false
-	config, _ := InClusterConfig()
+
+	kubeconfig := ""
+	kArg := flag.Lookup("kubeconfig")
+
+	if kArg != nil {
+		kubeconfig = kArg.Value.String()
+	}
+
+	if kubeconfig != "" {
+		logger.Info("Using local config")
+		config, _ = clientcmd.BuildConfigFromFlags("", kubeconfig)
+
+	} else {
+		config, _ = InClusterConfig()
+
+	}
 
 	// // restClient := f.KubeClient.CoreV1().RESTClient()
 	// restClient, err := restclient.RESTClientFor(config)
@@ -85,77 +132,28 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 	stderrReader, stderrWriter := io.Pipe()
 
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
 
 	resChan := make(chan error)
-	merged := make(chan struct{})
-	readOutStop := make(chan struct{})
-	readErrStop := make(chan struct{})
 
 	go func() {
+		defer wg.Done()
 		err := execute("POST", req.URL(), config, options.Stdin, stdoutWriter, stderrWriter, tty)
 		resChan <- err
 	}()
 
-	go func() {
-		defer close(readOutStop)
-		defer wg.Done()
-		buf := make([]byte, 1024)
-		for {
-			n, err := stdoutReader.Read(buf)
-			if err != nil && err != io.EOF {
-				logger.Infof("non-EOF stdout read error: %v", err)
-				return
-			}
-			if n == 0 && err == io.EOF {
-				return
-			}
-			_, err = stdout.Write(buf[0:n])
-			if err == io.EOF {
-				return
-			}
-		}
-	}()
-	go func() {
-		defer close(readErrStop)
-		defer wg.Done()
+	GetOutput(stdoutReader, &stdout, &wg, "stdout")
+	GetOutput(stderrReader, &stderr, &wg, "stderr")
 
-		buf := make([]byte, 1024)
-		for {
-			n, err := stderrReader.Read(buf)
-			if err != nil && err != io.EOF {
-				logger.Infof("non-EOF stderr read error: %v", err)
-				return
-			}
-			if n == 0 && err == io.EOF {
-				return
-			}
-			_, err = stderr.Write(buf[0:n])
-			if err == io.EOF {
-				return
-			}
-		}
-	}()
-
-	// One extra goroutine to watch for all the merging goroutines to
-	// be finished and then close the merged channel.
-	go func() {
-		logger.Infof("Waiting")
-		wg.Wait()
-		logger.Infof("WG all done")
-		close(merged)
-	}()
-
-	logger.Infof("Waiting for WG")
-	<-merged
-	logger.Infof("WG complete")
-
-	// Wait for them all to finish
-	<-readOutStop
-	<-readErrStop
+	// Wait for the result
 	err = <-resChan
 
-	logger.Infof("Have outputs")
+	// Ensure the output streams are closed and the GetOutput() 'defer' actions are called
+	stderrReader.Close()
+	stdoutReader.Close()
+
+	// Now wait for IO to complete
+	wg.Wait()
 
 	// logger.Infof("out: %v, err: %v", stdout.String(), stderr.String())
 
