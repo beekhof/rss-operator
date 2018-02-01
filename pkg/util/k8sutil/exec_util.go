@@ -88,6 +88,7 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 	wg.Add(2)
 
 	resChan := make(chan error)
+	merged := make(chan struct{})
 	readOutStop := make(chan struct{})
 	readErrStop := make(chan struct{})
 
@@ -136,9 +137,18 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 		}
 	}()
 
-	logger.Infof("Waiting")
-	wg.Wait()
-	logger.Infof("WG all done")
+	// One extra goroutine to watch for all the merging goroutines to
+	// be finished and then close the merged channel.
+	go func() {
+		logger.Infof("Waiting")
+		wg.Wait()
+		logger.Infof("WG all done")
+		close(merged)
+	}()
+
+	logger.Infof("Waiting for WG")
+	<-merged
+	logger.Infof("WG complete")
 
 	// Wait for them all to finish
 	<-readOutStop
