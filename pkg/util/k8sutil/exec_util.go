@@ -19,6 +19,7 @@ import (
 	"io"
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 
@@ -83,6 +84,9 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 	stdoutReader, stdoutWriter := io.Pipe()
 	stderrReader, stderrWriter := io.Pipe()
 
+	var wg sync.WaitGroup
+	wg.Add(2)
+
 	resChan := make(chan error)
 	readOutStop := make(chan struct{})
 	readErrStop := make(chan struct{})
@@ -94,6 +98,7 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 
 	go func() {
 		defer close(readOutStop)
+		defer wg.Done()
 		buf := make([]byte, 1024)
 		for {
 			n, err := stdoutReader.Read(buf)
@@ -112,6 +117,8 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 	}()
 	go func() {
 		defer close(readErrStop)
+		defer wg.Done()
+
 		buf := make([]byte, 1024)
 		for {
 			n, err := stderrReader.Read(buf)
@@ -129,17 +136,16 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 		}
 	}()
 
-	select {
-	case <-readOutStop:
-	case <-readErrStop:
-	}
+	logger.Infof("Waiting")
+	wg.Wait()
+	logger.Infof("WG all done")
 
-	select {
-	case <-readOutStop:
-	case <-readErrStop:
-	}
-
+	// Wait for them all to finish
+	<-readOutStop
+	<-readErrStop
 	err = <-resChan
+
+	logger.Infof("Have outputs")
 
 	// logger.Infof("out: %v, err: %v", stdout.String(), stderr.String())
 
