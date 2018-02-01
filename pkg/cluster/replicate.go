@@ -34,8 +34,8 @@ func (c *Cluster) replicate() error {
 		c.detectMembers()
 	}
 
-	if err == nil && c.peers.AppMembers() > c.cluster.Spec.GetNumReplicas() {
-		err = fmt.Errorf("Waiting for %v peers to be stopped", c.peers.AppMembers()-primaries)
+	if c.peers.AppMembers() > c.cluster.Spec.GetNumReplicas() {
+		return fmt.Errorf("Waiting for %v peers to be stopped", c.peers.AppMembers()-primaries)
 	}
 
 	// Whichever stage we're up to... do as much as we can before exiting rather than giving up at the first error
@@ -51,9 +51,15 @@ func (c *Cluster) replicate() error {
 			}
 
 			errOne := c.startAppMember(seed, true)
-			if err == nil && errOne != nil {
+
+			if c.peers.AppPrimaries() == 0 {
+				// Couldn't seed
+				return errOne
+
+			} else if err == nil && errOne != nil {
 				err = errOne
 			}
+
 		}
 	}
 
