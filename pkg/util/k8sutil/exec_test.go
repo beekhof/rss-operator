@@ -39,7 +39,7 @@ func TestPodExec(t *testing.T) {
 
 	input := "hi there"
 	stdout, stderr, err := ExecWithOptions(logger, cli, ExecOptions{
-		Command:       []string{"/start.sh"},
+		Command:       []string{"ls", "-al"},
 		Namespace:     namespace,
 		PodName:       podName,
 		ContainerName: "",

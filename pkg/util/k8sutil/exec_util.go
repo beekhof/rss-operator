@@ -58,7 +58,7 @@ func GetOutput(pReader *io.PipeReader, result *bytes.Buffer, wg *sync.WaitGroup,
 		for {
 			n, err := pReader.Read(buf)
 			if n > 0 {
-				logger.Infof("writing %v: %v", n, buf[0:n])
+				logger.Infof("writing %v: %v", n, string(buf[0:n]))
 				_, werr := result.Write(buf[0:n])
 				if werr == io.EOF {
 					logger.Infof("output EOF")
@@ -113,6 +113,7 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 			return "", "", nil
 		}
 		options.ContainerName = pod.Spec.Containers[0].Name
+		logger.Infof("Executing in container %v", pod.Spec.Containers[0].Name)
 	}
 
 	// // restClient := f.KubeClient.CoreV1().RESTClient()

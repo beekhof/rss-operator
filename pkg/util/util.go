@@ -55,9 +55,11 @@ func LogOutput(logger *logrus.Entry, level logrus.Level, id string, result strin
 			case logrus.WarnLevel:
 				logger.WithField("pod", id).Warnf("[%v][%v]", n, l)
 			case logrus.ErrorLevel:
-			case logrus.FatalLevel:
-			case logrus.PanicLevel:
 				logger.WithField("pod", id).Errorf("[%v][%v]", n, l)
+			case logrus.FatalLevel:
+				logger.WithField("pod", id).Fatalf("[%v][%v]", n, l)
+			case logrus.PanicLevel:
+				logger.WithField("pod", id).Panicf("[%v][%v]", n, l)
 			}
 
 		}
