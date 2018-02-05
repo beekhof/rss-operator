@@ -28,6 +28,7 @@ import (
 func (c *Cluster) execute(action string, podName string, silent bool) (string, string, error) {
 	level := logrus.DebugLevel
 	cmd := c.rss.Spec.Pod.Commands[action]
+	c.logger.Infof("Calling command %v: %v", action, cmd)
 
 	stdout, stderr, err := k8sutil.ExecWithOptions(c.logger, c.config.KubeCli, k8sutil.ExecOptions{
 		Command:       c.appendPrimaries(cmd.Command),

@@ -199,8 +199,11 @@ func (rss *ReplicatedStatefulSet) Validate() error {
 	//	glog.Error("Validating build with updated PodSpec")
 
 	for k := range rss.Labels {
-		if k == "app" || strings.HasPrefix(k, "rss") {
-			return errors.New(fmt.Sprintf("Validate: cluster contains reserved label: %v=%v", k, rss.Labels[k]))
+		if k == "app" {
+			return errors.New(fmt.Sprintf("Validate: definition contains reserved label: %v=%v", k, rss.Labels[k]))
+		} else if strings.HasPrefix(k, "rss") {
+			return errors.New(fmt.Sprintf("Validate: definition contains reserved value: %v=%v", k, rss.Labels[k]))
+		}
 		}
 	}
 
