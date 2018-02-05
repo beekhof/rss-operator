@@ -15,6 +15,7 @@
 package cluster
 
 import (
+	"fmt"
 	"testing"
 
 	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
@@ -54,5 +55,24 @@ func TestUpdateEventUpdateLocalClusterObj(t *testing.T) {
 	}
 	if c.rss.ResourceVersion != newVersion {
 		t.Errorf("expect version=%s, get=%s", newVersion, c.rss.ResourceVersion)
+	}
+}
+
+func TestErrorCodes(t *testing.T) {
+
+	if 7 != parseExitCode(fmt.Errorf("command terminated with exit code 7")) {
+		t.Fatal("Expected 7")
+	}
+	if 1 != parseExitCode(fmt.Errorf("command terminated with exit code ")) {
+		t.Fatal("Expected 1 for empty")
+	}
+	if 1 != parseExitCode(fmt.Errorf("command terminated with exit code A")) {
+		t.Fatal("Expected 1 for A")
+	}
+	if 1 != parseExitCode(fmt.Errorf("command")) {
+		t.Fatal("Expected 1 for not found")
+	}
+	if 0 != parseExitCode(nil) {
+		t.Fatal("Expected 0 for nil")
 	}
 }

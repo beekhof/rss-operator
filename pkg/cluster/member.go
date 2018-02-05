@@ -16,6 +16,8 @@ package cluster
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/beekhof/galera-operator/pkg/util"
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
@@ -25,7 +27,29 @@ import (
 	"k8s.io/api/core/v1"
 )
 
-func (c *Cluster) execute(action string, podName string, silent bool) (string, string, error) {
+func parseExitCode(err error) int {
+	search := "command terminated with exit code "
+	if err == nil {
+		return 0
+	}
+	str := err.Error()
+	i := strings.Index(str, search)
+	if i < 0 {
+		return 1
+	}
+	i = i + len(search)
+	sub := str[i:]
+	val, err := strconv.ParseInt(sub, 10, 32)
+	if err != nil {
+		logrus.Errorf("No integer in '%v'", sub)
+		return 1
+	}
+	logrus.Errorf("Parsed '%v' into %v", sub, val)
+	return int(val)
+}
+
+func (c *Cluster) execute(action string, podName string, silent bool) (string, string, error, int) {
+	rc := 0
 	level := logrus.DebugLevel
 	cmd := c.rss.Spec.Pod.Commands[action]
 	c.logger.Infof("Calling command %v: %v", action, cmd)
@@ -53,9 +77,10 @@ func (c *Cluster) execute(action string, podName string, silent bool) (string, s
 	}
 
 	if err != nil {
-		return stdout, stderr, fmt.Errorf("Application %v on pod %v failed: %v", action, podName, err)
+		rc = parseExitCode(err)
+		return stdout, stderr, fmt.Errorf("Application %v on pod %v failed: %v", action, podName, err), rc
 	}
-	return stdout, stderr, nil
+	return stdout, stderr, nil, rc
 }
 
 func (c *Cluster) appendPrimaries(cmd []string) []string {

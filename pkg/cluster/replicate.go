@@ -144,7 +144,7 @@ func (c *Cluster) replicate() error {
 
 func (c *Cluster) detectMembers() {
 	for _, m := range c.peers {
-		stdout, _, err := c.execute(api.SequenceCommandKey, m.Name, false)
+		stdout, _, err, _ := c.execute(api.SequenceCommandKey, m.Name, false)
 		if err == nil {
 			stdout = strings.TrimSpace(stdout)
 			if stdout != "" {
@@ -254,7 +254,7 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 		c.logger.Infof("Seeding from pod %v: %v", m.Name, m.SEQ)
 	}
 
-	_, _, err := c.execute(action, m.Name, false)
+	_, _, err, _ := c.execute(action, m.Name, false)
 	if err != nil {
 		m.AppFailed = true
 		m.Failures += 1
@@ -269,7 +269,7 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 }
 
 func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
-	_, _, err := c.execute(api.StopCommandKey, m.Name, false)
+	_, _, err, _ := c.execute(api.StopCommandKey, m.Name, false)
 	if err != nil {
 		m.AppFailed = true
 		m.Failures += 1

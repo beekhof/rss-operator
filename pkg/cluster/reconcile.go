@@ -73,7 +73,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 			action := "check"
 			level := logrus.DebugLevel
 
-			stdout, stderr, err := c.execute(api.StatusCommandKey, m.Name, true)
+			stdout, stderr, err, _ := c.execute(api.StatusCommandKey, m.Name, true)
 			if err != nil {
 				if m.AppRunning {
 					m.AppFailed = true
