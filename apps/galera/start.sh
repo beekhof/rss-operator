@@ -8,7 +8,6 @@
 
 ocf_log info "Replicating state from $(gcomm_from_args $*)..."
 OCF_RESKEY_enable_creation=false
-: ${CHAOS_LEVEL=0}
 
 for peer in $* ; do nslookup $peer; done
 

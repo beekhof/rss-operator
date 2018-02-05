@@ -1,3 +1,5 @@
+: ${CHAOS_LEVEL=0}
+
 function gcomm_from_args() {
 	gcomm="gcomm://"
 
