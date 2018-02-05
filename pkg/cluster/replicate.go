@@ -47,8 +47,8 @@ func (c *Cluster) replicate() error {
 	defer c.updateCRStatus("replicate")
 
 	errors := []error{}
-	replicas := c.cluster.Spec.GetNumReplicas()
-	primaries := c.cluster.Spec.GetNumPrimaries()
+	replicas := c.rss.Spec.GetNumReplicas()
+	primaries := c.rss.Spec.GetNumPrimaries()
 
 	if c.peers.AppMembers() > replicas {
 		return fmt.Errorf("Waiting for %v peers to be stopped", c.peers.AppMembers()-primaries)
@@ -234,12 +234,12 @@ func chooseCurrentPrimary(c *Cluster) (*etcdutil.Member, error) {
 func (c *Cluster) startCommand(asPrimary bool, primaries int) string {
 
 	if asPrimary && primaries == 0 {
-		if _, ok := c.cluster.Spec.Pod.Commands[api.SeedCommandKey]; ok {
+		if _, ok := c.rss.Spec.Pod.Commands[api.SeedCommandKey]; ok {
 			return api.SeedCommandKey
 		}
 
 	} else if !asPrimary {
-		if _, ok := c.cluster.Spec.Pod.Commands[api.SecondaryCommandKey]; ok {
+		if _, ok := c.rss.Spec.Pod.Commands[api.SecondaryCommandKey]; ok {
 			return api.SecondaryCommandKey
 		}
 	}

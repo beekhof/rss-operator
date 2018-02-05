@@ -69,17 +69,6 @@ type ReplicationCommand struct {
 	Command []string       `json:"command"`
 }
 
-func (c *ReplicatedStatefulSet) AsOwner() metav1.OwnerReference {
-	trueVar := true
-	return metav1.OwnerReference{
-		APIVersion: SchemeGroupVersion.String(),
-		Kind:       ReplicatedStatefulSetResourceKind,
-		Name:       c.Name,
-		UID:        c.UID,
-		Controller: &trueVar,
-	}
-}
-
 type ServicePolicy struct {
 	ServiceName     string             `json:"serviceName,omitempty"`
 	ServicePorts    []v1.ServicePort   `json:"servicePorts,omitempty"`
@@ -167,22 +156,15 @@ type ClusterSpec struct {
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 }
 
-func (c *ClusterSpec) GetServicePorts() []v1.ServicePort {
-	if c.Service.ServicePorts != nil {
-		return c.Service.ServicePorts
+func (rss *ReplicatedStatefulSet) AsOwner() metav1.OwnerReference {
+	trueVar := true
+	return metav1.OwnerReference{
+		APIVersion: SchemeGroupVersion.String(),
+		Kind:       ReplicatedStatefulSetResourceKind,
+		Name:       c.Name,
+		UID:        c.UID,
+		Controller: &trueVar,
 	}
-
-	return []v1.ServicePort{
-		{
-			Name:       "web",
-			Port:       9090,
-			TargetPort: intstr.FromString("web"),
-		},
-	}
-}
-
-func (rss *ReplicatedStatefulSet) commandForKey(key string) (*ReplicationCommand, error) {
-	return nil, fmt.Errorf("%v not found", key)
 }
 
 func (rss *ReplicatedStatefulSet) ServiceName(internal bool) string {
@@ -232,6 +214,20 @@ func (rss *ReplicatedStatefulSet) Validate() error {
 		}
 	}
 	return nil
+}
+
+func (c *ClusterSpec) GetServicePorts() []v1.ServicePort {
+	if c.Service.ServicePorts != nil {
+		return c.Service.ServicePorts
+	}
+
+	return []v1.ServicePort{
+		{
+			Name:       "web",
+			Port:       9090,
+			TargetPort: intstr.FromString("web"),
+		},
+	}
 }
 
 func (c *ClusterSpec) GetNumReplicas() int {

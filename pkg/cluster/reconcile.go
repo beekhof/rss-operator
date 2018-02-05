@@ -43,7 +43,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 		c.updateCRStatus("reconcile")
 	}()
 
-	sp := c.cluster.Spec
+	sp := c.rss.Spec
 	running := c.podsToMemberSet(pods, c.isSecureClient())
 	errors = appendNonNil(errors, c.reconcileMembers(running))
 
@@ -53,7 +53,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 		// ' > 1' means that we tried at least a start and a stop
 		if m.AppFailed && m.Failures > 1 {
 			errors = append(errors, fmt.Errorf("%v deletion after %v failures", m.Name, m.Failures))
-			err := c.config.KubeCli.CoreV1().Pods(c.cluster.Namespace).Delete(m.Name, &metav1.DeleteOptions{})
+			err := c.config.KubeCli.CoreV1().Pods(c.rss.Namespace).Delete(m.Name, &metav1.DeleteOptions{})
 			if err != nil {
 				errors = appendNonNil(errors, fmt.Errorf("reconcile: could not delete pod %v", m.Name, err))
 
@@ -69,7 +69,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 		} else if !m.AppRunning || !m.Online {
 			continue
 
-		} else if _, ok := c.cluster.Spec.Pod.Commands[api.StatusCommandKey]; ok {
+		} else if _, ok := c.rss.Spec.Pod.Commands[api.StatusCommandKey]; ok {
 			action := "check"
 			level := logrus.DebugLevel
 
@@ -124,7 +124,7 @@ func (c *Cluster) reconcileMembers(running etcdutil.MemberSet) error {
 		c.updateMembers(running)
 	}
 
-	if c.peers.Size() < c.cluster.Spec.GetNumReplicas()/2+1 {
+	if c.peers.Size() < c.rss.Spec.GetNumReplicas()/2+1 {
 		c.logger.Infof("Quorum lost")
 		return ErrLostQuorum
 	}

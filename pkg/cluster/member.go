@@ -27,11 +27,11 @@ import (
 
 func (c *Cluster) execute(action string, podName string, silent bool) (string, string, error) {
 	level := logrus.DebugLevel
-	cmd := c.cluster.Spec.Pod.Commands[action]
+	cmd := c.rss.Spec.Pod.Commands[action]
 
 	stdout, stderr, err := k8sutil.ExecWithOptions(c.logger, c.config.KubeCli, k8sutil.ExecOptions{
 		Command:       c.appendPrimaries(cmd.Command),
-		Namespace:     c.cluster.Namespace,
+		Namespace:     c.rss.Namespace,
 		PodName:       podName,
 		ContainerName: "",
 
@@ -60,7 +60,7 @@ func (c *Cluster) execute(action string, podName string, silent bool) (string, s
 func (c *Cluster) appendPrimaries(cmd []string) []string {
 	for _, m := range c.peers {
 		if m.Online && m.AppPrimary {
-			cmd = append(cmd, fmt.Sprintf("%v.%v", m.Name, c.cluster.ServiceName(true)))
+			cmd = append(cmd, fmt.Sprintf("%v.%v", m.Name, c.rss.ServiceName(true)))
 		}
 	}
 	return cmd
@@ -105,7 +105,7 @@ func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
 
 func (c *Cluster) newMember(name string, namespace string) *etcdutil.Member {
 	if namespace == "" {
-		namespace = c.cluster.Namespace
+		namespace = c.rss.Namespace
 	}
 	return &etcdutil.Member{
 		Name:         name,

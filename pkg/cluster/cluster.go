@@ -54,8 +54,8 @@ const (
 )
 
 type clusterEvent struct {
-	typ     clusterEventType
-	cluster *api.ReplicatedStatefulSet
+	typ clusterEventType
+	rss *api.ReplicatedStatefulSet
 }
 
 type Config struct {
@@ -71,7 +71,7 @@ type Cluster struct {
 
 	config Config
 
-	cluster *api.ReplicatedStatefulSet
+	rss *api.ReplicatedStatefulSet
 	// in memory state of the cluster
 	// status is the source of truth after Cluster struct is materialized.
 	status api.ClusterStatus
@@ -93,25 +93,25 @@ type Cluster struct {
 	// secrInf cache.SharedIndexInformer
 }
 
-func New(config Config, cl *api.ReplicatedStatefulSet) *Cluster {
-	lg := util.GetLogger("cluster").WithField("cluster-name", cl.Name)
-	lg.Infof("Creating %v/%v", cl.Name, cl.GenerateName)
+func New(config Config, rss *api.ReplicatedStatefulSet) *Cluster {
+	lg := util.GetLogger("cluster").WithField("cluster-name", rss.Name)
+	lg.Infof("Creating %v/%v", rss.Name, rss.GenerateName)
 
 	c := &Cluster{
 		logger:      lg,
-		debugLogger: debug.New(cl.Name),
+		debugLogger: debug.New(rss.Name),
 		config:      config,
-		cluster:     cl,
+		rss:         rss,
 		eventCh:     make(chan *clusterEvent, 100),
 		stopCh:      make(chan struct{}),
-		status:      *(cl.Status.DeepCopy()),
-		eventsCli:   config.KubeCli.Core().Events(cl.Namespace),
+		status:      *(rss.Status.DeepCopy()),
+		eventsCli:   config.KubeCli.Core().Events(rss.Namespace),
 	}
 
 	resyncPeriod := 5 * time.Minute
 
 	c.cmapInf = cache.NewSharedIndexInformer(
-		cache.NewListWatchFromClient(config.KubeCli.Core().RESTClient(), "configmaps", cl.Namespace, fields.Everything()),
+		cache.NewListWatchFromClient(config.KubeCli.Core().RESTClient(), "configmaps", rss.Namespace, fields.Everything()),
 		&v1.ConfigMap{}, resyncPeriod, cache.Indexers{},
 	)
 	c.cmapInf.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -120,7 +120,7 @@ func New(config Config, cl *api.ReplicatedStatefulSet) *Cluster {
 		UpdateFunc: c.handleConfigMapUpdate,
 	})
 
-	// cl.Spec defaults set in makeStatefulSet(), should happen in ClusterSpec.Cleanup()
+	// rss.Spec defaults set in makeStatefulSet(), should happen in ClusterSpec.Cleanup()
 	go func() {
 		c.logger.Infof("setting up cluster")
 		if err := c.setup(); err != nil {
@@ -155,7 +155,7 @@ func (c *Cluster) setup() error {
 	}
 
 	if c.isSecureClient() {
-		d, err := k8sutil.GetTLSDataFromSecret(c.config.KubeCli, c.cluster.Namespace, c.cluster.Spec.TLS.Static.OperatorSecret)
+		d, err := k8sutil.GetTLSDataFromSecret(c.config.KubeCli, c.rss.Namespace, c.rss.Spec.TLS.Static.OperatorSecret)
 		if err != nil {
 			return err
 		}
@@ -193,15 +193,15 @@ func (c *Cluster) keyFunc(obj interface{}) (string, bool) {
 	return k, true
 }
 
-func (c *Cluster) ruleFileConfigMaps(cl *api.ReplicatedStatefulSet) ([]*v1.ConfigMap, error) {
+func (c *Cluster) ruleFileConfigMaps(rss *api.ReplicatedStatefulSet) ([]*v1.ConfigMap, error) {
 	res := []*v1.ConfigMap{}
 
-	ruleSelector, err := metav1.LabelSelectorAsSelector(cl.Spec.RuleSelector)
+	ruleSelector, err := metav1.LabelSelectorAsSelector(rss.Spec.RuleSelector)
 	if err != nil {
 		return nil, err
 	}
 
-	cache.ListAllByNamespace(c.cmapInf.GetIndexer(), cl.Namespace, ruleSelector, func(obj interface{}) {
+	cache.ListAllByNamespace(c.cmapInf.GetIndexer(), rss.Namespace, ruleSelector, func(obj interface{}) {
 		_, ok := c.keyFunc(obj)
 		if ok {
 			res = append(res, obj.(*v1.ConfigMap))
@@ -219,38 +219,38 @@ func (c *Cluster) create() error {
 	}
 
 	// Create governing service if it doesn't exist.
-	svcClient := c.config.KubeCli.Core().Services(c.cluster.Namespace)
-	if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.cluster, c.config, true)); err != nil {
+	svcClient := c.config.KubeCli.Core().Services(c.rss.Namespace)
+	if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.rss, c.config, true)); err != nil {
 		return errors.Wrap(err, "synchronizing internal service failed")
 	}
-	if len(c.cluster.Spec.Service.ExternalIPs) > 0 {
-		if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.cluster, c.config, false)); err != nil {
+	if len(c.rss.Spec.Service.ExternalIPs) > 0 {
+		if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.rss, c.config, false)); err != nil {
 			return errors.Wrap(err, "synchronizing external service failed")
 		}
 	}
-	ruleFileConfigMaps, err := c.ruleFileConfigMaps(c.cluster)
+	ruleFileConfigMaps, err := c.ruleFileConfigMaps(c.rss)
 
 	// Create Secret if it doesn't exist.
-	s, err := makeEmptyConfig(*c.cluster, ruleFileConfigMaps, c.config)
+	s, err := makeEmptyConfig(*c.rss, ruleFileConfigMaps, c.config)
 	if err != nil {
 		return errors.Wrap(err, "generating empty config secret failed")
 	}
-	if _, err := c.config.KubeCli.Core().Secrets(c.cluster.Namespace).Create(s); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := c.config.KubeCli.Core().Secrets(c.rss.Namespace).Create(s); err != nil && !apierrors.IsAlreadyExists(err) {
 		return errors.Wrap(err, "creating empty config file failed")
 	}
 
-	c.logger.Infof("Creating cluster STS in %v", c.cluster.Namespace)
-	sts, err := makeStatefulSet(*c.cluster, nil, &c.config, ruleFileConfigMaps)
+	c.logger.Infof("Creating cluster STS in %v", c.rss.Namespace)
+	sts, err := makeStatefulSet(*c.rss, nil, &c.config, ruleFileConfigMaps)
 	if err != nil {
 		return errors.Wrap(err, "creating statefulset definition failed")
 	}
 
-	ssetClient := c.config.KubeCli.AppsV1beta1().StatefulSets(c.cluster.Namespace)
+	ssetClient := c.config.KubeCli.AppsV1beta1().StatefulSets(c.rss.Namespace)
 	if _, err := ssetClient.Create(sts); err != nil {
 		return errors.Wrap(err, "creating statefulset failed")
 	}
 
-	c.LogObject("creating cluster with Spec:", c.cluster.Spec)
+	c.LogObject("creating cluster with Spec:", c.rss.Spec)
 	//util.JsonLogObject(c.logger, sts, "StatefulSet")
 	return nil
 }
@@ -272,7 +272,7 @@ func (c *Cluster) send(ev *clusterEvent) {
 }
 
 func (c *Cluster) run() {
-	//	c.status.ServiceName = k8sutil.ClientServiceName(c.cluster.Name)
+	//	c.status.ServiceName = k8sutil.ClientServiceName(c.rss.Name)
 
 	c.status.SetPhase(api.ClusterPhaseRunning)
 	c.updateCRStatus("initial")
@@ -300,10 +300,10 @@ func (c *Cluster) run() {
 				panic("unknown event type" + event.typ)
 			}
 
-		case <-time.After(*c.cluster.Spec.ReconcileInterval):
+		case <-time.After(*c.rss.Spec.ReconcileInterval):
 			start := time.Now()
 
-			if c.cluster.Spec.Paused {
+			if c.rss.Spec.Paused {
 				c.status.PauseControl()
 				c.logger.Infof("control is paused, skipping reconciliation")
 				continue
@@ -325,12 +325,12 @@ func (c *Cluster) run() {
 				reconcileFailed.WithLabelValues("not all pods are running").Inc()
 				continue
 			}
-			if len(running) == 0 && c.cluster.Spec.GetNumReplicas() == 0 {
+			if len(running) == 0 && c.rss.Spec.GetNumReplicas() == 0 {
 				// TODO: More to do here?
-				if c.cluster.Spec.GetNumReplicas() == 0 {
-					c.logger.Infof("all %v pods are stopped.", c.cluster.Name)
+				if c.rss.Spec.GetNumReplicas() == 0 {
+					c.logger.Infof("all %v pods are stopped.", c.rss.Name)
 				} else {
-					c.logger.Warningf("all %v pods are dead.", c.cluster.Name)
+					c.logger.Warningf("all %v pods are dead.", c.rss.Name)
 				}
 
 				c.updateMembers(etcdutil.MemberSet{})
@@ -370,46 +370,46 @@ func (c *Cluster) run() {
 }
 
 func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
-	oldSpec := c.cluster.Spec.DeepCopy()
-	c.cluster = event.cluster
+	oldSpec := c.rss.Spec.DeepCopy()
+	c.rss = event.rss
 
 	// Most of the time, this will be c.status being updated
 
 	// We need to identify whether the changes relate to the containers and or
 	// services and update those
 
-	if isSpecEqual(event.cluster.Spec, *oldSpec) {
+	if isSpecEqual(event.rss.Spec, *oldSpec) {
 		// We have some fields that once created can not be mutated.
-		if !reflect.DeepEqual(event.cluster.Spec, *oldSpec) {
-			c.logger.Warnf("Ignoring update event: %#v", event.cluster.Spec)
+		if !reflect.DeepEqual(event.rss.Spec, *oldSpec) {
+			c.logger.Warnf("Ignoring update event: %#v", event.rss.Spec)
 		}
 		return nil
 	}
 
-	c.logSpecUpdate(*oldSpec, event.cluster.Spec)
+	c.logSpecUpdate(*oldSpec, event.rss.Spec)
 
 	// TODO: Handle "Paused"
 	// Changes to Primaries will be handled at the next reconciliation interval
 
 	// Patch the Stateful Set
-	stsname := prefixedName(c.cluster.Name)
-	sts, err := c.config.KubeCli.AppsV1beta1().StatefulSets(c.cluster.Namespace).Get(stsname, metav1.GetOptions{})
+	stsname := prefixedName(c.rss.Name)
+	sts, err := c.config.KubeCli.AppsV1beta1().StatefulSets(c.rss.Namespace).Get(stsname, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("fail to get sts (%s): %v", stsname, err)
 	}
 	oldsts := sts.DeepCopy()
 
-	if c.cluster.Spec.GetNumReplicas() != oldSpec.GetNumReplicas() {
+	if c.rss.Spec.GetNumReplicas() != oldSpec.GetNumReplicas() {
 
-		if oldSpec.GetNumReplicas() == 0 && c.cluster.Spec.GetNumReplicas() < c.cluster.Status.RestoreReplicas {
-			// c.logger.Infof("Replica count (%v) for %v is too low (should be %v or higher)", c.cluster.Spec.GetNumReplicas(), stsname, c.cluster.Status.RestoreReplicas)
-			err := fmt.Errorf("Replica count (%v) for %v is too low (should be %v or higher)", c.cluster.Spec.GetNumReplicas(), stsname, c.cluster.Status.RestoreReplicas)
-			c.cluster.Spec.Replicas = &c.cluster.Status.RestoreReplicas
+		if oldSpec.GetNumReplicas() == 0 && c.rss.Spec.GetNumReplicas() < c.rss.Status.RestoreReplicas {
+			// c.logger.Infof("Replica count (%v) for %v is too low (should be %v or higher)", c.rss.Spec.GetNumReplicas(), stsname, c.rss.Status.RestoreReplicas)
+			err := fmt.Errorf("Replica count (%v) for %v is too low (should be %v or higher)", c.rss.Spec.GetNumReplicas(), stsname, c.rss.Status.RestoreReplicas)
+			c.rss.Spec.Replicas = &c.rss.Status.RestoreReplicas
 			return err
 
 		} else {
-			c.logger.Infof("Changing the Replica count for %v from %v to %v", stsname, oldSpec.GetNumReplicas(), c.cluster.Spec.GetNumReplicas())
-			intVal := int32(c.cluster.Spec.GetNumReplicas())
+			c.logger.Infof("Changing the Replica count for %v from %v to %v", stsname, oldSpec.GetNumReplicas(), c.rss.Spec.GetNumReplicas())
+			intVal := int32(c.rss.Spec.GetNumReplicas())
 			sts.Spec.Replicas = &intVal
 		}
 
@@ -419,7 +419,7 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 	if err != nil {
 		return fmt.Errorf("error creating patch: %v", err)
 	}
-	_, err = c.config.KubeCli.AppsV1beta1().StatefulSets(c.cluster.Namespace).Patch(sts.GetName(), types.StrategicMergePatchType, patchdata)
+	_, err = c.config.KubeCli.AppsV1beta1().StatefulSets(c.rss.Namespace).Patch(sts.GetName(), types.StrategicMergePatchType, patchdata)
 	if err != nil {
 		return fmt.Errorf("fail to update the sts (%s): %v", stsname, err)
 	}
@@ -446,47 +446,47 @@ func isSpecEqual(s1, s2 api.ClusterSpec) bool {
 }
 
 func (c *Cluster) isSecurePeer() bool {
-	return c.cluster.Spec.TLS.IsSecurePeer()
+	return c.rss.Spec.TLS.IsSecurePeer()
 }
 
 func (c *Cluster) isSecureClient() bool {
-	return c.cluster.Spec.TLS.IsSecureClient()
+	return c.rss.Spec.TLS.IsSecureClient()
 }
 
-func (c *Cluster) Update(cl *api.ReplicatedStatefulSet) {
+func (c *Cluster) Update(rss *api.ReplicatedStatefulSet) {
 	c.send(&clusterEvent{
-		typ:     eventModifyCluster,
-		cluster: cl,
+		typ: eventModifyCluster,
+		rss: rss,
 	})
 }
 
 func (c *Cluster) podOwner(pod *v1.Pod) bool {
-	sts, err := k8sutil.GetStatefulSet(c.config.KubeCli, c.cluster.Namespace, prefixedName(c.cluster.Name))
+	sts, err := k8sutil.GetStatefulSet(c.config.KubeCli, c.rss.Namespace, prefixedName(c.rss.Name))
 	if err != nil {
 		c.logger.Errorf("failed to find sts: %v", err)
 	}
 
 	for n := range pod.OwnerReferences {
-		if pod.OwnerReferences[n].UID == c.cluster.UID {
+		if pod.OwnerReferences[n].UID == c.rss.UID {
 			return true
 		} else if pod.OwnerReferences[n].UID == sts.UID {
 			return true
 		}
-		c.logger.Infof("mismatch[%v/%v]: %v vs. c.%v and s.%v", n, len(pod.OwnerReferences), pod.OwnerReferences[n].UID, c.cluster.UID, sts.UID)
+		c.logger.Infof("mismatch[%v/%v]: %v vs. c.%v and s.%v", n, len(pod.OwnerReferences), pod.OwnerReferences[n].UID, c.rss.UID, sts.UID)
 	}
 	return false
 }
 
 // func (c *Cluster) getStatefulSet() (*apps.StatefulSet, err error) {
 // //	Labels:          mergeLabels(p.Spec.PodLabels(), p.ObjectMeta.Labels),
-// 	return cli.AppsV1beta2().StatefulSets(c.cluster.Namespace).Get(c.cluster.Name, metav1.GetOptions{})
+// 	return cli.AppsV1beta2().StatefulSets(c.rss.Namespace).Get(c.rss.Name, metav1.GetOptions{})
 // }
 func (c *Cluster) pollPods() (running, pending []*v1.Pod, err error) {
 	// sel, err := metav1.LabelSelectorAsSelector(sts.Spec.Selector)
 	// c.logger.Infof("filter: %v -> %v.", sts.Spec.Selector, sel)
 	// podList, err := k8sutil.GetPodsForStatefulSet(c.config.KubeCli, sts)
 
-	podList, err := c.config.KubeCli.Core().Pods(c.cluster.Namespace).List(k8sutil.ClusterListOpt(c.cluster.Name))
+	podList, err := c.config.KubeCli.Core().Pods(c.rss.Namespace).List(k8sutil.ClusterListOpt(c.rss.Name))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to list running pods: %v", err)
 	}
@@ -499,7 +499,7 @@ func (c *Cluster) pollPods() (running, pending []*v1.Pod, err error) {
 		}
 		if !c.podOwner(pod) {
 			c.logger.Warningf("pollPods: ignore pod %v: owner (%v) is not %v",
-				pod.Name, pod.OwnerReferences[0].UID, c.cluster.UID)
+				pod.Name, pod.OwnerReferences[0].UID, c.rss.UID)
 			continue
 		}
 		switch pod.Status.Phase {
@@ -543,19 +543,19 @@ func (c *Cluster) updateMemberStatus(members etcdutil.MemberSet, running []strin
 }
 
 func (c *Cluster) updateCRStatus(prefix string) error {
-	if reflect.DeepEqual(c.cluster.Status, c.status) {
+	if reflect.DeepEqual(c.rss.Status, c.status) {
 		return nil
 	}
 
-	newCluster := c.cluster
+	newCluster := c.rss
 	newCluster.Status = c.status
-	newCluster, err := c.config.EtcdCRCli.ClusterlabsV1alpha1().ReplicatedStatefulSets(c.cluster.Namespace).Update(c.cluster)
+	newCluster, err := c.config.EtcdCRCli.ClusterlabsV1alpha1().ReplicatedStatefulSets(c.rss.Namespace).Update(c.rss)
 	if err != nil {
 		c.logger.Warningf("%v: failed to update CR status: %v", prefix, err)
 		return fmt.Errorf("%v: failed to update CR status: %v", prefix, err)
 	}
 
-	c.cluster = newCluster
+	c.rss = newCluster
 
 	return nil
 }
@@ -576,8 +576,8 @@ func (c *Cluster) reportFailedStatus() {
 			return false, nil
 		}
 
-		cl, err := c.config.EtcdCRCli.ClusterlabsV1alpha1().ReplicatedStatefulSets(c.cluster.Namespace).
-			Get(c.cluster.Name, metav1.GetOptions{})
+		cl, err := c.config.EtcdCRCli.ClusterlabsV1alpha1().ReplicatedStatefulSets(c.rss.Namespace).
+			Get(c.rss.Name, metav1.GetOptions{})
 		if err != nil {
 			// Update (PUT) will return conflict even if object is deleted since we have UID set in object.
 			// Because it will check UID first and return something like:
@@ -588,7 +588,7 @@ func (c *Cluster) reportFailedStatus() {
 			c.logger.Warningf("retry report status in %v: fail to get latest version: %v", retryInterval, err)
 			return false, nil
 		}
-		c.cluster = cl
+		c.rss = cl
 		return false, nil
 	}
 
@@ -596,7 +596,7 @@ func (c *Cluster) reportFailedStatus() {
 }
 
 func (c *Cluster) name() string {
-	return c.cluster.GetName()
+	return c.rss.GetName()
 }
 
 func (c *Cluster) LogObject(text string, spec interface{}) {

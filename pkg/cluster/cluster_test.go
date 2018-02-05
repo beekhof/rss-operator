@@ -41,18 +41,18 @@ func TestUpdateEventUpdateLocalClusterObj(t *testing.T) {
 	newObj.ResourceVersion = newVersion
 
 	c := &Cluster{
-		cluster: oldObj,
+		rss: oldObj,
 	}
 	e := &clusterEvent{
-		typ:     eventModifyCluster,
-		cluster: newObj,
+		typ: eventModifyCluster,
+		rss: newObj,
 	}
 
 	err := c.handleUpdateEvent(e)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.cluster.ResourceVersion != newVersion {
-		t.Errorf("expect version=%s, get=%s", newVersion, c.cluster.ResourceVersion)
+	if c.rss.ResourceVersion != newVersion {
+		t.Errorf("expect version=%s, get=%s", newVersion, c.rss.ResourceVersion)
 	}
 }
