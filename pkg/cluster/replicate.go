@@ -72,7 +72,7 @@ func (c *Cluster) replicate() error {
 			if c.peers.AppPrimaries() != 0 {
 				break
 			}
-			c.logger.Warnf("Seed %v failed, %v remaining", n, len(seeds)-n)
+			c.logger.Warnf("Seed %v failed, %v remaining", n+1, len(seeds)-n-1)
 		}
 
 		if c.peers.AppPrimaries() == 0 {
