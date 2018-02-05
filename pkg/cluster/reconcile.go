@@ -62,29 +62,23 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 				c.memberOffline(m)
 			}
 
+		} else if !m.Online {
+			c.logger.Infof("reconcile: Skipping offline pod %v", m.Name)
+			continue
+
 		} else if m.AppFailed {
 			c.logger.Warnf("reconcile: Cleaning up pod %v", m.Name)
 			errors = appendNonNil(errors, c.stopAppMember(m))
 
-		} else if !m.AppRunning || !m.Online {
+		} else if !m.AppRunning {
+			c.logger.Infof("reconcile: Skipping stopped pod %v", m.Name)
 			continue
 
 		} else if _, ok := c.rss.Spec.Pod.Commands[api.StatusCommandKey]; ok {
-			action := "check"
-			level := logrus.DebugLevel
-
-			stdout, stderr, err, _ := c.execute(api.StatusCommandKey, m.Name, true)
+			_, _, err, _ := c.execute(api.StatusCommandKey, m.Name, false)
 			if err != nil {
-				if m.AppRunning {
-					m.AppFailed = true
-					level = logrus.ErrorLevel
-					c.logger.Errorf("check:  pod %v: exec failed: %v", m.Name, err)
-				} else {
-					c.logger.Warnf("check:  pod %v: exec failed: %v", m.Name, err)
-				}
+				m.AppFailed = true
 			}
-			util.LogOutput(c.logger.WithField(action, "stdout"), level, m.Name, stdout)
-			util.LogOutput(c.logger.WithField(action, "stderr"), level, m.Name, stderr)
 		}
 	}
 
