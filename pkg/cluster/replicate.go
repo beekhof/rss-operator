@@ -33,12 +33,17 @@ func appendNonNil(errors []error, err error) []error {
 	return append(errors, err)
 }
 
-func stringFromErrors(errors []error) string {
+func combineErrors(errors []error) error {
+	if len(errors) == 0 {
+		return nil
+	}
+
 	var strArray []string
 	for _, err := range errors {
 		strArray = append(strArray, err.Error())
 	}
-	return strings.Join(strArray, ", ")
+
+	return fmt.Errorf("[%v]", strings.Join(strArray, ", "))
 }
 
 func (c *Cluster) replicate() error {
@@ -47,12 +52,37 @@ func (c *Cluster) replicate() error {
 	replicas := c.cluster.Spec.GetNumReplicas()
 	primaries := c.cluster.Spec.GetNumPrimaries()
 
-	if c.peers.AppPrimaries() == 0 {
-		c.detectMembers()
-	}
-
 	if c.peers.AppMembers() > replicas {
 		return fmt.Errorf("Waiting for %v peers to be stopped", c.peers.AppMembers()-primaries)
+	}
+
+	if c.peers.AppPrimaries() == 0 && c.peers.ActiveMembers() != replicas {
+		return fmt.Errorf("Waiting for %v additional peer containers to be available before seeding", c.peers.ActiveMembers()-replicas)
+	}
+
+	// Always detect members (so that the most up-to-date ones get started)
+	c.detectMembers()
+
+	if c.peers.AppPrimaries() == 0 {
+		seeds, err := chooseSeeds(c)
+		if err != nil {
+			return fmt.Errorf("Bootstrapping failed: %v", err)
+		}
+
+		for n, seed := range seeds {
+			errors = appendNonNil(errors, c.startAppMember(seed, true))
+			if c.peers.AppPrimaries() != 0 {
+				break
+			}
+			c.logger.Warnf("Seed %v failed, %v remaining", len(seeds)-n)
+		}
+
+		if c.peers.AppPrimaries() == 0 {
+			return fmt.Errorf("Bootstrapping from %v possible seeds with version %v failed: %v", len(seeds), seeds[0].SEQ, combineErrors(errors))
+		}
+
+		// Continue as long as one seed succeeds
+		errors = []error{}
 	}
 
 	// Whichever stage we're up to... do as much as we can before exiting rather than giving up at the first error
@@ -61,7 +91,7 @@ func (c *Cluster) replicate() error {
 		for c.peers.AppPrimaries() < primaries {
 			c.logger.Infof("Starting %v primaries", primaries-c.peers.AppPrimaries())
 
-			seed, err := chooseSeed(c)
+			seed, err := chooseMember(c)
 			errors = appendNonNil(errors, err)
 			if err != nil {
 				break
@@ -92,7 +122,7 @@ func (c *Cluster) replicate() error {
 		for c.peers.AppMembers() < replicas {
 			c.logger.Infof("Starting %v secondaries", replicas-c.peers.AppMembers())
 
-			seed, err := chooseSeed(c)
+			seed, err := chooseMember(c)
 			errors = appendNonNil(errors, err)
 			if err != nil {
 				break
@@ -104,7 +134,7 @@ func (c *Cluster) replicate() error {
 
 	if len(errors) != 0 {
 		return fmt.Errorf("%v of %v primaries, and %v of %v members available: %v",
-			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), replicas, stringFromErrors(errors))
+			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), replicas, combineErrors(errors))
 	} else if replicas > 0 {
 		c.status.RestoreReplicas = replicas
 	}
@@ -134,12 +164,36 @@ func (c *Cluster) detectMembers() {
 			}
 		}
 
-		util.LogOutput(c.logger.WithField("source", "detectMembers:stdout"), logrus.InfoLevel, m.Name, stdout)
-		util.LogOutput(c.logger.WithField("source", "detectMembers:stderr"), logrus.InfoLevel, m.Name, stderr)
+		util.LogOutput(c.logger.WithField("sequence", "stdout"), logrus.InfoLevel, m.Name, stdout)
+		util.LogOutput(c.logger.WithField("sequence", "stderr"), logrus.InfoLevel, m.Name, stderr)
 	}
 }
 
-func chooseSeed(c *Cluster) (*etcdutil.Member, error) {
+func chooseSeeds(c *Cluster) ([]*etcdutil.Member, error) {
+	var bestPeer []*etcdutil.Member
+	if c.peers == nil {
+		return bestPeer, fmt.Errorf("No known peers")
+	}
+	for _, m := range c.peers {
+		if !m.Online || m.AppFailed {
+			continue
+		} else if m.AppPrimary {
+			continue
+		} else if len(bestPeer) == 0 {
+			bestPeer = append(bestPeer, m)
+		} else if m.SEQ > bestPeer[0].SEQ {
+			bestPeer = []*etcdutil.Member{m}
+		} else {
+			bestPeer = append(bestPeer, m)
+		}
+	}
+	if len(bestPeer) == 0 {
+		return bestPeer, fmt.Errorf("No peers available")
+	}
+	return bestPeer, nil
+}
+
+func chooseMember(c *Cluster) (*etcdutil.Member, error) {
 	var bestPeer *etcdutil.Member
 	if c.peers == nil {
 		return nil, fmt.Errorf("No known peers")
@@ -232,8 +286,8 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 		level = logrus.ErrorLevel
 		c.logger.Errorf("%v: pod %v: exec failed: %v", action, m.Name, err)
 	}
-	util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stdout", action)), level, m.Name, stdout)
-	util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stderr", action)), level, m.Name, stderr)
+	util.LogOutput(c.logger.WithField(action, "stdout"), level, m.Name, stdout)
+	util.LogOutput(c.logger.WithField(action, "stderr"), level, m.Name, stderr)
 
 	if err != nil {
 		m.AppFailed = true
@@ -256,8 +310,8 @@ func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
 		c.logger.Errorf("stop: pod %v: exec failed: %v", m.Name, err)
 	}
 	action := "stop"
-	util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stdout", action)), level, m.Name, stdout)
-	util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stderr", action)), level, m.Name, stderr)
+	util.LogOutput(c.logger.WithField(action, "stdout"), level, m.Name, stdout)
+	util.LogOutput(c.logger.WithField(action, "stderr"), level, m.Name, stderr)
 	if err != nil {
 		m.AppFailed = true
 		m.Failures += 1

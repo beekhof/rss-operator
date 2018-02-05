@@ -34,46 +34,37 @@ var ErrLostQuorum = errors.New("lost quorum")
 // - it tries to reconcile the cluster to desired size.
 // - if the cluster needs for upgrade, it tries to upgrade old member one by one.
 func (c *Cluster) reconcile(pods []*v1.Pod) error {
+	var errors []error
 	c.logger.Infoln("Start reconciling")
 	defer c.logger.Infoln("Finish reconciling")
 
 	defer func() {
 		c.status.Replicas = c.peers.Size()
+		c.updateCRStatus("reconcile")
 	}()
 
-	var err error = nil
 	sp := c.cluster.Spec
 	running := c.podsToMemberSet(pods, c.isSecureClient())
-	if c.peers.AppMembers() != sp.GetNumReplicas() {
-		err = c.reconcileMembers(running)
-	} else {
-		c.status.SetReadyCondition()
-	}
+	errors = appendNonNil(errors, c.reconcileMembers(running))
 
 	for _, m := range c.peers {
 
 		// TODO: Make the threshold configurable
 		// ' > 1' means that we tried at least a start and a stop
 		if m.AppFailed && m.Failures > 1 {
-			err = c.config.KubeCli.CoreV1().Pods(c.cluster.Namespace).Delete(m.Name, &metav1.DeleteOptions{})
+			errors = append(errors, fmt.Errorf("%v deletion after %v failures", m.Name, m.Failures))
+			err := c.config.KubeCli.CoreV1().Pods(c.cluster.Namespace).Delete(m.Name, &metav1.DeleteOptions{})
 			if err != nil {
-				c.logger.Errorf("reconcile: could not delete pod %v  (%v failures): %v", m.Name, m.Failures, err)
-				return fmt.Errorf("Pod deletion failed: %v", err)
+				errors = appendNonNil(errors, fmt.Errorf("reconcile: could not delete pod %v", m.Name, err))
 
 			} else {
-				c.logger.Warnf("reconcile: deleted pod %v (%v failures)", m.Name, m.Failures)
+				c.logger.Warnf("reconcile: deleted pod %v", m.Name)
 				c.memberOffline(m)
 			}
 
 		} else if m.AppFailed {
-			err = c.stopAppMember(m)
-			if err != nil {
-				c.logger.Errorf("reconcile: could not stop pod %v: %v", m.Name, err)
-				return fmt.Errorf("Application stop failed on %v: %v", m.Name, err)
-
-			} else {
-				c.logger.Infof("reconcile: pod %v cleaned up", m.Name)
-			}
+			c.logger.Warnf("reconcile: Cleaning up pod %v", m.Name)
+			errors = appendNonNil(errors, c.stopAppMember(m))
 
 		} else if !m.AppRunning || !m.Online {
 			continue
@@ -92,14 +83,25 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 					c.logger.Warnf("check:  pod %v: exec failed: %v", m.Name, err)
 				}
 			}
-			util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stdout", action)), level, m.Name, stdout)
-			util.LogOutput(c.logger.WithField("action", fmt.Sprintf("%v:stderr", action)), level, m.Name, stderr)
+			util.LogOutput(c.logger.WithField(action, "stdout"), level, m.Name, stdout)
+			util.LogOutput(c.logger.WithField(action, "stderr"), level, m.Name, stderr)
 		}
 	}
-	c.status.SetReadyCondition()
-	c.updateCRStatus("reconcile")
 
-	return err
+	if c.peers.ActiveMembers() > sp.GetNumReplicas() {
+		c.status.SetScalingDownCondition(c.peers.ActiveMembers(), sp.GetNumReplicas())
+
+	} else if c.peers.ActiveMembers() < sp.GetNumReplicas() {
+		c.status.SetScalingUpCondition(c.peers.ActiveMembers(), sp.GetNumReplicas())
+
+	} else if len(errors) > 0 {
+		c.status.SetRecoveringCondition()
+
+	} else {
+		c.status.SetReadyCondition()
+	}
+
+	return combineErrors(errors)
 }
 
 // reconcileMembers reconciles

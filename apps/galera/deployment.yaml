@@ -89,7 +89,8 @@ metadata:
   labels:
     kind: galera
 spec:
-  replicas: 3
+  replicas: 5
+  chaosLevel: 5
   pod:
     antiAffinity: true
     commands:
@@ -116,7 +117,7 @@ spec:
           requests:
             storage: 1Gi
     containers:
-    - name: rss
+    - name: galera
       image: quay.io/beekhof/galera:latest
       imagePullPolicy: Always
       lifecycle:

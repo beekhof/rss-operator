@@ -532,7 +532,6 @@ func (c *Cluster) updateMemberStatus(members etcdutil.MemberSet, running []strin
 		}
 	}
 
-	c.logger.Infof("updateMemberStatus:  pods %v", running)
 	c.status.Replicas = len(running)
 	c.status.Members.Ready = running
 	c.status.Members.Failed = failed
