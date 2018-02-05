@@ -17,6 +17,7 @@ package cluster
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
 
@@ -74,5 +75,52 @@ func TestErrorCodes(t *testing.T) {
 	}
 	if 0 != parseExitCode(nil) {
 		t.Fatal("Expected 0 for nil")
+	}
+}
+
+func TestParseDuration(t *testing.T) {
+	str := "15m"
+	expected := time.Duration(15 * time.Minute)
+	if result := parseDuration(&str); expected != result {
+		t.Fatalf("Expected '%v' from '%v', got '%v'", expected, str, result)
+	}
+
+	str = "15m10s"
+	expected = time.Duration(15*time.Minute + 10*time.Second)
+	if result := parseDuration(&str); expected != result {
+		t.Fatalf("Expected '%v' from '%v', got '%v'", expected, str, result)
+	}
+
+	str = "15m10s"
+	expected = time.Duration(15*time.Minute + 10*time.Second)
+	if result := parseDuration(&str); expected != result {
+		t.Fatalf("Expected '%v' from '%v', got '%v'", expected, str, result)
+	}
+
+	str = "10s"
+	expected = time.Duration(10 * time.Second)
+	if result := parseDuration(&str); expected != result {
+		t.Fatalf("Expected '%v' from '%v', got '%v'", expected, str, result)
+	}
+
+	str = "8"
+	expected = time.Duration(8 * time.Second)
+	if result := parseDuration(&str); expected != result {
+		t.Fatalf("Expected '%v' from '%v', got '%v'", expected, str, result)
+	}
+
+	str = "abc"
+	expected = time.Duration(0)
+	if result := parseDuration(&str); expected != result {
+		t.Fatalf("Expected '%v' from '%v', got '%v'", expected, str, result)
+	}
+
+	str = ""
+	if result := parseDuration(&str); expected != result {
+		t.Fatalf("Expected '%v' from '%v', got '%v'", expected, str, result)
+	}
+
+	if result := parseDuration(nil); expected != result {
+		t.Fatalf("Expected '%v' from '%v', got '%v'", expected, str, result)
 	}
 }

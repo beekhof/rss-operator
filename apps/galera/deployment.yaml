@@ -95,13 +95,14 @@ spec:
     antiAffinity: true
     commands:
       sequence: 
+        timeout: 20s
         command: ["/sequence.sh"]
       primary: 
         command: ["/start.sh"]
       seed: 
         command: ["/seed.sh"]
       status: 
-        timeout: 60
+        timeout: 2m
         command: ["/check.sh"]
       stop: 
         command: ["/stop.sh"]

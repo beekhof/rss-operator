@@ -427,7 +427,7 @@ func (in *ReplicationCommand) DeepCopyInto(out *ReplicationCommand) {
 		if *in == nil {
 			*out = nil
 		} else {
-			*out = new(time.Duration)
+			*out = new(string)
 			**out = **in
 		}
 	}

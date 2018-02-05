@@ -16,8 +16,10 @@ package cluster
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/beekhof/galera-operator/pkg/util"
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
@@ -48,11 +50,51 @@ func parseExitCode(err error) int {
 	return int(val)
 }
 
+func parseDuration(str *string) time.Duration {
+
+	if str == nil {
+		return time.Duration(0)
+	}
+
+	durationRegex := regexp.MustCompile(`(?P<years>\d+Y)?(?P<months>\d+M)?(?P<days>\d+D)?T?(?P<hours>\d+h)?(?P<minutes>\d+m)?(?P<seconds>\d+s)?`)
+	matches := durationRegex.FindStringSubmatch(*str)
+
+	years := parseInt64(matches[1])
+	months := parseInt64(matches[2])
+	days := parseInt64(matches[3])
+	hours := parseInt64(matches[4])
+	minutes := parseInt64(matches[5])
+	seconds := parseInt64(matches[6])
+
+	if matches[0] == "" {
+		// Simple numbers are treated as seconds
+		intSeconds, _ := strconv.Atoi(*str)
+		seconds = int64(intSeconds)
+	}
+
+	hour := int64(time.Hour)
+	minute := int64(time.Minute)
+	second := int64(time.Second)
+	return time.Duration(years*24*365*hour + months*30*24*hour + days*24*hour + hours*hour + minutes*minute + seconds*second)
+}
+
+func parseInt64(value string) int64 {
+	if len(value) == 0 {
+		return 0
+	}
+	parsed, err := strconv.Atoi(value[:len(value)-1])
+	if err != nil {
+		return 0
+	}
+	return int64(parsed)
+}
+
 func (c *Cluster) execute(action string, podName string, silent bool) (string, string, error, int) {
 	rc := 0
 	level := logrus.DebugLevel
 	cmd := c.rss.Spec.Pod.Commands[action]
 	c.logger.Infof("Calling command %v: %v", action, cmd)
+	timeout := parseDuration(cmd.Timeout)
 
 	stdout, stderr, err := k8sutil.ExecWithOptions(c.logger, c.config.KubeCli, k8sutil.ExecOptions{
 		Command:       c.appendPrimaries(cmd.Command),
@@ -60,7 +102,7 @@ func (c *Cluster) execute(action string, podName string, silent bool) (string, s
 		PodName:       podName,
 		ContainerName: "",
 
-		Timeout: cmd.Timeout,
+		Timeout: timeout,
 
 		CaptureStdout:      true,
 		CaptureStderr:      true,

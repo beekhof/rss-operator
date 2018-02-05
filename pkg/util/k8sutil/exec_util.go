@@ -50,7 +50,7 @@ type ExecOptions struct {
 	// If false, whitespace in std{err,out} will be removed.
 	PreserveWhitespace bool
 
-	Timeout *time.Duration
+	Timeout time.Duration
 }
 
 func GetOutput(pReader *io.PipeReader, result *bytes.Buffer, wg *sync.WaitGroup, tag string) {
@@ -104,8 +104,14 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 		config, _ = InClusterConfig()
 	}
 
-	if options.Timeout != nil {
-		config.Timeout = *options.Timeout
+	// Sanitise timeouts
+	minTimeout := 10 * time.Second
+	if options.Timeout > minTimeout {
+		config.Timeout = options.Timeout
+
+	} else if options.Timeout > time.Duration(0) {
+		config.Timeout = minTimeout
+
 	} else {
 		config.Timeout = 10 * time.Minute
 	}

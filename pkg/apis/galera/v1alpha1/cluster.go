@@ -65,8 +65,8 @@ type ReplicatedStatefulSet struct {
 }
 
 type ReplicationCommand struct {
-	Timeout *time.Duration `json:"timeout,omitempty"`
-	Command []string       `json:"command"`
+	Timeout *string  `json:"timeout,omitempty"`
+	Command []string `json:"command"`
 }
 
 type ServicePolicy struct {
