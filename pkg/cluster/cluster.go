@@ -414,7 +414,7 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 		if oldSpec.GetNumReplicas() == 0 && c.cluster.Spec.GetNumReplicas() < c.cluster.Status.RestoreReplicas {
 			// c.logger.Infof("Replica count (%v) for %v is too low (should be %v or higher)", c.cluster.Spec.GetNumReplicas(), stsname, c.cluster.Status.RestoreReplicas)
 			err := fmt.Errorf("Replica count (%v) for %v is too low (should be %v or higher)", c.cluster.Spec.GetNumReplicas(), stsname, c.cluster.Status.RestoreReplicas)
-			c.cluster.Spec.Replicas = c.cluster.Status.RestoreReplicas
+			c.cluster.Spec.Replicas = &c.cluster.Status.RestoreReplicas
 			return err
 
 		} else {

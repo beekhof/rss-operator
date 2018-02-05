@@ -33,6 +33,14 @@ func appendNonNil(errors []error, err error) []error {
 	return append(errors, err)
 }
 
+func stringFromErrors(errors []error) string {
+	var strArray []string
+	for _, err := range errors {
+		strArray = append(strArray, err.Error())
+	}
+	return strings.Join(strArray, ", ")
+}
+
 func (c *Cluster) replicate() error {
 	errors := []error{}
 
@@ -96,7 +104,7 @@ func (c *Cluster) replicate() error {
 
 	if len(errors) != 0 {
 		return fmt.Errorf("%v of %v primaries, and %v of %v members available: %v",
-			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), replicas, strings.Join(errors, ", "))
+			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), replicas, stringFromErrors(errors))
 	} else if replicas > 0 {
 		c.status.RestoreReplicas = replicas
 	}
