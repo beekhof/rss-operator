@@ -146,6 +146,7 @@ func (c *Cluster) detectMembers() {
 	for _, m := range c.peers {
 		stdout, _, err := c.execute(api.SequenceCommandKey, m.Name, false)
 		if err == nil {
+			stdout = strings.TrimSpace(stdout)
 			if stdout != "" {
 				c.peers[m.Name].SEQ, err = strconv.ParseUint(stdout, 10, 64)
 				if err != nil {
