@@ -19,9 +19,7 @@ import (
 	"fmt"
 
 	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
-	"github.com/beekhof/galera-operator/pkg/util"
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
-	"github.com/sirupsen/logrus"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

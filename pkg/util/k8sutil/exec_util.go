@@ -55,9 +55,9 @@ type ExecOptions struct {
 }
 
 type ExecContext struct {
-	logger *logrus.Entry
-	cli    *kubernetes.Interface
-	config *rest.Config
+	Logger *logrus.Entry
+	Cli    *kubernetes.Interface
+	Config *rest.Config
 }
 
 func GetOutput(pReader *io.PipeReader, result *bytes.Buffer, wg *sync.WaitGroup, tag string) {
@@ -92,11 +92,11 @@ func GetOutput(pReader *io.PipeReader, result *bytes.Buffer, wg *sync.WaitGroup,
 func setupContext(context *ExecContext) error {
 	var err error
 
-	if context.logger == nil {
-		context.logger = util.GetLogger("exec")
+	if context.Logger == nil {
+		context.Logger = util.GetLogger("exec")
 	}
 
-	if context.config == nil {
+	if context.Config == nil {
 
 		kubeconfig := ""
 		kArg := flag.Lookup("kubeconfig")
@@ -106,11 +106,11 @@ func setupContext(context *ExecContext) error {
 		}
 
 		if kubeconfig != "" {
-			context.logger.Info("Using local config")
-			context.config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+			context.Logger.Info("Using local config")
+			context.Config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 
 		} else {
-			context.config, err = InClusterConfig()
+			context.Config, err = InClusterConfig()
 		}
 
 		if err != nil {
@@ -118,9 +118,9 @@ func setupContext(context *ExecContext) error {
 		}
 	}
 
-	if context.cli == nil {
-		cli := MustNewKubeClientFromConfig(context.config)
-		context.cli = &cli
+	if context.Cli == nil {
+		cli := MustNewKubeClientFromConfig(context.Config)
+		context.Cli = &cli
 	}
 
 	return nil
@@ -141,31 +141,31 @@ func ExecWithOptions(context *ExecContext, options ExecOptions) (string, string,
 	// Sanitise timeouts
 	minTimeout := 10 * time.Second
 	if options.Timeout > minTimeout {
-		context.config.Timeout = options.Timeout
+		context.Config.Timeout = options.Timeout
 
 	} else if options.Timeout > time.Duration(0) {
-		context.config.Timeout = minTimeout
+		context.Config.Timeout = minTimeout
 
 	} else {
-		context.config.Timeout = 10 * time.Minute
+		context.Config.Timeout = 10 * time.Minute
 	}
 
-	cli := *context.cli
+	cli := *context.Cli
 	if options.ContainerName == "" {
 		pod, err := cli.CoreV1().Pods(options.Namespace).Get(options.PodName, metav1.GetOptions{})
 		if err != nil {
-			context.logger.Errorf("failed to get pod %v: %v", options.PodName, err)
+			context.Logger.Errorf("failed to get pod %v: %v", options.PodName, err)
 			return "", "", nil
 		}
 		if len(pod.Spec.Containers) <= 0 {
-			context.logger.Errorf("No containers in %v", options.PodName)
+			context.Logger.Errorf("No containers in %v", options.PodName)
 			return "", "", nil
 		}
 		options.ContainerName = pod.Spec.Containers[0].Name
-		context.logger.Debugf("Executing in container %v", pod.Spec.Containers[0].Name)
+		context.Logger.Debugf("Executing in container %v", pod.Spec.Containers[0].Name)
 	}
 
-	context.logger.Debugf("ExecWithOptions %+v", options)
+	context.Logger.Debugf("ExecWithOptions %+v", options)
 
 	// // restClient := f.KubeClient.CoreV1().RESTClient()
 	// restClient, err := restclient.RESTClientFor(config)
@@ -200,7 +200,7 @@ func ExecWithOptions(context *ExecContext, options ExecOptions) (string, string,
 
 	go func() {
 		defer wg.Done()
-		err := execute("POST", req.URL(), context.config, options.Stdin, stdoutWriter, stderrWriter, tty)
+		err := execute("POST", req.URL(), context.Config, options.Stdin, stdoutWriter, stderrWriter, tty)
 		resChan <- err
 	}()
 
@@ -240,7 +240,7 @@ func execute(method string, url *url.URL, config *rest.Config, stdin io.Reader, 
 
 // ExecCommandInContainerWithFullOutput executes a command in the
 // specified container and return stdout, stderr and error
-func ExecCommandInContainer(context ExecContext, namespace string, podName string, containerName string, cmd ...string) (string, string, error) {
+func ExecCommandInContainer(context *ExecContext, namespace string, podName string, containerName string, cmd ...string) (string, string, error) {
 	return ExecWithOptions(context, ExecOptions{
 		Command:       cmd,
 		Namespace:     namespace,
@@ -254,7 +254,7 @@ func ExecCommandInContainer(context ExecContext, namespace string, podName strin
 	})
 }
 
-func ExecCommandInPod(context ExecContext,
+func ExecCommandInPod(context *ExecContext,
 	namespace string, podName string, cmd ...string) (string, string, error) {
 	return ExecCommandInContainer(context, namespace, podName, "", cmd...)
 }

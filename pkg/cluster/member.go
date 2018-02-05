@@ -96,7 +96,7 @@ func (c *Cluster) execute(action string, podName string, silent bool) (string, s
 	timeout := parseDuration(cmd.Timeout)
 	c.logger.Infof("Calling '%v' command with timeout %v: %v", action, timeout, cmd.Command)
 
-	stdout, stderr, err := k8sutil.ExecWithOptions(c.execContext, k8sutil.ExecOptions{
+	stdout, stderr, err := k8sutil.ExecWithOptions(&c.execContext, k8sutil.ExecOptions{
 		Command:       c.appendPrimaries(cmd.Command),
 		Namespace:     c.rss.Namespace,
 		PodName:       podName,

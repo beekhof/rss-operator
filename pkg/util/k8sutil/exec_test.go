@@ -7,7 +7,6 @@ import (
 	"github.com/beekhof/galera-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -32,13 +31,15 @@ func TestPodExec(t *testing.T) {
 	if err != nil {
 		t.Skip("error building config")
 	}
-	cli, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		t.Skip("error creating cli")
-	}
+
+	cli := MustNewKubeClientFromConfig(config)
+	// if err != nil {
+	// 	t.Skip("error creating cli")
+	// }
 
 	input := "hi there"
-	stdout, stderr, err := ExecWithOptions(logger, cli, ExecOptions{
+	context := ExecContext{Logger: logger, Config: config, Cli: &cli}
+	stdout, stderr, err := ExecWithOptions(&context, ExecOptions{
 		Command:       []string{"ls", "-al"},
 		Namespace:     namespace,
 		PodName:       podName,

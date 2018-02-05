@@ -68,7 +68,7 @@ type Config struct {
 type Cluster struct {
 	logger      *logrus.Entry
 	debugLogger *debug.DebugLogger
-	execContext *k8sutil.ExecContext
+	execContext k8sutil.ExecContext
 
 	config Config
 
@@ -103,8 +103,8 @@ func New(config Config, rss *api.ReplicatedStatefulSet) *Cluster {
 		debugLogger: debug.New(rss.Name),
 		config:      config,
 		execContext: k8sutil.ExecContext{
-			logger: lg,
-			config: config,
+			Logger: lg,
+			Cli:    &config.KubeCli,
 		},
 		rss:       rss,
 		eventCh:   make(chan *clusterEvent, 100),
