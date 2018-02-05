@@ -68,6 +68,7 @@ type Config struct {
 type Cluster struct {
 	logger      *logrus.Entry
 	debugLogger *debug.DebugLogger
+	execContext *k8sutil.ExecContext
 
 	config Config
 
@@ -101,11 +102,15 @@ func New(config Config, rss *api.ReplicatedStatefulSet) *Cluster {
 		logger:      lg,
 		debugLogger: debug.New(rss.Name),
 		config:      config,
-		rss:         rss,
-		eventCh:     make(chan *clusterEvent, 100),
-		stopCh:      make(chan struct{}),
-		status:      *(rss.Status.DeepCopy()),
-		eventsCli:   config.KubeCli.Core().Events(rss.Namespace),
+		execContext: k8sutil.ExecContext{
+			logger: lg,
+			config: config,
+		},
+		rss:       rss,
+		eventCh:   make(chan *clusterEvent, 100),
+		stopCh:    make(chan struct{}),
+		status:    *(rss.Status.DeepCopy()),
+		eventsCli: config.KubeCli.Core().Events(rss.Namespace),
 	}
 
 	resyncPeriod := 5 * time.Minute

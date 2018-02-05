@@ -114,6 +114,10 @@ func MustNewKubeClient() kubernetes.Interface {
 	return kubernetes.NewForConfigOrDie(cfg)
 }
 
+func MustNewKubeClientFromConfig(cfg *rest.Config) kubernetes.Interface {
+	return kubernetes.NewForConfigOrDie(cfg)
+}
+
 func TestConfig() (*rest.Config, error) {
 	cfg, err := clientcmd.BuildConfigFromFlags("https://192.168.124.10:6443", "/Users/beekhof/.kube/config")
 	if err != nil {

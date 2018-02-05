@@ -93,14 +93,14 @@ func (c *Cluster) execute(action string, podName string, silent bool) (string, s
 	rc := 0
 	level := logrus.DebugLevel
 	cmd := c.rss.Spec.Pod.Commands[action]
-	c.logger.Infof("Calling command %v: %v", action, cmd)
 	timeout := parseDuration(cmd.Timeout)
+	c.logger.Infof("Calling '%v' command with timeout %v: %v", action, timeout, cmd.Command)
 
-	stdout, stderr, err := k8sutil.ExecWithOptions(c.logger, c.config.KubeCli, k8sutil.ExecOptions{
+	stdout, stderr, err := k8sutil.ExecWithOptions(c.execContext, k8sutil.ExecOptions{
 		Command:       c.appendPrimaries(cmd.Command),
 		Namespace:     c.rss.Namespace,
 		PodName:       podName,
-		ContainerName: "",
+		ContainerName: "", // Auto-detect
 
 		Timeout: timeout,
 

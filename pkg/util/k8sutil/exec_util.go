@@ -17,6 +17,7 @@ package k8sutil
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"io"
 	"net/url"
 	"strings"
@@ -53,6 +54,12 @@ type ExecOptions struct {
 	Timeout time.Duration
 }
 
+type ExecContext struct {
+	logger *logrus.Entry
+	cli    *kubernetes.Interface
+	config *rest.Config
+}
+
 func GetOutput(pReader *io.PipeReader, result *bytes.Buffer, wg *sync.WaitGroup, tag string) {
 	buf := make([]byte, 1024)
 	logger := util.GetLogger(tag)
@@ -82,55 +89,83 @@ func GetOutput(pReader *io.PipeReader, result *bytes.Buffer, wg *sync.WaitGroup,
 	}()
 }
 
+func setupContext(context *ExecContext) error {
+	var err error
+
+	if context.logger == nil {
+		context.logger = util.GetLogger("exec")
+	}
+
+	if context.config == nil {
+
+		kubeconfig := ""
+		kArg := flag.Lookup("kubeconfig")
+
+		if kArg != nil {
+			kubeconfig = kArg.Value.String()
+		}
+
+		if kubeconfig != "" {
+			context.logger.Info("Using local config")
+			context.config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+
+		} else {
+			context.config, err = InClusterConfig()
+		}
+
+		if err != nil {
+			return fmt.Errorf("No config available: %v", err)
+		}
+	}
+
+	if context.cli == nil {
+		cli := MustNewKubeClientFromConfig(context.config)
+		context.cli = &cli
+	}
+
+	return nil
+}
+
 // ExecWithOptions executes a command in the specified container,
 // returning stdout, stderr and error. `options` allowed for
 // additional parameters to be passed.
-func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options ExecOptions) (string, string, error) {
-	var config *rest.Config
+func ExecWithOptions(context *ExecContext, options ExecOptions) (string, string, error) {
 	const tty = false
+	var stdout, stderr bytes.Buffer
 
-	kubeconfig := ""
-	kArg := flag.Lookup("kubeconfig")
-
-	if kArg != nil {
-		kubeconfig = kArg.Value.String()
-	}
-
-	if kubeconfig != "" {
-		logger.Info("Using local config")
-		config, _ = clientcmd.BuildConfigFromFlags("", kubeconfig)
-
-	} else {
-		config, _ = InClusterConfig()
+	err := setupContext(context)
+	if err != nil {
+		return "", "", err
 	}
 
 	// Sanitise timeouts
 	minTimeout := 10 * time.Second
 	if options.Timeout > minTimeout {
-		config.Timeout = options.Timeout
+		context.config.Timeout = options.Timeout
 
 	} else if options.Timeout > time.Duration(0) {
-		config.Timeout = minTimeout
+		context.config.Timeout = minTimeout
 
 	} else {
-		config.Timeout = 10 * time.Minute
+		context.config.Timeout = 10 * time.Minute
 	}
 
+	cli := *context.cli
 	if options.ContainerName == "" {
 		pod, err := cli.CoreV1().Pods(options.Namespace).Get(options.PodName, metav1.GetOptions{})
 		if err != nil {
-			logger.Errorf("failed to get pod %v: %v", options.PodName, err)
+			context.logger.Errorf("failed to get pod %v: %v", options.PodName, err)
 			return "", "", nil
 		}
 		if len(pod.Spec.Containers) <= 0 {
-			logger.Errorf("No containers in %v", options.PodName)
+			context.logger.Errorf("No containers in %v", options.PodName)
 			return "", "", nil
 		}
 		options.ContainerName = pod.Spec.Containers[0].Name
-		logger.Debugf("Executing in container %v", pod.Spec.Containers[0].Name)
+		context.logger.Debugf("Executing in container %v", pod.Spec.Containers[0].Name)
 	}
 
-	logger.Infof("ExecWithOptions %+v", options)
+	context.logger.Debugf("ExecWithOptions %+v", options)
 
 	// // restClient := f.KubeClient.CoreV1().RESTClient()
 	// restClient, err := restclient.RESTClientFor(config)
@@ -153,9 +188,6 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 		TTY:       tty,
 	}, scheme.ParameterCodec)
 
-	var err error
-	var stdout, stderr bytes.Buffer
-
 	// Read/write code from davidvossel/kubevirt/pkg/virtctl/console/console.go
 
 	stdoutReader, stdoutWriter := io.Pipe()
@@ -168,7 +200,7 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 
 	go func() {
 		defer wg.Done()
-		err := execute("POST", req.URL(), config, options.Stdin, stdoutWriter, stderrWriter, tty)
+		err := execute("POST", req.URL(), context.config, options.Stdin, stdoutWriter, stderrWriter, tty)
 		resChan <- err
 	}()
 
@@ -208,8 +240,8 @@ func execute(method string, url *url.URL, config *rest.Config, stdin io.Reader, 
 
 // ExecCommandInContainerWithFullOutput executes a command in the
 // specified container and return stdout, stderr and error
-func ExecCommandInContainerWithFullOutput(logger *logrus.Entry, cli kubernetes.Interface, namespace string, podName string, containerName string, cmd ...string) (string, string, error) {
-	return ExecWithOptions(logger, cli, ExecOptions{
+func ExecCommandInContainer(context ExecContext, namespace string, podName string, containerName string, cmd ...string) (string, string, error) {
+	return ExecWithOptions(context, ExecOptions{
 		Command:       cmd,
 		Namespace:     namespace,
 		PodName:       podName,
@@ -222,24 +254,7 @@ func ExecCommandInContainerWithFullOutput(logger *logrus.Entry, cli kubernetes.I
 	})
 }
 
-// ExecCommandInContainer executes a command in the specified container.
-func ExecCommandInContainer(logger *logrus.Entry, cli kubernetes.Interface, namespace string, podName string, containerName string, cmd ...string) string {
-	stdout, stderr, err := ExecCommandInContainerWithFullOutput(logger, cli, namespace, podName, containerName, cmd...)
-
-	logger.Infof("Exec stderr: %q", stderr)
-	if err != nil {
-		logger.Errorf("failed to execute command in pod %v, container %v: %v",
-			podName, containerName, err)
-	}
-
-	return stdout
-}
-
-func ExecCommandInPod(logger *logrus.Entry, cli kubernetes.Interface, namespace string, podName string, cmd ...string) string {
-	return ExecCommandInContainer(logger, cli, namespace, podName, "", cmd...)
-}
-
-func ExecCommandInPodWithFullOutput(logger *logrus.Entry, cli kubernetes.Interface,
+func ExecCommandInPod(context ExecContext,
 	namespace string, podName string, cmd ...string) (string, string, error) {
-	return ExecCommandInContainerWithFullOutput(logger, cli, namespace, podName, "", cmd...)
+	return ExecCommandInContainer(context, namespace, podName, "", cmd...)
 }
