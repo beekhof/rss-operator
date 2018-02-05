@@ -15,10 +15,57 @@
 package cluster
 
 import (
-	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
+	"fmt"
 
+	"github.com/beekhof/galera-operator/pkg/util"
+	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
+	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
+
+	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 )
+
+func (c *Cluster) execute(action string, podName string, silent bool) (string, string, error) {
+	level := logrus.DebugLevel
+	cmd := c.cluster.Spec.Pod.Commands[action]
+
+	stdout, stderr, err := k8sutil.ExecWithOptions(c.logger, c.config.KubeCli, k8sutil.ExecOptions{
+		Command:       c.appendPrimaries(cmd.Command),
+		Namespace:     c.cluster.Namespace,
+		PodName:       podName,
+		ContainerName: "",
+
+		Timeout: cmd.Timeout,
+
+		CaptureStdout:      true,
+		CaptureStderr:      true,
+		PreserveWhitespace: true,
+	})
+
+	if !silent {
+		if err != nil {
+			level = logrus.ErrorLevel
+			c.logger.Errorf("Application %v on pod %v failed: %v", action, podName, err)
+		}
+		util.LogOutput(c.logger.WithField(action, "stdout"), level, podName, stdout)
+		util.LogOutput(c.logger.WithField(action, "stderr"), level, podName, stderr)
+	}
+
+	if err != nil {
+		return stdout, stderr, fmt.Errorf("Application %v on pod %v failed: %v", action, podName, err)
+	}
+	return stdout, stderr, nil
+}
+
+func (c *Cluster) appendPrimaries(cmd []string) []string {
+	for _, m := range c.peers {
+		if m.Online && m.AppPrimary {
+			cmd = append(cmd, fmt.Sprintf("%v.%v", m.Name, c.cluster.ServiceName(true)))
+		}
+	}
+	return cmd
+
+}
 
 func (c *Cluster) memberOffline(m *etcdutil.Member) {
 	if m.Online {

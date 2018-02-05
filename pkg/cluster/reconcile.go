@@ -18,9 +18,9 @@ import (
 	"errors"
 	"fmt"
 
+	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
 	"github.com/beekhof/galera-operator/pkg/util"
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
-	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 	"github.com/sirupsen/logrus"
 
 	"k8s.io/api/core/v1"
@@ -69,15 +69,15 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 		} else if !m.AppRunning || !m.Online {
 			continue
 
-		} else if len(c.cluster.Spec.Pod.Commands.Status) > 0 {
+		} else if _, ok := c.cluster.Spec.Pod.Commands[api.StatusCommandKey]; ok {
 			action := "check"
 			level := logrus.DebugLevel
 
-			stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.Pod.Commands.Status...)
+			stdout, stderr, err := c.execute(api.StatusCommandKey, m.Name, true)
 			if err != nil {
-				level = logrus.ErrorLevel
 				if m.AppRunning {
 					m.AppFailed = true
+					level = logrus.ErrorLevel
 					c.logger.Errorf("check:  pod %v: exec failed: %v", m.Name, err)
 				} else {
 					c.logger.Warnf("check:  pod %v: exec failed: %v", m.Name, err)

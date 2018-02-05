@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/beekhof/galera-operator/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -48,6 +49,8 @@ type ExecOptions struct {
 	CaptureStderr bool
 	// If false, whitespace in std{err,out} will be removed.
 	PreserveWhitespace bool
+
+	Timeout *time.Duration
 }
 
 func GetOutput(pReader *io.PipeReader, result *bytes.Buffer, wg *sync.WaitGroup, tag string) {
@@ -83,7 +86,6 @@ func GetOutput(pReader *io.PipeReader, result *bytes.Buffer, wg *sync.WaitGroup,
 // returning stdout, stderr and error. `options` allowed for
 // additional parameters to be passed.
 func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options ExecOptions) (string, string, error) {
-	logger.Infof("ExecWithOptions %+v", options)
 	var config *rest.Config
 	const tty = false
 
@@ -102,6 +104,12 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 		config, _ = InClusterConfig()
 	}
 
+	if options.Timeout != nil {
+		config.Timeout = *options.Timeout
+	} else {
+		config.Timeout = 10 * time.Minute
+	}
+
 	if options.ContainerName == "" {
 		pod, err := cli.CoreV1().Pods(options.Namespace).Get(options.PodName, metav1.GetOptions{})
 		if err != nil {
@@ -113,8 +121,10 @@ func ExecWithOptions(logger *logrus.Entry, cli kubernetes.Interface, options Exe
 			return "", "", nil
 		}
 		options.ContainerName = pod.Spec.Containers[0].Name
-		logger.Infof("Executing in container %v", pod.Spec.Containers[0].Name)
+		logger.Debugf("Executing in container %v", pod.Spec.Containers[0].Name)
 	}
+
+	logger.Infof("ExecWithOptions %+v", options)
 
 	// // restClient := f.KubeClient.CoreV1().RESTClient()
 	// restClient, err := restclient.RESTClientFor(config)

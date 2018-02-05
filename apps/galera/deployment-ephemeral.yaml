@@ -56,11 +56,17 @@ spec:
   pod:
     antiAffinity: true
     commands:
-      sequence: ["/sequence.sh"]
-      primary: ["/start.sh"]
-      seed: ["/seed.sh"]
-      status: ["/check.sh"]
-      stop: ["/stop.sh"]
+      sequence: 
+        command: ["/sequence.sh"]
+      primary: 
+        command: ["/start.sh"]
+      seed: 
+        command: ["/seed.sh"]
+      status: 
+        timeout: 60
+        command: ["/check.sh"]
+      stop: 
+        command: ["/stop.sh"]
     containers:
     - name: rss
       image: quay.io/beekhof/galera:latest

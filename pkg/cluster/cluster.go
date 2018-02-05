@@ -256,7 +256,7 @@ func (c *Cluster) create() error {
 }
 
 func (c *Cluster) Delete() {
-	c.logger.Info("cluster is deleted by user")
+	c.logger.Info("cluster deleted by user")
 	close(c.stopCh)
 }
 
@@ -276,7 +276,7 @@ func (c *Cluster) run() {
 
 	c.status.SetPhase(api.ClusterPhaseRunning)
 	c.updateCRStatus("initial")
-	c.logger.Infof("start running...")
+	c.logger.Debugf("start running...")
 
 	ctx := context.TODO()
 	go c.cmapInf.Run(ctx.Done()) //c.stopCh)

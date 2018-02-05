@@ -19,11 +19,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/beekhof/galera-operator/pkg/util"
+	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
-	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
 )
 
 func appendNonNil(errors []error, err error) []error {
@@ -47,8 +44,9 @@ func combineErrors(errors []error) error {
 }
 
 func (c *Cluster) replicate() error {
-	errors := []error{}
+	defer c.updateCRStatus("replicate")
 
+	errors := []error{}
 	replicas := c.cluster.Spec.GetNumReplicas()
 	primaries := c.cluster.Spec.GetNumPrimaries()
 
@@ -74,7 +72,7 @@ func (c *Cluster) replicate() error {
 			if c.peers.AppPrimaries() != 0 {
 				break
 			}
-			c.logger.Warnf("Seed %v failed, %v remaining", len(seeds)-n)
+			c.logger.Warnf("Seed %v failed, %v remaining", n, len(seeds)-n)
 		}
 
 		if c.peers.AppPrimaries() == 0 {
@@ -139,7 +137,6 @@ func (c *Cluster) replicate() error {
 		c.status.RestoreReplicas = replicas
 	}
 
-	c.updateCRStatus("replicate")
 	c.logger.Infof("Replication complete: %v of %v primaries, and %v of %v members available",
 		c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), replicas)
 	return nil
@@ -147,12 +144,8 @@ func (c *Cluster) replicate() error {
 
 func (c *Cluster) detectMembers() {
 	for _, m := range c.peers {
-		stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(c.logger, c.config.KubeCli, c.cluster.Namespace, m.Name, c.cluster.Spec.Pod.Commands.Sequence...)
-
-		if err != nil {
-			c.logger.Errorf("discover:  pod %v: exec failed: %v", m.Name, err)
-
-		} else {
+		stdout, _, err := c.execute(api.SequenceCommandKey, m.Name, false)
+		if err == nil {
 			if stdout != "" {
 				c.peers[m.Name].SEQ, err = strconv.ParseUint(stdout, 10, 64)
 				if err != nil {
@@ -163,9 +156,6 @@ func (c *Cluster) detectMembers() {
 				c.logger.WithField("pod", m.Name).Infof("discover:  pod %v sequence now: %v", m.Name, c.peers[m.Name].SEQ)
 			}
 		}
-
-		util.LogOutput(c.logger.WithField("sequence", "stdout"), logrus.InfoLevel, m.Name, stdout)
-		util.LogOutput(c.logger.WithField("sequence", "stderr"), logrus.InfoLevel, m.Name, stderr)
 	}
 }
 
@@ -208,7 +198,7 @@ func chooseMember(c *Cluster) (*etcdutil.Member, error) {
 		} else if m.SEQ > bestPeer.SEQ {
 			bestPeer = m
 		} else if strings.Compare(m.Name, bestPeer.Name) < 0 {
-			// Prefer sts members towards the start of the range to be the seed
+			// Prefer sts members towards the start of the range to be a primary
 			bestPeer = m
 		}
 	}
@@ -236,63 +226,38 @@ func chooseCurrentPrimary(c *Cluster) (*etcdutil.Member, error) {
 		}
 	}
 	if bestPeer == nil {
-		return nil, fmt.Errorf("No peers remaining")
+		return nil, fmt.Errorf("No primaries remaining")
 	}
 	return bestPeer, nil
 }
 
-func (c *Cluster) execCommand(podName string, stdin string, cmd ...string) (string, string, error) {
-	return k8sutil.ExecWithOptions(c.logger, c.config.KubeCli, k8sutil.ExecOptions{
-		Command:       cmd,
-		Namespace:     c.cluster.Namespace,
-		PodName:       podName,
-		ContainerName: "",
+func (c *Cluster) startCommand(asPrimary bool, primaries int) string {
 
-		CaptureStdout:      true,
-		CaptureStderr:      true,
-		PreserveWhitespace: false,
-	})
-}
+	if asPrimary && primaries == 0 {
+		if _, ok := c.cluster.Spec.Pod.Commands[api.SeedCommandKey]; ok {
+			return api.SeedCommandKey
+		}
 
-func (c *Cluster) appendPrimaries(cmd []string) []string {
-	for _, m := range c.peers {
-		if m.Online && m.AppPrimary {
-			cmd = append(cmd, fmt.Sprintf("%v.%v", m.Name, c.cluster.ServiceName(true)))
+	} else if !asPrimary {
+		if _, ok := c.cluster.Spec.Pod.Commands[api.SecondaryCommandKey]; ok {
+			return api.SecondaryCommandKey
 		}
 	}
-	return cmd
 
+	return api.PrimaryCommandKey
 }
+
 func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
-	action := "primary"
-	startCmd := c.cluster.Spec.Pod.Commands.Primary
-
-	if asPrimary && c.peers.AppPrimaries() == 0 && len(c.cluster.Spec.Pod.Commands.Seed) > 0 {
-		action = "seed"
-		startCmd = c.cluster.Spec.Pod.Commands.Seed
-	} else if !asPrimary && len(c.cluster.Spec.Pod.Commands.Secondary) > 0 {
-		action = "secondary"
-		startCmd = c.cluster.Spec.Pod.Commands.Secondary
-	}
-
-	startCmd = c.appendPrimaries(startCmd)
-
+	action := c.startCommand(asPrimary, c.peers.AppPrimaries())
 	if asPrimary && c.peers.AppPrimaries() == 0 {
 		c.logger.Infof("Seeding from pod %v: %v", m.Name, m.SEQ)
 	}
-	stdout, stderr, err := c.execCommand(m.Name, "beekhof", startCmd...)
-	level := logrus.InfoLevel
-	if err != nil {
-		level = logrus.ErrorLevel
-		c.logger.Errorf("%v: pod %v: exec failed: %v", action, m.Name, err)
-	}
-	util.LogOutput(c.logger.WithField(action, "stdout"), level, m.Name, stdout)
-	util.LogOutput(c.logger.WithField(action, "stderr"), level, m.Name, stderr)
 
+	_, _, err := c.execute(action, m.Name, false)
 	if err != nil {
 		m.AppFailed = true
 		m.Failures += 1
-		return fmt.Errorf("Could not create app %v on %v: %v", action, m.Name, err)
+		return err
 	}
 
 	c.logger.Infof("Created app %v on %v", action, m.Name)
@@ -303,24 +268,15 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 }
 
 func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
-	stdout, stderr, err := c.execCommand(m.Name, "", c.cluster.Spec.Pod.Commands.Stop...)
-	level := logrus.DebugLevel
-	if err != nil {
-		level = logrus.ErrorLevel
-		c.logger.Errorf("stop: pod %v: exec failed: %v", m.Name, err)
-	}
-	action := "stop"
-	util.LogOutput(c.logger.WithField(action, "stdout"), level, m.Name, stdout)
-	util.LogOutput(c.logger.WithField(action, "stderr"), level, m.Name, stderr)
+	_, _, err := c.execute(api.StopCommandKey, m.Name, false)
 	if err != nil {
 		m.AppFailed = true
 		m.Failures += 1
-		return fmt.Errorf("Could not stop %v: %v", m.Name, err)
-
-	} else {
-		m.AppPrimary = false
-		m.AppRunning = false
-		m.AppFailed = false
+		return err
 	}
+
+	m.AppPrimary = false
+	m.AppRunning = false
+	m.AppFailed = false
 	return nil
 }

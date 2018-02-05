@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
+	// "github.com/golang/glog"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -32,6 +32,15 @@ var (
 	// TODO: move validation code into separate package.
 	ErrBackupUnsetRestoreSet = errors.New("spec: backup policy must be set if restore policy is set")
 	minClusterSize           = 3
+)
+
+const (
+	StatusCommandKey    = "status"
+	SequenceCommandKey  = "sequence"
+	StopCommandKey      = "stop"
+	SeedCommandKey      = "seed"
+	PrimaryCommandKey   = "primary"
+	SecondaryCommandKey = "secondary"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -55,6 +64,11 @@ type ReplicatedStatefulSet struct {
 	Status            ClusterStatus `json:"status"`
 }
 
+type ReplicationCommand struct {
+	Timeout *time.Duration `json:"timeout,omitempty"`
+	Command []string       `json:"command"`
+}
+
 func (c *ReplicatedStatefulSet) AsOwner() metav1.OwnerReference {
 	trueVar := true
 	return metav1.OwnerReference{
@@ -64,15 +78,6 @@ func (c *ReplicatedStatefulSet) AsOwner() metav1.OwnerReference {
 		UID:        c.UID,
 		Controller: &trueVar,
 	}
-}
-
-type ClusterCommands struct {
-	Status    []string `json:"status"`
-	Sequence  []string `json:"sequence"`
-	Stop      []string `json:"stop"`
-	Seed      []string `json:"seed,omitempty"`
-	Primary   []string `json:"primary"`
-	Secondary []string `json:"secondary,omitempty"`
 }
 
 type ServicePolicy struct {
@@ -100,7 +105,8 @@ type PodPolicy struct {
 	Volumes              []v1.Volume                `json:"volumes,omitempty"`
 	VolumeClaimTemplates []v1.PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty"`
 
-	Commands ClusterCommands `json:"commands"`
+	Commands map[string]ReplicationCommand `json:"commands"`
+	//./vendor/google.golang.org/genproto/googleapis/devtools/cloudbuild/v1/cloudbuild.pb.go:939:	FileHashes map[string]*FileHashes `protobuf:"bytes,4,rep,name=file_hashes,json=fileHashes" json:"file_hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 }
 
 type ClusterSpec struct {
@@ -175,6 +181,10 @@ func (c *ClusterSpec) GetServicePorts() []v1.ServicePort {
 	}
 }
 
+func (rss *ReplicatedStatefulSet) commandForKey(key string) (*ReplicationCommand, error) {
+	return nil, fmt.Errorf("%v not found", key)
+}
+
 func (rss *ReplicatedStatefulSet) ServiceName(internal bool) string {
 	var name string
 	if rss.Spec.Service.ServiceName != "" {
@@ -195,7 +205,16 @@ func (rss *ReplicatedStatefulSet) Validate() error {
 		}
 	}
 
-	glog.Error("Validating build with updated PodSpec")
+	if rss.Spec.Pod.Commands == nil {
+		return fmt.Errorf("Validate: no cluster commands specified")
+	}
+
+	for _, key := range []string{SequenceCommandKey, StopCommandKey, PrimaryCommandKey} {
+		if _, ok := rss.Spec.Pod.Commands[key]; !ok {
+			return fmt.Errorf("Validate: no %v command specified", key)
+		}
+	}
+	//	glog.Error("Validating build with updated PodSpec")
 
 	for k := range rss.Labels {
 		if k == "app" || strings.HasPrefix(k, "rss") {
