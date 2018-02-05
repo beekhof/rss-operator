@@ -410,9 +410,19 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 	oldsts := sts.DeepCopy()
 
 	if c.cluster.Spec.GetNumReplicas() != oldSpec.GetNumReplicas() {
-		c.logger.Infof("Changing the Replica count for %v from %v to %v", stsname, oldSpec.GetNumReplicas(), c.cluster.Spec.GetNumReplicas())
-		intVal := int32(c.cluster.Spec.GetNumReplicas())
-		sts.Spec.Replicas = &intVal
+
+		if oldSpec.GetNumReplicas() == 0 && c.cluster.Spec.GetNumReplicas() < c.cluster.Status.RestoreReplicas {
+			// c.logger.Infof("Replica count (%v) for %v is too low (should be %v or higher)", c.cluster.Spec.GetNumReplicas(), stsname, c.cluster.Status.RestoreReplicas)
+			err := fmt.Errorf("Replica count (%v) for %v is too low (should be %v or higher)", c.cluster.Spec.GetNumReplicas(), stsname, c.cluster.Status.RestoreReplicas)
+			c.cluster.Spec.Replicas = c.cluster.Status.RestoreReplicas
+			return err
+
+		} else {
+			c.logger.Infof("Changing the Replica count for %v from %v to %v", stsname, oldSpec.GetNumReplicas(), c.cluster.Spec.GetNumReplicas())
+			intVal := int32(c.cluster.Spec.GetNumReplicas())
+			sts.Spec.Replicas = &intVal
+		}
+
 	}
 
 	patchdata, err := k8sutil.CreatePatch(oldsts, sts, v1beta1.StatefulSet{})

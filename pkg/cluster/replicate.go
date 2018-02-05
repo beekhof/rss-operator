@@ -36,13 +36,14 @@ func appendNonNil(errors []error, err error) []error {
 func (c *Cluster) replicate() error {
 	errors := []error{}
 
+	replicas := c.cluster.Spec.GetNumReplicas()
 	primaries := c.cluster.Spec.GetNumPrimaries()
 
 	if c.peers.AppPrimaries() == 0 {
 		c.detectMembers()
 	}
 
-	if c.peers.AppMembers() > c.cluster.Spec.GetNumReplicas() {
+	if c.peers.AppMembers() > replicas {
 		return fmt.Errorf("Waiting for %v peers to be stopped", c.peers.AppMembers()-primaries)
 	}
 
@@ -80,8 +81,8 @@ func (c *Cluster) replicate() error {
 	}
 
 	if len(errors) == 0 {
-		for c.peers.AppMembers() < c.cluster.Spec.GetNumReplicas() {
-			c.logger.Infof("Starting %v secondaries", c.cluster.Spec.GetNumReplicas()-c.peers.AppMembers())
+		for c.peers.AppMembers() < replicas {
+			c.logger.Infof("Starting %v secondaries", replicas-c.peers.AppMembers())
 
 			seed, err := chooseSeed(c)
 			errors = appendNonNil(errors, err)
@@ -95,10 +96,13 @@ func (c *Cluster) replicate() error {
 
 	if len(errors) != 0 {
 		return fmt.Errorf("%v of %v primaries, and %v of %v members available: %v",
-			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), c.cluster.Spec.GetNumReplicas(), strings.Join(errors, ", "))
+			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), replicas, strings.Join(errors, ", "))
+	} else if replicas > 0 {
+		c.status.RestoreReplicas = replicas
 	}
+
 	c.logger.Infof("Replication complete: %v of %v primaries, and %v of %v members available",
-		c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), c.cluster.Spec.GetNumReplicas())
+		c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), replicas)
 	return nil
 }
 
