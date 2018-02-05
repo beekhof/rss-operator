@@ -161,8 +161,8 @@ func (rss *ReplicatedStatefulSet) AsOwner() metav1.OwnerReference {
 	return metav1.OwnerReference{
 		APIVersion: SchemeGroupVersion.String(),
 		Kind:       ReplicatedStatefulSetResourceKind,
-		Name:       c.Name,
-		UID:        c.UID,
+		Name:       rss.Name,
+		UID:        rss.UID,
 		Controller: &trueVar,
 	}
 }
@@ -203,7 +203,6 @@ func (rss *ReplicatedStatefulSet) Validate() error {
 			return errors.New(fmt.Sprintf("Validate: definition contains reserved label: %v=%v", k, rss.Labels[k]))
 		} else if strings.HasPrefix(k, "rss") {
 			return errors.New(fmt.Sprintf("Validate: definition contains reserved value: %v=%v", k, rss.Labels[k]))
-		}
 		}
 	}
 
