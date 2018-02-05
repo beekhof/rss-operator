@@ -128,9 +128,7 @@ func New(config Config, cl *api.ReplicatedStatefulSet) *Cluster {
 			if c.status.Phase != api.ClusterPhaseFailed {
 				c.status.SetReason(err.Error())
 				c.status.SetPhase(api.ClusterPhaseFailed)
-				if err := c.updateCRStatus(); err != nil {
-					c.logger.Errorf("failed to update cluster phase (%v): %v", api.ClusterPhaseFailed, err)
-				}
+				c.updateCRStatus("setup")
 			}
 			c.logger.Infof("exiting early %v", c.status.Phase)
 			return
@@ -216,7 +214,7 @@ func (c *Cluster) ruleFileConfigMaps(cl *api.ReplicatedStatefulSet) ([]*v1.Confi
 func (c *Cluster) create() error {
 	c.status.SetPhase(api.ClusterPhaseCreating)
 
-	if err := c.updateCRStatus(); err != nil {
+	if err := c.updateCRStatus("create"); err != nil {
 		return fmt.Errorf("cluster create: failed to update cluster phase (%v): %v", api.ClusterPhaseCreating, err)
 	}
 
@@ -277,9 +275,7 @@ func (c *Cluster) run() {
 	//	c.status.ServiceName = k8sutil.ClientServiceName(c.cluster.Name)
 
 	c.status.SetPhase(api.ClusterPhaseRunning)
-	if err := c.updateCRStatus(); err != nil {
-		c.logger.Warningf("update initial CR status failed: %v", err)
-	}
+	c.updateCRStatus("initial")
 	c.logger.Infof("start running...")
 
 	ctx := context.TODO()
@@ -323,9 +319,6 @@ func (c *Cluster) run() {
 			}
 
 			c.updateMemberStatus(c.peers, k8sutil.GetPodNames(running))
-			if err := c.updateCRStatus(); err != nil {
-				c.logger.Warningf("periodic update CR status failed: %v", err)
-			}
 			if len(pending) > 0 {
 				// Pod startup might take long, e.g. pulling image. It would deterministically become running or succeeded/failed later.
 				c.logger.Infof("skip reconciliation: running (%v), pending (%v)", k8sutil.GetPodNames(running), k8sutil.GetPodNames(pending))
@@ -356,9 +349,6 @@ func (c *Cluster) run() {
 			if rerr != nil {
 				c.logger.Errorf("failed to reconcile: %v", rerr)
 				break
-			}
-			if err := c.updateCRStatus(); err != nil {
-				c.logger.Warningf("periodic update CR status failed: %v", err)
 			}
 
 			rerr = c.replicate()
@@ -549,9 +539,11 @@ func (c *Cluster) updateMemberStatus(members etcdutil.MemberSet, running []strin
 	c.status.Members.Unready = unready
 	c.status.Members.Primary = primary
 	c.status.Members.Secondary = secondary
+
+	c.updateCRStatus("updateMemberStatus")
 }
 
-func (c *Cluster) updateCRStatus() error {
+func (c *Cluster) updateCRStatus(prefix string) error {
 	if reflect.DeepEqual(c.cluster.Status, c.status) {
 		return nil
 	}
@@ -560,7 +552,8 @@ func (c *Cluster) updateCRStatus() error {
 	newCluster.Status = c.status
 	newCluster, err := c.config.EtcdCRCli.ClusterlabsV1alpha1().ReplicatedStatefulSets(c.cluster.Namespace).Update(c.cluster)
 	if err != nil {
-		return fmt.Errorf("failed to update CR status: %v", err)
+		c.logger.Warningf("%v: failed to update CR status: %v", prefix, err)
+		return fmt.Errorf("%v: failed to update CR status: %v", prefix, err)
 	}
 
 	c.cluster = newCluster
@@ -574,7 +567,7 @@ func (c *Cluster) reportFailedStatus() {
 	retryInterval := 5 * time.Second
 	f := func() (bool, error) {
 		c.status.SetPhase(api.ClusterPhaseFailed)
-		err := c.updateCRStatus()
+		err := c.updateCRStatus("failed")
 		if err == nil || k8sutil.IsKubernetesResourceNotFoundError(err) {
 			return true, nil
 		}

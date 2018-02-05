@@ -109,6 +109,7 @@ func (c *Cluster) replicate() error {
 		c.status.RestoreReplicas = replicas
 	}
 
+	c.updateCRStatus("replicate")
 	c.logger.Infof("Replication complete: %v of %v primaries, and %v of %v members available",
 		c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), replicas)
 	return nil

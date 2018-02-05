@@ -97,6 +97,8 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 		}
 	}
 	c.status.SetReadyCondition()
+	c.updateCRStatus("reconcile")
+
 	return err
 }
 
