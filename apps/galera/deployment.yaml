@@ -90,7 +90,7 @@ metadata:
     kind: galera
 spec:
   replicas: 5
-  chaosLevel: 5
+  chaosLevel: 3
   pod:
     antiAffinity: true
     commands:
