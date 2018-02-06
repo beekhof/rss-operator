@@ -126,18 +126,19 @@ func (c *Cluster) replicate() []error {
 
 func (c *Cluster) detectMembers() {
 	for _, m := range c.peers {
-		stdout, _, err, _ := c.execute(api.SequenceCommandKey, m.Name, false)
+		raw, _, err, _ := c.execute(api.SequenceCommandKey, m.Name, true)
 		if err == nil {
-			stdout = strings.TrimSpace(stdout)
-			if stdout != "" {
+			stdout = strings.TrimSpace(raw)
+			if stdout == "" {
+				c.logger.WithField("pod", m.Name).Warnf("discover:  no output for pod %v", m.Name)
+
+			} else {
 				c.peers[m.Name].SEQ, err = strconv.ParseUint(stdout, 10, 64)
 				if err != nil {
 					c.logger.WithField("pod", m.Name).Errorf("discover:  pod %v: could not parse '%v' into uint64: %v", m.Name, stdout, err)
 				}
-
-			} else {
-				c.logger.WithField("pod", m.Name).Infof("discover:  pod %v sequence now: %v", m.Name, c.peers[m.Name].SEQ)
 			}
+			c.logger.WithField("pod", m.Name).Infof("discover:  pod %v sequence now: %v", m.Name, c.peers[m.Name].SEQ)
 		}
 	}
 }
