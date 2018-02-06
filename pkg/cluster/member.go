@@ -186,6 +186,7 @@ func (c *Cluster) podsToMemberSet(pods []*v1.Pod, sc bool) etcdutil.MemberSet {
 	members := etcdutil.MemberSet{}
 	for _, pod := range pods {
 		m := c.newMember(pod.Name, pod.Namespace)
+		m.Online = true
 		members.Add(m)
 	}
 	return members

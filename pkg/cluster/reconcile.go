@@ -68,13 +68,35 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 			c.logger.Warnf("reconcile: Cleaning up pod %v", m.Name)
 			errors = appendNonNil(errors, c.stopAppMember(m))
 
-		} else if !m.AppRunning {
-			c.logger.Infof("reconcile: Skipping stopped pod %v", m.Name)
-			continue
+		} else {
+			_, _, err, rc := c.execute(api.StatusCommandKey, m.Name, false)
 
-		} else if _, ok := c.rss.Spec.Pod.Commands[api.StatusCommandKey]; ok {
-			_, _, err, _ := c.execute(api.StatusCommandKey, m.Name, false)
-			if err != nil {
+			switch rc {
+			case 0:
+				if !m.AppRunning {
+					c.logger.Infof("reconcile: Detected active applcation on %v: %v", m.Name, err)
+				} else if m.AppPrimary {
+					c.logger.Warnf("reconcile: Detected demoted primary on %v: %v", m.Name, err)
+				}
+				m.AppRunning = true
+				m.AppPrimary = false
+			case 7:
+				if m.AppRunning {
+					c.logger.Warnf("reconcile: Detected stopped applcation on %v: %v", m.Name, err)
+				}
+				m.AppRunning = false
+				m.AppPrimary = false
+			case 8:
+				if !m.AppRunning {
+					c.logger.Infof("reconcile: Detected active primary applcation on %v: %v", m.Name, err)
+				} else if !m.AppPrimary {
+					c.logger.Warnf("reconcile: Detected promoted secondary on %v: %v", m.Name, err)
+				}
+				m.AppPrimary = true
+				m.AppRunning = true
+			default:
+				c.logger.Errorf("reconcile: Check failed on %v: %v", m.Name, err)
+				m.AppRunning = true
 				m.AppFailed = true
 			}
 		}
@@ -106,6 +128,12 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 // 4. If len(L) < len(members)/2 + 1, return quorum lost error.
 // 5. Add one missing member. END.
 func (c *Cluster) reconcileMembers(running etcdutil.MemberSet) error {
+
+	// On controller restore, we could have "members == nil"
+	if c.peers == nil {
+		c.peers = etcdutil.MemberSet{}
+	}
+
 	c.logger.Infof(" current membership: %s", running)
 	c.logger.Infof("previous membership: %s", c.peers)
 

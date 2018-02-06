@@ -330,6 +330,7 @@ func (c *Cluster) run() {
 				reconcileFailed.WithLabelValues("not all pods are running").Inc()
 				continue
 			}
+
 			if len(running) == 0 && c.rss.Spec.GetNumReplicas() == 0 {
 				// TODO: More to do here?
 				if c.rss.Spec.GetNumReplicas() == 0 {
@@ -340,11 +341,6 @@ func (c *Cluster) run() {
 
 				c.updateMembers(etcdutil.MemberSet{})
 				break
-			}
-
-			// On controller restore, we could have "members == nil"
-			if c.peers == nil {
-				errors = appendNonNil(errors, c.updateMembers(c.podsToMemberSet(running, c.isSecureClient())))
 			}
 
 			errors = appendAllNonNil(errors, c.reconcile(running))

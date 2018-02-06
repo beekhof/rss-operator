@@ -191,7 +191,7 @@ func (rss *ReplicatedStatefulSet) Validate() error {
 		return fmt.Errorf("Validate: no cluster commands specified")
 	}
 
-	for _, key := range []string{SequenceCommandKey, StopCommandKey, PrimaryCommandKey} {
+	for _, key := range []string{SequenceCommandKey, StatusCommandKey, StopCommandKey, PrimaryCommandKey} {
 		if _, ok := rss.Spec.Pod.Commands[key]; !ok {
 			return fmt.Errorf("Validate: no %v command specified", key)
 		}
