@@ -128,6 +128,7 @@ func (c *Cluster) detectMembers() {
 	for _, m := range c.peers {
 		raw, _, err, _ := c.execute(api.SequenceCommandKey, m.Name, true)
 		if err == nil {
+			last := c.peers[m.Name].SEQ
 			stdout := strings.TrimSpace(raw)
 			if stdout == "" {
 				c.logger.WithField("pod", m.Name).Warnf("discover:  no output for pod %v", m.Name)
@@ -138,7 +139,9 @@ func (c *Cluster) detectMembers() {
 					c.logger.WithField("pod", m.Name).Errorf("discover:  pod %v: could not parse '%v' into uint64: %v", m.Name, stdout, err)
 				}
 			}
-			c.logger.WithField("pod", m.Name).Infof("discover:  pod %v sequence now: %v", m.Name, c.peers[m.Name].SEQ)
+			if last != c.peers[m.Name].SEQ {
+				c.logger.WithField("pod", m.Name).Infof("discover:  pod %v sequence now: %v", m.Name, c.peers[m.Name].SEQ)
+			}
 		}
 	}
 }
