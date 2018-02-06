@@ -87,7 +87,7 @@ func (c *Cluster) replicate() error {
 
 	if len(errors) == 0 {
 		for c.peers.AppPrimaries() < primaries {
-			c.logger.Infof("Starting %v primaries", primaries-c.peers.AppPrimaries())
+			c.logger.Infof("Starting %v more primaries", primaries-c.peers.AppPrimaries())
 
 			seed, err := chooseMember(c)
 			errors = appendNonNil(errors, err)

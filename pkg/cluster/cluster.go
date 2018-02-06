@@ -96,7 +96,7 @@ type Cluster struct {
 
 func New(config Config, rss *api.ReplicatedStatefulSet) *Cluster {
 	lg := util.GetLogger("cluster").WithField("cluster-name", rss.Name)
-	lg.Infof("Creating %v/%v", rss.Name, rss.GenerateName)
+	lg.Infof("Creating %v", rss.Name)
 
 	c := &Cluster{
 		logger:      lg,
@@ -127,7 +127,7 @@ func New(config Config, rss *api.ReplicatedStatefulSet) *Cluster {
 
 	// rss.Spec defaults set in makeStatefulSet(), should happen in ClusterSpec.Cleanup()
 	go func() {
-		c.logger.Infof("setting up cluster")
+		c.logger.Debugf("setting up cluster")
 		if err := c.setup(); err != nil {
 			c.logger.Errorf("cluster failed to setup: %v", err)
 			if c.status.Phase != api.ClusterPhaseFailed {
@@ -138,7 +138,7 @@ func New(config Config, rss *api.ReplicatedStatefulSet) *Cluster {
 			c.logger.Infof("exiting early %v", c.status.Phase)
 			return
 		}
-		c.logger.Infof("running")
+		c.logger.Debugf("running")
 		c.run()
 	}()
 
@@ -170,7 +170,7 @@ func (c *Cluster) setup() error {
 		}
 	}
 
-	c.logger.Infof("creating cluster: %v, %v", shouldCreateCluster, c.status.Phase)
+	c.logger.Debugf("creating cluster: %v, %v", shouldCreateCluster, c.status.Phase)
 	if shouldCreateCluster {
 		return c.create()
 	}
@@ -244,7 +244,7 @@ func (c *Cluster) create() error {
 		return errors.Wrap(err, "creating empty config file failed")
 	}
 
-	c.logger.Infof("Creating cluster STS in %v", c.rss.Namespace)
+	c.logger.Debugf("Creating cluster STS in %v", c.rss.Namespace)
 	sts, err := makeStatefulSet(*c.rss, nil, &c.config, ruleFileConfigMaps)
 	if err != nil {
 		return errors.Wrap(err, "creating statefulset definition failed")
@@ -255,7 +255,7 @@ func (c *Cluster) create() error {
 		return errors.Wrap(err, "creating statefulset failed")
 	}
 
-	c.LogObject("creating cluster with Spec:", c.rss.Spec)
+	//c.LogObject("creating cluster with Spec:", c.rss.Spec)
 	//util.JsonLogObject(c.logger, sts, "StatefulSet")
 	return nil
 }

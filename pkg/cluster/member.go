@@ -46,7 +46,6 @@ func parseExitCode(err error) int {
 		logrus.Errorf("No integer in '%v'", sub)
 		return 1
 	}
-	logrus.Errorf("Parsed '%v' into %v", sub, val)
 	return int(val)
 }
 
