@@ -71,6 +71,11 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 		} else {
 			_, _, err, rc := c.execute(api.StatusCommandKey, m.Name, false)
 
+			if _, ok := c.rss.Spec.Pod.Commands[api.SecondaryCommandKey]; rc == 0 && !ok {
+				// Secondaries are not in use, map to primary
+				rc = 8
+			}
+
 			switch rc {
 			case 0:
 				if !m.AppRunning {
