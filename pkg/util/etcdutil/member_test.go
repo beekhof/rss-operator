@@ -23,8 +23,8 @@ func TestMemberSetIsEqual(t *testing.T) {
 		ms1, ms2 MemberSet
 		wEqual   bool
 	}{{
-		ms1:    NewMemberSet(ma, mb),
-		ms2:    NewMemberSet(ma, mb),
+		ms1:    NewMemberSet(mb, ma),
+		ms2:    NewMemberSet(mb, ma),
 		wEqual: true,
 	}, {
 		ms1:    NewMemberSet(ma, mb),
@@ -63,8 +63,8 @@ func TestMemberDiff(t *testing.T) {
 		ms1, ms2 MemberSet
 		wDiff    MemberSet
 	}{{
-		ms1:   NewMemberSet(ma, mb),
-		ms2:   NewMemberSet(ma, mb),
+		ms1:   NewMemberSet(mb, ma),
+		ms2:   NewMemberSet(mb, ma),
 		wDiff: MemberSet{},
 	}, {
 		ms1:   NewMemberSet(ma, mb),
@@ -99,6 +99,8 @@ func TestMemberDiff(t *testing.T) {
 		diff := tt.ms1.Diff(tt.ms2)
 		if !diff.IsEqual(tt.wDiff) {
 			t.Errorf("#%d: diff get=%v, want=%v, sets: %v, %v", i, diff, tt.wDiff, tt.ms1, tt.ms2)
+		} else {
+			t.Logf("#%d: diff get=%v, want=%v, sets: %v, %v", i, diff, tt.wDiff, tt.ms1, tt.ms2)
 		}
 	}
 }

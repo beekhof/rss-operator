@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -60,6 +61,17 @@ func (m *Member) peerScheme() string {
 		return "https"
 	}
 	return "http"
+}
+
+func (m *Member) String() string {
+	if !m.Online {
+		return fmt.Sprintf("%v:offline", m.Name)
+	} else if m.AppFailed {
+		return fmt.Sprintf("%v:failed", m.Name)
+	} else if !m.AppRunning {
+		return fmt.Sprintf("%v:empty", m.Name)
+	}
+	return m.Name
 }
 
 func (m *Member) ListenClientURL() string {
@@ -157,10 +169,11 @@ func (ms MemberSet) InActiveMembers() int {
 func (ms MemberSet) String() string {
 	var mstring []string
 
-	for m := range ms {
-		mstring = append(mstring, m)
+	for _, m := range ms {
+		mstring = append(mstring, m.String())
 	}
-	return strings.Join(mstring, ",")
+	sort.Strings(mstring)
+	return fmt.Sprintf("[%v]", strings.Join(mstring, ", "))
 }
 
 func (ms MemberSet) PickOne() *Member {
