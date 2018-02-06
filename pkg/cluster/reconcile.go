@@ -51,6 +51,8 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 	}
 
 	var err error
+	last := c.peers
+
 	c.peers, err = c.peers.Reconcile(running, c.rss.Spec.GetNumReplicas())
 	errors = appendNonNil(errors, err)
 
@@ -111,6 +113,9 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 			}
 		}
 	}
+
+	c.logger.Infof("previous membership: %s", last)
+	c.logger.Infof(" current membership: %s", c.peers)
 
 	if c.peers.ActiveMembers() > sp.GetNumReplicas() {
 		c.status.SetScalingDownCondition(c.peers.ActiveMembers(), sp.GetNumReplicas())

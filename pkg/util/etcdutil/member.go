@@ -159,9 +159,6 @@ func (ms MemberSet) Reconcile(running MemberSet, max int) (MemberSet, error) {
 		running[m.Name].Offline()
 	}
 
-	logger.Infof(" current membership: %s", running)
-	logger.Infof("previous membership: %s", ms)
-
 	// if running.AppPrimaries() < ms.AppPrimaries() && running.AppPrimaries() < max/2+1 {
 	// 	logger.Warnf("Quorum lost")
 	// 	// return running, fmt.Errorf("Quorum lost")
