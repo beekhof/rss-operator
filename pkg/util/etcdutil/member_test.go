@@ -55,10 +55,10 @@ func TestMemberSetIsEqual(t *testing.T) {
 	}
 }
 
-func TestMemberDiff(t *testing.T) {
-	ma := &Member{Name: "a", Online: true}
-	mb := &Member{Name: "b", Online: true}
-	mboff := &Member{Name: "b", Online: false}
+func TestMemberSetDiff(t *testing.T) {
+	ma := &Member{Name: "a", Online: true, AppRunning: true}
+	mb := &Member{Name: "b", Online: true, AppRunning: true}
+	mboff := &Member{Name: "b"}
 	tests := []struct {
 		ms1, ms2 MemberSet
 		wDiff    MemberSet

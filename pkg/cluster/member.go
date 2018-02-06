@@ -27,6 +27,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func parseExitCode(err error) int {
@@ -144,6 +146,15 @@ func (c *Cluster) memberOffline(m *etcdutil.Member) {
 	m.AppFailed = false
 }
 
+func (c *Cluster) deleteMember(m *etcdutil.Member) error {
+	err := c.config.KubeCli.CoreV1().Pods(c.rss.Namespace).Delete(m.Name, &metav1.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("reconcile: could not delete pod %v", m.Name, err)
+	}
+	c.logger.Warnf("reconcile: deleted pod %v", m.Name)
+	c.memberOffline(m)
+	return nil
+}
 func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
 	if c.peers == nil {
 		c.peers = etcdutil.MemberSet{}

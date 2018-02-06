@@ -22,7 +22,6 @@ import (
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
 
 	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ErrLostQuorum indicates that the etcd cluster lost its quorum.
@@ -51,14 +50,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 		// ' > 1' means that we tried at least a start and a stop
 		if m.AppFailed && m.Failures > 1 {
 			errors = append(errors, fmt.Errorf("%v deletion after %v failures", m.Name, m.Failures))
-			err := c.config.KubeCli.CoreV1().Pods(c.rss.Namespace).Delete(m.Name, &metav1.DeleteOptions{})
-			if err != nil {
-				errors = appendNonNil(errors, fmt.Errorf("reconcile: could not delete pod %v", m.Name, err))
-
-			} else {
-				c.logger.Warnf("reconcile: deleted pod %v", m.Name)
-				c.memberOffline(m)
-			}
+			errors = appendNonNil(errors, c.deleteMember(m))
 
 		} else if !m.Online {
 			c.logger.Infof("reconcile: Skipping offline pod %v", m.Name)
@@ -66,7 +58,10 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 
 		} else if m.AppFailed {
 			c.logger.Warnf("reconcile: Cleaning up pod %v", m.Name)
-			errors = appendNonNil(errors, c.stopAppMember(m))
+			if err := c.stopAppMember(m); err != nil {
+				errors = append(errors, fmt.Errorf("%v deletion after stop failure: %v", m.Name, err))
+				errors = appendNonNil(errors, c.deleteMember(m))
+			}
 
 		} else {
 			_, _, err, rc := c.execute(api.StatusCommandKey, m.Name, false)
@@ -145,7 +140,7 @@ func (c *Cluster) reconcileMembers(running etcdutil.MemberSet) error {
 	lostMembers := c.peers.Diff(running)
 	unknownMembers := running.Diff(c.peers)
 	if unknownMembers.Size() > 0 || lostMembers.Size() > 0 {
-		c.logger.Infof("Updating membership: new=[%v], lost=[%v]", unknownMembers, lostMembers)
+		c.logger.Infof("Updating membership: new=%v, lost=%v", unknownMembers, lostMembers)
 		c.updateMembers(running)
 	}
 
