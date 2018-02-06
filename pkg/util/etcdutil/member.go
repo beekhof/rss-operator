@@ -89,6 +89,8 @@ func (ms MemberSet) Diff(other MemberSet) MemberSet {
 	for n, m := range ms {
 		if _, ok := other[n]; !ok {
 			diff[n] = m
+		} else if other[n].Online != m.Online {
+			diff[n] = m
 		}
 	}
 	return diff

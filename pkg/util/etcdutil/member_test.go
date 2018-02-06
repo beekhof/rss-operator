@@ -54,3 +54,51 @@ func TestMemberSetIsEqual(t *testing.T) {
 		}
 	}
 }
+
+func TestMemberDiff(t *testing.T) {
+	ma := &Member{Name: "a", Online: true}
+	mb := &Member{Name: "b", Online: true}
+	mboff := &Member{Name: "b", Online: false}
+	tests := []struct {
+		ms1, ms2 MemberSet
+		wDiff    MemberSet
+	}{{
+		ms1:   NewMemberSet(ma, mb),
+		ms2:   NewMemberSet(ma, mb),
+		wDiff: MemberSet{},
+	}, {
+		ms1:   NewMemberSet(ma, mb),
+		ms2:   NewMemberSet(ma),
+		wDiff: NewMemberSet(mb),
+	}, {
+		ms1:   NewMemberSet(ma),
+		ms2:   NewMemberSet(ma, mb),
+		wDiff: MemberSet{},
+	}, {
+		ms1:   NewMemberSet(),
+		ms2:   NewMemberSet(),
+		wDiff: MemberSet{},
+	}, {
+		ms1:   NewMemberSet(),
+		ms2:   NewMemberSet(ma),
+		wDiff: MemberSet{},
+	}, {
+		ms1:   NewMemberSet(ma),
+		ms2:   NewMemberSet(),
+		wDiff: NewMemberSet(ma),
+	}, {
+		ms1:   NewMemberSet(ma, mb),
+		ms2:   NewMemberSet(ma, mboff),
+		wDiff: NewMemberSet(mb),
+	}, {
+		ms1:   NewMemberSet(ma, mboff),
+		ms2:   NewMemberSet(ma, mb),
+		wDiff: NewMemberSet(mboff),
+	}}
+	for i, tt := range tests {
+		diff := tt.ms1.Diff(tt.ms2)
+		if !diff.IsEqual(tt.wDiff) {
+			t.Errorf("#%d: diff get=%v, want=%v, sets: %v, %v", i, diff, tt.wDiff, tt.ms1, tt.ms2)
+		}
+	}
+}
