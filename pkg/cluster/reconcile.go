@@ -25,7 +25,9 @@ import (
 )
 
 // ErrLostQuorum indicates that the etcd cluster lost its quorum.
-var ErrLostQuorum = errors.New("lost quorum")
+var (
+	ErrLostQuorum = errors.New("lost quorum")
+)
 
 // reconcile reconciles cluster current state to desired state specified by spec.
 // - it tries to reconcile the cluster to desired size.
@@ -42,7 +44,15 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 
 	sp := c.rss.Spec
 	running := c.podsToMemberSet(pods, c.isSecureClient())
-	errors = appendNonNil(errors, c.reconcileMembers(running))
+
+	// On controller restore, we could have "members == nil"
+	if c.peers == nil {
+		c.peers = etcdutil.MemberSet{}
+	}
+
+	var err error
+	c.peers, err = c.peers.Reconcile(running, c.rss.Spec.GetNumReplicas())
+	errors = appendNonNil(errors, err)
 
 	for _, m := range c.peers {
 
@@ -116,37 +126,4 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 	}
 
 	return errors
-}
-
-// reconcileMembers reconciles
-// - running pods on k8s and cluster membership
-// - cluster membership and expected size of etcd cluster
-// Steps:
-// 1. Remove all pods from running set that does not belong to member set.
-// 2. L consist of remaining pods of runnings
-// 3. If L = members, the current state matches the membership state. END.
-// 4. If len(L) < len(members)/2 + 1, return quorum lost error.
-// 5. Add one missing member. END.
-func (c *Cluster) reconcileMembers(running etcdutil.MemberSet) error {
-
-	// On controller restore, we could have "members == nil"
-	if c.peers == nil {
-		c.peers = etcdutil.MemberSet{}
-	}
-
-	c.logger.Infof(" current membership: %s", running)
-	c.logger.Infof("previous membership: %s", c.peers)
-
-	lostMembers := c.peers.Diff(running)
-	unknownMembers := running.Diff(c.peers)
-	if unknownMembers.Size() > 0 || lostMembers.Size() > 0 {
-		c.logger.Infof("Updating membership: new=%v, lost=%v", unknownMembers, lostMembers)
-		c.updateMembers(running)
-	}
-
-	if c.peers.Size() < c.rss.Spec.GetNumReplicas()/2+1 {
-		c.logger.Infof("Quorum lost")
-		return ErrLostQuorum
-	}
-	return nil
 }

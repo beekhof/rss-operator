@@ -95,7 +95,7 @@ func (c *Cluster) execute(action string, podName string, silent bool) (string, s
 	level := logrus.DebugLevel
 	cmd := c.rss.Spec.Pod.Commands[action]
 	timeout := parseDuration(cmd.Timeout)
-	c.logger.Infof("Calling '%v' command with timeout %v: %v", action, timeout, cmd.Command)
+	c.logger.Infof("Calling '%v' command on %v with timeout %v: %v", action, podName, timeout, cmd.Command)
 
 	stdout, stderr, err := k8sutil.ExecWithOptions(&c.execContext, k8sutil.ExecOptions{
 		Command:       c.appendPrimaries(cmd.Command),
@@ -136,48 +136,13 @@ func (c *Cluster) appendPrimaries(cmd []string) []string {
 
 }
 
-func (c *Cluster) memberOffline(m *etcdutil.Member) {
-	if m.Online {
-		c.logger.Warnf("Pod %v offline", m.Name)
-	}
-	m.Online = false
-	m.AppPrimary = false
-	m.AppRunning = false
-	m.AppFailed = false
-}
-
 func (c *Cluster) deleteMember(m *etcdutil.Member) error {
 	err := c.config.KubeCli.CoreV1().Pods(c.rss.Namespace).Delete(m.Name, &metav1.DeleteOptions{})
 	if err != nil {
 		return fmt.Errorf("reconcile: could not delete pod %v", m.Name, err)
 	}
 	c.logger.Warnf("reconcile: deleted pod %v", m.Name)
-	c.memberOffline(m)
-	return nil
-}
-func (c *Cluster) updateMembers(known etcdutil.MemberSet) error {
-	if c.peers == nil {
-		c.peers = etcdutil.MemberSet{}
-	}
-	for _, m := range known {
-
-		if _, ok := c.peers[m.Name]; !ok {
-			c.logger.Infof("Pod %v added", m.Name)
-			c.peers[m.Name] = c.newMember(m.Name, m.Namespace)
-		}
-
-		if !c.peers[m.Name].Online {
-			c.logger.Infof("Pod %v online", m.Name)
-		}
-
-		c.peers[m.Name].Online = true
-	}
-
-	missing := c.peers.Diff(known)
-	for _, m := range missing {
-		c.memberOffline(c.peers[m.Name])
-	}
-
+	m.Offline()
 	return nil
 }
 

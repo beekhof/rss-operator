@@ -22,6 +22,12 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/beekhof/galera-operator/pkg/util"
+)
+
+var (
+	logger = util.GetLogger("member")
 )
 
 type Member struct {
@@ -65,11 +71,11 @@ func (m *Member) peerScheme() string {
 
 func (m *Member) String() string {
 	if !m.Online {
-		return fmt.Sprintf("-%v", m.Name)
+		return fmt.Sprintf("%v-", m.Name)
 	} else if m.AppFailed {
-		return fmt.Sprintf("!%v", m.Name)
+		return fmt.Sprintf("%v!", m.Name)
 	} else if m.AppRunning {
-		return fmt.Sprintf("+%v", m.Name)
+		return fmt.Sprintf("%v+", m.Name)
 	}
 	return m.Name
 }
@@ -106,6 +112,61 @@ func (ms MemberSet) Diff(other MemberSet) MemberSet {
 		}
 	}
 	return diff
+}
+
+// reconcileMembers reconciles
+// - running pods on k8s and cluster membership
+// - cluster membership and expected size of etcd cluster
+// Steps:
+// 1. Remove all pods from running set that does not belong to member set.
+// 2. L consist of remaining pods of runnings
+// 3. If L = members, the current state matches the membership state. END.
+// 4. If len(L) < len(members)/2 + 1, return quorum lost error.
+// 5. Add one missing member. END.
+
+func (m *Member) Restore(last *Member) {
+	// Restore app state
+	m.AppPrimary = last.AppPrimary
+	m.AppRunning = last.AppRunning
+	m.AppFailed = last.AppFailed
+	m.Failures = last.Failures
+	m.SEQ = last.SEQ
+}
+
+func (ms MemberSet) Reconcile(running MemberSet, max int) (MemberSet, error) {
+
+	lostMembers := ms.Diff(running)
+	newMembers := running.Diff(ms)
+
+	for _, last := range ms {
+		if m, ok := running[last.Name]; ok {
+			m.Restore(last)
+		}
+	}
+
+	if lostMembers.Size() > 0 || newMembers.Size() > 0 {
+		logger.Infof("Updating membership: new=%s, lost=%s", newMembers, lostMembers)
+	}
+
+	for _, m := range newMembers {
+		logger.Infof("Pod %s available", m.Name)
+	}
+
+	for _, m := range lostMembers {
+		if _, ok := running[m.Name]; !ok {
+			running[m.Name] = m
+			running[m.Name].Offline()
+		}
+	}
+
+	logger.Infof(" current membership: %s", running)
+	logger.Infof("previous membership: %s", ms)
+
+	if running.AppPrimaries() < max/2+1 {
+		logger.Warnf("Quorum lost")
+		return running, fmt.Errorf("Quorum lost")
+	}
+	return running, nil
 }
 
 // IsEqual tells whether two member sets are equal by checking
@@ -197,6 +258,16 @@ func (ms MemberSet) Add(m *Member) {
 
 func (ms MemberSet) Remove(name string) {
 	delete(ms, name)
+}
+
+func (m *Member) Offline() {
+	if m.Online {
+		logger.Warnf("Pod %v offline", m.Name)
+	}
+	m.Online = false
+	m.AppPrimary = false
+	m.AppRunning = false
+	m.AppFailed = false
 }
 
 func (ms MemberSet) ClientURLs() []string {

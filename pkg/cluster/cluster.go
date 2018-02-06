@@ -339,7 +339,8 @@ func (c *Cluster) run() {
 					c.logger.Warningf("all %v pods are dead.", c.rss.Name)
 				}
 
-				c.updateMembers(etcdutil.MemberSet{})
+				c.peers, err = c.peers.Reconcile(etcdutil.MemberSet{}, c.rss.Spec.GetNumReplicas())
+				errors = appendNonNil(errors, err)
 				break
 			}
 
