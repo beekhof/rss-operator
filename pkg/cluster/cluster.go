@@ -347,14 +347,14 @@ func (c *Cluster) run() {
 				errors = appendNonNil(errors, c.updateMembers(c.podsToMemberSet(running, c.isSecureClient())))
 			}
 
-			if err := c.reconcile(running); err != nil {
-				errors = appendNonNil(errors, err)
+			errors = appendAllNonNil(errors, c.reconcile(running))
+			if len(errors) == 0 {
+				errors = appendAllNonNil(errors, c.replicate())
 
-			} else if err := c.replicate(); err != nil {
-				errors = appendNonNil(errors, err)
-
-				// If replication failed, don't wait for another interval before reconciling
-				errors = appendNonNil(errors, c.reconcile(running))
+				if len(errors) > 0 {
+					// If replication failed, don't wait for another interval before reconciling
+					errors = appendAllNonNil(errors, c.reconcile(running))
+				}
 			}
 
 			reconcileHistogram.WithLabelValues(c.name()).Observe(time.Since(start).Seconds())

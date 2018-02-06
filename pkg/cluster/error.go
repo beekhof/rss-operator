@@ -15,6 +15,9 @@
 package cluster
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/pkg/errors"
 )
 
@@ -41,4 +44,31 @@ func isFatalError(err error) bool {
 	default:
 		return false
 	}
+}
+
+func appendNonNil(errors []error, err error) []error {
+	if err == nil || err.Error() == "" {
+		return errors
+	}
+	return append(errors, err)
+}
+
+func appendAllNonNil(errors []error, other []error) []error {
+	for _, err := range other {
+		errors = appendNonNil(errors, err)
+	}
+	return errors
+}
+
+func combineErrors(errors []error) error {
+	if len(errors) == 0 {
+		return nil
+	}
+
+	var strArray []string
+	for _, err := range errors {
+		strArray = append(strArray, err.Error())
+	}
+
+	return fmt.Errorf("[%v]", strings.Join(strArray, ", "))
 }

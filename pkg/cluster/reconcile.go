@@ -31,7 +31,7 @@ var ErrLostQuorum = errors.New("lost quorum")
 // reconcile reconciles cluster current state to desired state specified by spec.
 // - it tries to reconcile the cluster to desired size.
 // - if the cluster needs for upgrade, it tries to upgrade old member one by one.
-func (c *Cluster) reconcile(pods []*v1.Pod) error {
+func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 	var errors []error
 	c.logger.Infoln("Start reconciling")
 	defer c.logger.Infoln("Finish reconciling")
@@ -93,7 +93,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) error {
 		c.status.SetReadyCondition()
 	}
 
-	return combineErrors(errors)
+	return errors
 }
 
 // reconcileMembers reconciles

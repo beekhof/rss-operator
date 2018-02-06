@@ -23,27 +23,7 @@ import (
 	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
 )
 
-func appendNonNil(errors []error, err error) []error {
-	if err == nil || err.Error() == "" {
-		return errors
-	}
-	return append(errors, err)
-}
-
-func combineErrors(errors []error) error {
-	if len(errors) == 0 {
-		return nil
-	}
-
-	var strArray []string
-	for _, err := range errors {
-		strArray = append(strArray, err.Error())
-	}
-
-	return fmt.Errorf("[%v]", strings.Join(strArray, ", "))
-}
-
-func (c *Cluster) replicate() error {
+func (c *Cluster) replicate() []error {
 	defer c.updateCRStatus("replicate")
 
 	errors := []error{}
@@ -51,11 +31,11 @@ func (c *Cluster) replicate() error {
 	primaries := c.rss.Spec.GetNumPrimaries()
 
 	if c.peers.AppMembers() > replicas {
-		return fmt.Errorf("Waiting for %v peers to be stopped", c.peers.AppMembers()-primaries)
+		return []error{fmt.Errorf("Waiting for %v peers to be stopped", c.peers.AppMembers()-primaries)}
 	}
 
 	if c.peers.AppPrimaries() == 0 && c.peers.ActiveMembers() != replicas {
-		return fmt.Errorf("Waiting for %v additional peer containers to be available before seeding", c.peers.ActiveMembers()-replicas)
+		return []error{fmt.Errorf("Waiting for %v additional peer containers to be available before seeding", c.peers.ActiveMembers()-replicas)}
 	}
 
 	// Always detect members (so that the most up-to-date ones get started)
@@ -64,7 +44,7 @@ func (c *Cluster) replicate() error {
 	if c.peers.AppPrimaries() == 0 {
 		seeds, err := chooseSeeds(c)
 		if err != nil {
-			return fmt.Errorf("Bootstrapping failed: %v", err)
+			return []error{fmt.Errorf("Bootstrapping failed: %v", err)}
 		}
 
 		for n, seed := range seeds {
@@ -76,7 +56,7 @@ func (c *Cluster) replicate() error {
 		}
 
 		if c.peers.AppPrimaries() == 0 {
-			return fmt.Errorf("Bootstrapping from %v possible seeds with version %v failed: %v", len(seeds), seeds[0].SEQ, combineErrors(errors))
+			return []error{fmt.Errorf("Bootstrapping from %v possible seeds with version %v failed: %v", len(seeds), seeds[0].SEQ, combineErrors(errors))}
 		}
 
 		// Continue as long as one seed succeeds
@@ -130,16 +110,18 @@ func (c *Cluster) replicate() error {
 		}
 	}
 
-	if len(errors) != 0 {
-		return fmt.Errorf("%v of %v primaries, and %v of %v members available: %v",
-			c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), replicas, combineErrors(errors))
-	} else if replicas > 0 {
+	status := fmt.Sprintf("%v of %v primaries, and %v of %v members available",
+		c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), replicas)
+
+	if len(errors) == 0 && replicas > 0 {
 		c.status.RestoreReplicas = replicas
+		c.logger.Info(status)
+
+	} else {
+		c.logger.Errorf("%v: %v", status, combineErrors(errors))
 	}
 
-	c.logger.Infof("Replication complete: %v of %v primaries, and %v of %v members available",
-		c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), replicas)
-	return nil
+	return errors
 }
 
 func (c *Cluster) detectMembers() {
