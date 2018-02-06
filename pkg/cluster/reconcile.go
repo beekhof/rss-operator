@@ -139,8 +139,23 @@ func (c *Cluster) reconcileMembers(running etcdutil.MemberSet) error {
 		c.peers = etcdutil.MemberSet{}
 	}
 
-	c.logger.Infof(" current membership: %s", running)
-	c.logger.Infof("previous membership: %s", c.peers)
+	active := []string{}
+	for _, m := range running {
+		if m.Online {
+			active = append(active, m.Name)
+		}
+	}
+
+	c.logger.Infof(" current membership: %s", active)
+
+	active = []string{}
+	for _, m := range c.peers {
+		if m.Online {
+			active = append(active, m.Name)
+		}
+	}
+
+	c.logger.Infof("previous membership: %s", active)
 
 	lostMembers := c.peers.Diff(running)
 	unknownMembers := running.Diff(c.peers)

@@ -35,7 +35,7 @@ func (c *Cluster) replicate() []error {
 	}
 
 	if c.peers.AppPrimaries() == 0 && c.peers.ActiveMembers() != replicas {
-		return []error{fmt.Errorf("Waiting for %v additional peer containers to be available before seeding", c.peers.ActiveMembers()-replicas)}
+		return []error{fmt.Errorf("Waiting for %v additional peer containers to be available before seeding", replicas-c.peers.ActiveMembers())}
 	}
 
 	// Always detect members (so that the most up-to-date ones get started)
@@ -162,7 +162,7 @@ func chooseSeeds(c *Cluster) ([]*etcdutil.Member, error) {
 		}
 	}
 	if len(bestPeer) == 0 {
-		return bestPeer, fmt.Errorf("No peers available")
+		return bestPeer, fmt.Errorf("No seed peers available")
 	}
 	return bestPeer, nil
 }
@@ -187,7 +187,7 @@ func chooseMember(c *Cluster) (*etcdutil.Member, error) {
 		}
 	}
 	if bestPeer == nil {
-		return nil, fmt.Errorf("No peers available")
+		return nil, fmt.Errorf("No further peers available")
 	}
 	return bestPeer, nil
 }

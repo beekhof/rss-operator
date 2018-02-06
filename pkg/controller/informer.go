@@ -65,10 +65,10 @@ func (c *Controller) run() {
 		DeleteFunc: c.onDeleteEtcdClus,
 	}, cache.Indexers{})
 
-	c.logger.Infof("created informer")
+	c.logger.Debugf("created informer")
 	ctx := context.TODO()
 	// TODO: use workqueue to avoid blocking
-	c.logger.Infof("running informer")
+	c.logger.Debugf("running informer")
 	informer.Run(ctx.Done())
 }
 
@@ -83,7 +83,7 @@ func (c *Controller) initResource() error {
 }
 
 func (c *Controller) onAddEtcdClus(obj interface{}) {
-	c.logger.Infof("beekhof: Creating a new cluster: %v", obj)
+	c.logger.Debugf("Creating a new cluster: %+v", obj)
 	c.syncEtcdClus(obj.(*api.ReplicatedStatefulSet))
 }
 
