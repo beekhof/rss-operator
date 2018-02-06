@@ -155,8 +155,8 @@ func (ms MemberSet) Reconcile(running MemberSet, max int) (MemberSet, error) {
 	for _, m := range lostMembers {
 		if _, ok := running[m.Name]; !ok {
 			running[m.Name] = m
-			running[m.Name].Offline()
 		}
+		running[m.Name].Offline()
 	}
 
 	logger.Infof(" current membership: %s", running)
