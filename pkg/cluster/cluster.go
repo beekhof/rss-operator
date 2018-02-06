@@ -286,7 +286,7 @@ func (c *Cluster) run() {
 	ctx := context.TODO()
 	go c.cmapInf.Run(ctx.Done()) //c.stopCh)
 
-	var rerr error
+	var errors []error
 	for {
 		select {
 		case <-c.stopCh:
@@ -343,34 +343,38 @@ func (c *Cluster) run() {
 			}
 
 			// On controller restore, we could have "members == nil"
-			if rerr != nil || c.peers == nil {
-				rerr = c.updateMembers(c.podsToMemberSet(running, c.isSecureClient()))
-				if rerr != nil {
-					c.logger.Errorf("failed to update members: %v", rerr)
-					break
-				}
-			}
-			rerr = c.reconcile(running)
-			if rerr != nil {
-				c.logger.Errorf("failed to reconcile: %v", rerr)
-				break
+			if c.peers == nil {
+				errors = appendNonNil(errors, c.updateMembers(c.podsToMemberSet(running, c.isSecureClient())))
 			}
 
-			rerr = c.replicate()
+			if err := c.reconcile(running); err != nil {
+				errors = appendNonNil(errors, err)
+
+			} else if err := c.replicate(); err != nil {
+				errors = appendNonNil(errors, err)
+
+				// If replication failed, don't wait for another interval before reconciling
+				errors = appendNonNil(errors, c.reconcile(running))
+			}
+
 			reconcileHistogram.WithLabelValues(c.name()).Observe(time.Since(start).Seconds())
 		}
 
-		if rerr != nil {
-			reconcileFailed.WithLabelValues(rerr.Error()).Inc()
-			c.logger.Errorf("Reconciliation failed: %v", rerr)
+		if len(errors) > 0 {
+			c.logger.Errorf("Reconciliation failed: %v", combineErrors(errors))
 		}
 
-		if isFatalError(rerr) {
-			c.status.SetReason(rerr.Error())
-			c.logger.Errorf("cluster failed: %v", rerr)
-			c.reportFailedStatus()
-			return
+		for _, err := range errors {
+			reconcileFailed.WithLabelValues(err.Error()).Inc()
+			if isFatalError(err) {
+				c.status.SetReason(err.Error())
+				c.logger.Errorf("cluster failed: %v", err)
+				c.reportFailedStatus()
+				return
+			}
 		}
+
+		errors = []error{}
 	}
 }
 
