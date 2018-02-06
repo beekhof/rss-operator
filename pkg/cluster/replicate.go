@@ -128,7 +128,7 @@ func (c *Cluster) detectMembers() {
 	for _, m := range c.peers {
 		raw, _, err, _ := c.execute(api.SequenceCommandKey, m.Name, true)
 		if err == nil {
-			stdout = strings.TrimSpace(raw)
+			stdout := strings.TrimSpace(raw)
 			if stdout == "" {
 				c.logger.WithField("pod", m.Name).Warnf("discover:  no output for pod %v", m.Name)
 
