@@ -16,7 +16,7 @@ limitations under the License.
 package versioned
 
 import (
-	clusterlabsv1alpha1 "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned/typed/clusterlabs/v1alpha1"
+	clusterlabsv1alpha1 "github.com/beekhof/rss-operator/pkg/generated/clientset/versioned/typed/clusterlabs/v1alpha1"
 	glog "github.com/golang/glog"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"

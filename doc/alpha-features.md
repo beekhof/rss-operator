@@ -15,5 +15,5 @@ This alpha annotation will retain the endpoints even if the etcd pod isn't ready
 This feature is always enabled in endpoint controller in k8s even it is alpha.
 
 References:
-- https://github.com/beekhof/galera-operator/issues/622
-- https://github.com/beekhof/galera-operator/issues/1257
+- https://github.com/beekhof/rss-operator/issues/622
+- https://github.com/beekhof/rss-operator/issues/1257

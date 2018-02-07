@@ -1,4 +1,4 @@
-// Copyright 2016 The galera-operator Authors
+// Copyright 2016 The rss-operator Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -82,7 +82,7 @@ type PodPolicy struct {
 	// labels.
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
-	// AntiAffinity determines if the galera-operator tries to avoid putting
+	// AntiAffinity determines if the rss-operator tries to avoid putting
 	// the galera members in the same cluster onto the same node.
 	AntiAffinity bool `json:"antiAffinity"`
 
@@ -100,7 +100,7 @@ type PodPolicy struct {
 
 type ClusterSpec struct {
 	// Size is the expected size of the galera cluster.
-	// The galera-operator will eventually make the size of the running
+	// The rss-operator will eventually make the size of the running
 	// cluster equal to the expected size.
 	Replicas          *int           `json:"replicas"`
 	Primaries         *int           `json:"primaries,omitempty"`

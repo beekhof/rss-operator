@@ -18,8 +18,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/beekhof/galera-operator/test/e2e/e2eutil"
-	"github.com/beekhof/galera-operator/test/e2e/framework"
+	"github.com/beekhof/rss-operator/test/e2e/e2eutil"
+	"github.com/beekhof/rss-operator/test/e2e/framework"
 )
 
 func TestOneMemberRecovery(t *testing.T) {

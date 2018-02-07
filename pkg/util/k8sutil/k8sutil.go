@@ -22,7 +22,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/beekhof/galera-operator/pkg/util/retryutil"
+	"github.com/beekhof/rss-operator/pkg/util/retryutil"
 	"github.com/golang/glog"
 	//"github.com/pborman/uuid"
 	"github.com/pkg/errors"
@@ -160,7 +160,7 @@ func FakeClusterConfig() (*rest.Config, error) {
 
 func InClusterConfig() (*rest.Config, error) {
 	// Work around https://github.com/kubernetes/kubernetes/issues/40973
-	// See https://github.com/beekhof/galera-operator/issues/731#issuecomment-283804819
+	// See https://github.com/beekhof/rss-operator/issues/731#issuecomment-283804819
 	testing := false
 	if len(os.Getenv("KUBERNETES_SERVICE_HOST")) == 0 {
 		addrs, err := net.LookupHost("kubernetes.default.svc")

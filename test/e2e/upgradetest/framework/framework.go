@@ -17,12 +17,12 @@ package framework
 import (
 	"fmt"
 
-	"github.com/beekhof/galera-operator/pkg/client"
-	"github.com/beekhof/galera-operator/pkg/generated/clientset/versioned"
-	"github.com/beekhof/galera-operator/pkg/util/constants"
-	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
-	"github.com/beekhof/galera-operator/pkg/util/probe"
-	"github.com/beekhof/galera-operator/test/e2e/e2eutil"
+	"github.com/beekhof/rss-operator/pkg/client"
+	"github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
+	"github.com/beekhof/rss-operator/pkg/util/constants"
+	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
+	"github.com/beekhof/rss-operator/pkg/util/probe"
+	"github.com/beekhof/rss-operator/test/e2e/e2eutil"
 
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	"k8s.io/api/core/v1"

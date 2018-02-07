@@ -4,7 +4,7 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/beekhof/galera-operator/pkg/util"
+	"github.com/beekhof/rss-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 
 	"k8s.io/client-go/tools/clientcmd"

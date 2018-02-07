@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/beekhof/galera-operator/pkg/util"
+	"github.com/beekhof/rss-operator/pkg/util"
 	"github.com/sirupsen/logrus"
 
 	"k8s.io/api/core/v1"

@@ -21,11 +21,11 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
-	"github.com/beekhof/galera-operator/pkg/generated/clientset/versioned"
-	"github.com/beekhof/galera-operator/pkg/util"
-	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
-	"github.com/beekhof/galera-operator/pkg/util/retryutil"
+	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
+	"github.com/beekhof/rss-operator/pkg/util"
+	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
+	"github.com/beekhof/rss-operator/pkg/util/retryutil"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

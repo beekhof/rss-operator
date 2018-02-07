@@ -15,7 +15,7 @@
 package e2eutil
 
 import (
-	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
+	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

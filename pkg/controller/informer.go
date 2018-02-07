@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"time"
 
-	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
-	"github.com/beekhof/galera-operator/pkg/util/probe"
+	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/rss-operator/pkg/util/probe"
 
 	"k8s.io/apimachinery/pkg/fields"
 	kwatch "k8s.io/apimachinery/pkg/watch"

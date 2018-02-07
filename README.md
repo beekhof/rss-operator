@@ -43,7 +43,7 @@ See the [Resources and Labels](./doc/user/resource_labels.md) doc for an overvie
 
 ## Getting started
 
-![etcd Operator demo](https://raw.githubusercontent.com/beekhof/galera-operator/master/doc/gif/demo.gif)
+![etcd Operator demo](https://raw.githubusercontent.com/beekhof/rss-operator/master/doc/gif/demo.gif)
 
 ### Deploy etcd operator
 

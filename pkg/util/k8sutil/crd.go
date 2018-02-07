@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"time"
 
-	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
-	"github.com/beekhof/galera-operator/pkg/util/retryutil"
+	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/rss-operator/pkg/util/retryutil"
 
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"

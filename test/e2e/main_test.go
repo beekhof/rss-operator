@@ -17,7 +17,7 @@ package e2e
 import (
 	"testing"
 
-	"github.com/beekhof/galera-operator/test/e2e/framework"
+	"github.com/beekhof/rss-operator/test/e2e/framework"
 )
 
 func TestMain(m *testing.M) {

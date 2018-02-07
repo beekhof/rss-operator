@@ -1,4 +1,4 @@
-package: github.com/beekhof/galera-operator
+package: github.com/beekhof/rss-operator
 ignore:
 - airbrake
 - go-winio

@@ -18,10 +18,10 @@ import (
 	"fmt"
 	"time"
 
-	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
-	"github.com/beekhof/galera-operator/pkg/cluster"
-	"github.com/beekhof/galera-operator/pkg/generated/clientset/versioned"
-	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
+	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/rss-operator/pkg/cluster"
+	"github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
+	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
 
 	"github.com/sirupsen/logrus"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"

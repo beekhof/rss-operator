@@ -16,9 +16,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned"
-	clusterlabsv1alpha1 "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned/typed/clusterlabs/v1alpha1"
-	fakeclusterlabsv1alpha1 "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned/typed/clusterlabs/v1alpha1/fake"
+	clientset "github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
+	clusterlabsv1alpha1 "github.com/beekhof/rss-operator/pkg/generated/clientset/versioned/typed/clusterlabs/v1alpha1"
+	fakeclusterlabsv1alpha1 "github.com/beekhof/rss-operator/pkg/generated/clientset/versioned/typed/clusterlabs/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

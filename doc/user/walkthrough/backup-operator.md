@@ -99,6 +99,6 @@ kubectl delete -f example/etcd-backup-operator/deployment.yaml
 
 [Kube]:https://github.com/kubernetes/kubernetes
 [s3]:https://aws.amazon.com/s3/
-[etcd_cluster_deploy]:https://github.com/beekhof/galera-operator#create-and-destroy-an-etcd-cluster
+[etcd_cluster_deploy]:https://github.com/beekhof/rss-operator#create-and-destroy-an-etcd-cluster
 [minikube]:https://github.com/kubernetes/minikube
 [install_guide]:../install_guide.md

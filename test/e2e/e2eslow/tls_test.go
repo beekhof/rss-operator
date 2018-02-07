@@ -21,9 +21,9 @@ import (
 	"os"
 	"testing"
 
-	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
-	"github.com/beekhof/galera-operator/test/e2e/e2eutil"
-	"github.com/beekhof/galera-operator/test/e2e/framework"
+	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/rss-operator/test/e2e/e2eutil"
+	"github.com/beekhof/rss-operator/test/e2e/framework"
 )
 
 func TestTLS(t *testing.T) {

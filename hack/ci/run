@@ -17,8 +17,8 @@ echo "GOPATH: ${GOPATH}"
 export PATH=$GOPATH/bin:$PATH
 
 mkdir -p $GOPATH/src/github.com/coreos
-ln -s "${origpwd}" $GOPATH/src/github.com/beekhof/galera-operator
-cd $GOPATH/src/github.com/beekhof/galera-operator
+ln -s "${origpwd}" $GOPATH/src/github.com/beekhof/rss-operator
+cd $GOPATH/src/github.com/beekhof/rss-operator
 
 cleanup() {
 	echo "cleaning up ==="

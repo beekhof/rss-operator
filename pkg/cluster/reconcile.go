@@ -18,8 +18,8 @@ import (
 	"errors"
 	"fmt"
 
-	api "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
-	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
+	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/rss-operator/pkg/util/etcdutil"
 
 	"k8s.io/api/core/v1"
 )

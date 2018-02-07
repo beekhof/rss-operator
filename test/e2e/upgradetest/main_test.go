@@ -19,7 +19,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/beekhof/galera-operator/test/e2e/upgradetest/framework"
+	"github.com/beekhof/rss-operator/test/e2e/upgradetest/framework"
 
 	"github.com/sirupsen/logrus"
 )

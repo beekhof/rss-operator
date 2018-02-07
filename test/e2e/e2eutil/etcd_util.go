@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/beekhof/galera-operator/pkg/util/constants"
+	"github.com/beekhof/rss-operator/pkg/util/constants"
 	"github.com/coreos/etcd/clientv3"
 )
 

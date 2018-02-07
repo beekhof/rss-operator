@@ -19,10 +19,10 @@ limitations under the License.
 package v1alpha1
 
 import (
-	galera_v1alpha1 "github.com/beekhof/galera-operator/pkg/apis/galera/v1alpha1"
-	versioned "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned"
-	internalinterfaces "github.com/beekhof/galera-operator/pkg/generated/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/beekhof/galera-operator/pkg/generated/listers/clusterlabs/v1alpha1"
+	galera_v1alpha1 "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
+	versioned "github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
+	internalinterfaces "github.com/beekhof/rss-operator/pkg/generated/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/beekhof/rss-operator/pkg/generated/listers/clusterlabs/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"

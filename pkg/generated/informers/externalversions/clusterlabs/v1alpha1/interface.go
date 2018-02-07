@@ -19,7 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	internalinterfaces "github.com/beekhof/galera-operator/pkg/generated/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/beekhof/rss-operator/pkg/generated/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

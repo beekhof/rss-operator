@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/beekhof/galera-operator/pkg/util"
+	"github.com/beekhof/rss-operator/pkg/util"
 )
 
 var (

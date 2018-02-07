@@ -19,9 +19,9 @@ limitations under the License.
 package externalversions
 
 import (
-	versioned "github.com/beekhof/galera-operator/pkg/generated/clientset/versioned"
-	clusterlabs "github.com/beekhof/galera-operator/pkg/generated/informers/externalversions/clusterlabs"
-	internalinterfaces "github.com/beekhof/galera-operator/pkg/generated/informers/externalversions/internalinterfaces"
+	versioned "github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
+	clusterlabs "github.com/beekhof/rss-operator/pkg/generated/informers/externalversions/clusterlabs"
+	internalinterfaces "github.com/beekhof/rss-operator/pkg/generated/informers/externalversions/internalinterfaces"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"

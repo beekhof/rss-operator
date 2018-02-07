@@ -21,9 +21,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/beekhof/galera-operator/pkg/util"
-	"github.com/beekhof/galera-operator/pkg/util/etcdutil"
-	"github.com/beekhof/galera-operator/pkg/util/k8sutil"
+	"github.com/beekhof/rss-operator/pkg/util"
+	"github.com/beekhof/rss-operator/pkg/util/etcdutil"
+	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"

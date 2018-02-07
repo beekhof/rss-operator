@@ -19,9 +19,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/beekhof/galera-operator/pkg/util/retryutil"
-	"github.com/beekhof/galera-operator/test/e2e/e2eutil"
-	"github.com/beekhof/galera-operator/test/e2e/framework"
+	"github.com/beekhof/rss-operator/pkg/util/retryutil"
+	"github.com/beekhof/rss-operator/test/e2e/e2eutil"
+	"github.com/beekhof/rss-operator/test/e2e/framework"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
