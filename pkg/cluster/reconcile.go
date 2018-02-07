@@ -44,6 +44,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 
 	sp := c.rss.Spec
 	running := c.podsToMemberSet(pods, c.isSecureClient())
+	c.logger.Infof("    running members: %s", running)
 
 	// On controller restore, we could have "members == nil"
 	if c.peers == nil {
