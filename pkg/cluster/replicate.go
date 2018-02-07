@@ -114,7 +114,6 @@ func (c *Cluster) replicate() []error {
 		c.peers.AppPrimaries(), primaries, c.peers.AppMembers(), replicas)
 
 	if len(errors) == 0 && replicas > 0 {
-		c.status.RestoreReplicas = replicas
 		c.logger.Info(status)
 
 	} else {

@@ -335,13 +335,19 @@ func (c *Cluster) run() {
 				// TODO: More to do here?
 				if c.rss.Spec.GetNumReplicas() == 0 {
 					c.logger.Infof("all %v pods are stopped.", c.rss.Name)
+					c.peers = etcdutil.MemberSet{}
+
 				} else {
 					c.logger.Warningf("all %v pods are dead.", c.rss.Name)
+					c.peers, err = c.peers.Reconcile(etcdutil.MemberSet{}, c.rss.Spec.GetNumReplicas())
+					errors = appendNonNil(errors, err)
 				}
 
-				c.peers, err = c.peers.Reconcile(etcdutil.MemberSet{}, c.rss.Spec.GetNumReplicas())
-				errors = appendNonNil(errors, err)
 				break
+
+			} else if len(running) == c.rss.Spec.GetNumReplicas() {
+				c.status.RestoreReplicas = len(running)
+				c.updateCRStatus("mainloop")
 			}
 
 			errors = appendAllNonNil(errors, c.reconcile(running))
