@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
 	"github.com/beekhof/rss-operator/pkg/util"
 	"github.com/beekhof/rss-operator/pkg/util/etcdutil"
 	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
@@ -95,7 +96,15 @@ func (c *Cluster) execute(action string, podName string, silent bool) (string, s
 	level := logrus.DebugLevel
 	cmd := c.rss.Spec.Pod.Commands[action]
 	timeout := parseDuration(cmd.Timeout)
-	c.logger.Infof("Calling '%v' command on %v with timeout %v: %v", action, podName, timeout, cmd.Command)
+
+	str := fmt.Sprintf("Calling '%v' command on %v with timeout %v: %v", action, podName, timeout, cmd.Command)
+
+	switch action {
+	case api.StatusCommandKey, api.SequenceCommandKey:
+		c.logger.Debug(str)
+	default:
+		c.logger.Info(str)
+	}
 
 	stdout, stderr, err := k8sutil.ExecWithOptions(&c.execContext, k8sutil.ExecOptions{
 		Command:       c.appendPrimaries(cmd.Command),

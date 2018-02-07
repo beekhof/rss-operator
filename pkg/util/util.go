@@ -82,9 +82,9 @@ func JsonLogObject(logger *logrus.Entry, spec interface{}, text string) {
 		logger.Errorf("failed to marshal spec for '%v': %v", text, err)
 	}
 
-	logger.Info(text)
+	logger.Debug(text)
 	for _, m := range strings.Split(string(specBytes), "\n") {
-		logger.Info(m)
+		logger.Debug(m)
 	}
 }
 

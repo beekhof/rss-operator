@@ -255,8 +255,9 @@ func (c *Cluster) create() error {
 		return errors.Wrap(err, "creating statefulset failed")
 	}
 
-	//c.LogObject("creating cluster with Spec:", c.rss.Spec)
-	//util.JsonLogObject(c.logger, sts, "StatefulSet")
+	c.LogObject("creating cluster with Spec:", c.rss.Spec)
+	c.LogObject("creating stateful set:", sts)
+
 	return nil
 }
 
