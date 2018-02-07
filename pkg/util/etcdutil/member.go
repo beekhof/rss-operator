@@ -107,11 +107,29 @@ func (ms MemberSet) Diff(other MemberSet) MemberSet {
 	for n, m := range ms {
 		if _, ok := other[n]; !ok {
 			diff[n] = m
+		}
+	}
+	return diff
+}
+
+func (ms MemberSet) DiffExtended(other MemberSet) MemberSet {
+	diff := MemberSet{}
+	for n, m := range ms {
+		if _, ok := other[n]; !ok {
+			diff[n] = m
 		} else if other[n].Online != m.Online {
 			diff[n] = m
 		}
 	}
 	return diff
+}
+
+func (ms MemberSet) Copy() MemberSet {
+	c := MemberSet{}
+	for n, m := range ms {
+		c[n] = m.Copy()
+	}
+	return c
 }
 
 func (m *Member) Restore(last *Member) {
@@ -123,16 +141,33 @@ func (m *Member) Restore(last *Member) {
 	m.SEQ = last.SEQ
 }
 
+func (m *Member) Copy() *Member {
+	c := Member{}
+	c.Name = m.Name
+	c.Online = m.Online
+	c.AppPrimary = m.AppPrimary
+	c.AppRunning = m.AppRunning
+	c.AppFailed = m.AppFailed
+	c.Failures = m.Failures
+	c.SEQ = m.SEQ
+	return &c
+}
+
 func (ms MemberSet) Reconcile(running MemberSet, max int32) (MemberSet, error) {
 	// The only thing we take from 'running' is new members and the value of .Online
-	for _, last := range ms {
-		if m, ok := running[last.Name]; ok {
-			m.Restore(last)
+
+	result := ms.Copy()
+
+	for n, appeared := range running {
+		if m, ok := result[n]; ok {
+			m.Restore(appeared)
+		} else {
+			result[n] = appeared.Copy()
 		}
 	}
 
-	lostMembers := ms.Diff(running)
-	newMembers := running.Diff(ms)
+	lostMembers := result.Diff(running)
+	newMembers := running.DiffExtended(ms)
 
 	if lostMembers.Size() > 0 || newMembers.Size() > 0 {
 		logger.Infof("Updating membership: new=%s, lost=%s", newMembers, lostMembers)
@@ -142,20 +177,20 @@ func (ms MemberSet) Reconcile(running MemberSet, max int32) (MemberSet, error) {
 		logger.Infof("Pod %s available", m.Name)
 	}
 
-	if int32(len(running)) <= max {
+	if running.Size() <= max {
 		// If we're scaling down, there is no need to restore lost members
 		for _, m := range lostMembers {
-			if _, ok := running[m.Name]; !ok {
-				running[m.Name] = m
+			if _, ok := result[m.Name]; !ok {
+				result[m.Name] = m.Copy()
 			}
-			running[m.Name].Offline()
+			result[m.Name].Offline()
 		}
 	}
 	// if running.AppPrimaries() < ms.AppPrimaries() && running.AppPrimaries() < max/2+1 {
 	// 	logger.Warnf("Quorum lost")
 	// 	// return running, fmt.Errorf("Quorum lost")
 	// }
-	return running, nil
+	return result, nil
 }
 
 // IsEqual tells whether two member sets are equal by checking

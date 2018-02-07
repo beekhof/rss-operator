@@ -55,7 +55,7 @@ func TestMemberSetIsEqual(t *testing.T) {
 	}
 }
 
-func TestMemberSetDiff(t *testing.T) {
+func TestMemberSetDiffExtended(t *testing.T) {
 	ma := &Member{Name: "a", Online: true, AppRunning: true}
 	mb := &Member{Name: "b", Online: true, AppRunning: true}
 	mboff := &Member{Name: "b"}
@@ -96,11 +96,61 @@ func TestMemberSetDiff(t *testing.T) {
 		wDiff: NewMemberSet(mboff),
 	}}
 	for i, tt := range tests {
-		diff := tt.ms1.Diff(tt.ms2)
+		diff := tt.ms1.DiffExtended(tt.ms2)
 		if !diff.IsEqual(tt.wDiff) {
 			t.Errorf("#%d: diff get=%v, want=%v, sets: %v, %v", i, diff, tt.wDiff, tt.ms1, tt.ms2)
 		} else {
 			t.Logf("#%d: diff get=%v, want=%v, sets: %v, %v", i, diff, tt.wDiff, tt.ms1, tt.ms2)
+		}
+	}
+}
+
+func TestMemberReconcile(t *testing.T) {
+
+	ra := &Member{Name: "a", Online: true}
+	rb := &Member{Name: "b", Online: true}
+	rc := &Member{Name: "c", Online: true}
+
+	ma := &Member{Name: "a", Online: true, AppRunning: true}
+	mb := &Member{Name: "b", Online: true, AppRunning: true}
+	mc := &Member{Name: "c", Online: true}
+
+	offa := &Member{Name: "a"}
+	offb := &Member{Name: "b"}
+	offc := &Member{Name: "c"}
+
+	tests := []struct {
+		ms1, ms2 MemberSet
+		wRes     MemberSet
+		max      int32
+	}{{
+		ms1:  NewMemberSet(ma, mb, mc),
+		ms2:  NewMemberSet(ra, rc),
+		wRes: NewMemberSet(ma, offb, mc),
+		max:  3,
+	}, {
+		ms1:  NewMemberSet(ma, mc),
+		ms2:  NewMemberSet(ra, rb),
+		wRes: NewMemberSet(ma, rb, offc),
+		max:  2,
+	}, {
+		ms1:  NewMemberSet(ra, mc),
+		ms2:  NewMemberSet(ma, rb),
+		wRes: NewMemberSet(ra, rb, offc),
+		max:  2,
+	}, {
+		ms1:  NewMemberSet(offa, offb, mc),
+		ms2:  NewMemberSet(ra, mb),
+		wRes: NewMemberSet(ra, rb, offc),
+		max:  2,
+	}}
+	for i, tt := range tests {
+		t.Logf("=== Test #%d ====", i)
+		rec, _ := tt.ms1.Reconcile(tt.ms2, tt.max)
+		if !rec.IsEqual(tt.wRes) {
+			t.Errorf("#%d: FAIL get=%v, want=%v, sets: %v, %v", i, rec, tt.wRes, tt.ms1, tt.ms2)
+		} else {
+			t.Logf("#%d: PASS get=%v, want=%v, sets: %v, %v", i, rec, tt.wRes, tt.ms1, tt.ms2)
 		}
 	}
 }
