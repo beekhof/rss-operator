@@ -114,16 +114,6 @@ func (ms MemberSet) Diff(other MemberSet) MemberSet {
 	return diff
 }
 
-// reconcileMembers reconciles
-// - running pods on k8s and cluster membership
-// - cluster membership and expected size of etcd cluster
-// Steps:
-// 1. Remove all pods from running set that does not belong to member set.
-// 2. L consist of remaining pods of runnings
-// 3. If L = members, the current state matches the membership state. END.
-// 4. If len(L) < len(members)/2 + 1, return quorum lost error.
-// 5. Add one missing member. END.
-
 func (m *Member) Restore(last *Member) {
 	// Restore app state
 	m.AppPrimary = last.AppPrimary
@@ -152,13 +142,15 @@ func (ms MemberSet) Reconcile(running MemberSet, max int) (MemberSet, error) {
 		logger.Infof("Pod %s available", m.Name)
 	}
 
-	for _, m := range lostMembers {
-		if _, ok := running[m.Name]; !ok {
-			running[m.Name] = m
+	if len(running) <= max {
+		// If we're scaling down, there is no need to restore lost members
+		for _, m := range lostMembers {
+			if _, ok := running[m.Name]; !ok {
+				running[m.Name] = m
+			}
+			running[m.Name].Offline()
 		}
-		running[m.Name].Offline()
 	}
-
 	// if running.AppPrimaries() < ms.AppPrimaries() && running.AppPrimaries() < max/2+1 {
 	// 	logger.Warnf("Quorum lost")
 	// 	// return running, fmt.Errorf("Quorum lost")
