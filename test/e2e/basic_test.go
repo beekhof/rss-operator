@@ -107,7 +107,8 @@ func TestCreateClusterGalera(t *testing.T) {
 func TestConnectPod(t *testing.T) {
 	f := framework.Global
 
-	stdout, stderr, err := k8sutil.ExecCommandInPodWithFullOutput(f.Log, f.KubeClient, f.Namespace,
+	context := k8sutil.ExecContext{Logger: f.Log, Cli: &f.KubeClient, Config: f.Config}
+	stdout, stderr, err := k8sutil.ExecCommandInPod(&context, f.Namespace,
 		"test-galera-qgd49-0001", "ls", "-al")
 	// stdout, stderr, err := f.ExecCommandInPodWithFullOutput("test-galera-qgd49-0001", "ls")
 	f.Log.Infof("out: %v, err: %v", stdout, stderr)

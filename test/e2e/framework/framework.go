@@ -23,10 +23,10 @@ import (
 
 	"github.com/beekhof/rss-operator/pkg/client"
 	"github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
+	"github.com/beekhof/rss-operator/pkg/util"
 	"github.com/beekhof/rss-operator/pkg/util/constants"
 	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
 	"github.com/beekhof/rss-operator/pkg/util/probe"
-	"github.com/beekhof/rss-operator/pkg/util"
 	"github.com/beekhof/rss-operator/test/e2e/e2eutil"
 
 	"github.com/sirupsen/logrus"
@@ -174,7 +174,7 @@ func (f *Framework) deleteOperatorCompletely(name string) error {
 	}
 	// Grace period isn't exactly accurate. It took ~10s for operator pod to completely disappear.
 	// We work around by increasing the wait time. Revisit this later.
-	err = retryutil.Retry(5*time.Second, 6, func() (bool, error) {
+	err = util.Retry(5*time.Second, 6, func() (bool, error) {
 		_, err := f.KubeClient.CoreV1().Pods(f.Namespace).Get(name, metav1.GetOptions{})
 		if err == nil {
 			return false, nil

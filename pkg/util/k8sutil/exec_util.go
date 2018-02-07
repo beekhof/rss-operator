@@ -97,7 +97,7 @@ func setupContext(context *ExecContext) error {
 	}
 
 	if context.Config == nil {
-
+		// TODO: Kill this code. Make config mandatory
 		kubeconfig := ""
 		kArg := flag.Lookup("kubeconfig")
 

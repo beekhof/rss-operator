@@ -21,7 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewCluster(genName string, size int, image string, labels map[string]string, annotations map[string]string) *api.ReplicatedStatefulSet {
+func NewCluster(genName string, size int32, image string, labels map[string]string, annotations map[string]string) *api.ReplicatedStatefulSet {
 	if image == "" {
 		image = "quay.io/beekhof/dummy:latest"
 	}
@@ -37,23 +37,23 @@ func NewCluster(genName string, size int, image string, labels map[string]string
 			Annotations:  annotations,
 		},
 		Spec: api.ClusterSpec{
-			Replicas: size,
+			Replicas: &size,
 			Pod: api.PodPolicy{
 				AntiAffinity: true,
-			},
-			Containers: []v1.Container{
-				{
-					Image:           image,
-					Name:            "test",
-					ImagePullPolicy: v1.PullAlways,
+				Containers: []v1.Container{
+					{
+						Image:           image,
+						Name:            "test",
+						ImagePullPolicy: v1.PullAlways,
+					},
 				},
-			},
-			Commands: api.ClusterCommands{
-				Status:   []string{"/check.sh"},
-				Sequence: []string{"/sequence.sh"},
-				Seed:     []string{"/seed.sh"},
-				Primary:  []string{"/start.sh"},
-				Stop:     []string{"/stop.sh"},
+				Commands: map[string]api.ReplicationCommand{
+					"status":   {Command: []string{"/check.sh"}},
+					"sequence": {Command: []string{"/sequence.sh"}},
+					"seed":     {Command: []string{"/seed.sh"}},
+					"primary":  {Command: []string{"/start.sh"}},
+					"stop":     {Command: []string{"/stop.sh"}},
+				},
 			},
 		},
 	}
