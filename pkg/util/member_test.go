@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package etcdutil
+package util
 
 import "testing"
 
@@ -50,7 +50,7 @@ func TestMemberSetIsEqual(t *testing.T) {
 	for i, tt := range tests {
 		eq := tt.ms1.IsEqual(tt.ms2)
 		if eq != tt.wEqual {
-			t.Errorf("#%d: equal get=%v, want=%v, sets: %v, %v", i, eq, tt.wEqual, tt.ms1, tt.ms2)
+			t.Errorf("#%d: FAIL equal get=%v, want=%v, sets: %v, %v", i, eq, tt.wEqual, tt.ms1, tt.ms2)
 		}
 	}
 }
@@ -98,9 +98,9 @@ func TestMemberSetDiffExtended(t *testing.T) {
 	for i, tt := range tests {
 		diff := tt.ms1.DiffExtended(tt.ms2)
 		if !diff.IsEqual(tt.wDiff) {
-			t.Errorf("#%d: diff get=%v, want=%v, sets: %v, %v", i, diff, tt.wDiff, tt.ms1, tt.ms2)
+			t.Errorf("#%d: FAIL diff get=%v, want=%v, sets: %v, %v", i, diff, tt.wDiff, tt.ms1, tt.ms2)
 		} else {
-			t.Logf("#%d: diff get=%v, want=%v, sets: %v, %v", i, diff, tt.wDiff, tt.ms1, tt.ms2)
+			t.Logf("#%d: PASS diff get=%v, want=%v, sets: %v, %v", i, diff, tt.wDiff, tt.ms1, tt.ms2)
 		}
 	}
 }

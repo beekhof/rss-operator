@@ -23,13 +23,9 @@ import (
 
 	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
 	"github.com/beekhof/rss-operator/pkg/util"
-	"github.com/beekhof/rss-operator/pkg/util/etcdutil"
 	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
 
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func parseExitCode(err error) int {
@@ -143,36 +139,4 @@ func (c *Cluster) appendPrimaries(cmd []string) []string {
 	}
 	return cmd
 
-}
-
-func (c *Cluster) deleteMember(m *etcdutil.Member) error {
-	err := c.config.KubeCli.CoreV1().Pods(c.rss.Namespace).Delete(m.Name, &metav1.DeleteOptions{})
-	if err != nil {
-		return fmt.Errorf("reconcile: could not delete pod %v", m.Name, err)
-	}
-	c.logger.Warnf("reconcile: deleted pod %v", m.Name)
-	m.Offline()
-	return nil
-}
-
-func (c *Cluster) newMember(name string, namespace string) *etcdutil.Member {
-	if namespace == "" {
-		namespace = c.rss.Namespace
-	}
-	return &etcdutil.Member{
-		Name:         name,
-		Namespace:    namespace,
-		SecurePeer:   c.isSecurePeer(),
-		SecureClient: c.isSecureClient(),
-	}
-}
-
-func (c *Cluster) podsToMemberSet(pods []*v1.Pod, sc bool) etcdutil.MemberSet {
-	members := etcdutil.MemberSet{}
-	for _, pod := range pods {
-		m := c.newMember(pod.Name, pod.Namespace)
-		m.Online = true
-		members.Add(m)
-	}
-	return members
 }

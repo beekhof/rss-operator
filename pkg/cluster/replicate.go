@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
-	"github.com/beekhof/rss-operator/pkg/util/etcdutil"
+	"github.com/beekhof/rss-operator/pkg/util"
 )
 
 func (c *Cluster) replicate() []error {
@@ -145,8 +145,8 @@ func (c *Cluster) detectMembers() {
 	}
 }
 
-func chooseSeeds(c *Cluster) ([]*etcdutil.Member, error) {
-	var bestPeer []*etcdutil.Member
+func chooseSeeds(c *Cluster) ([]*util.Member, error) {
+	var bestPeer []*util.Member
 	if c.peers == nil {
 		return bestPeer, fmt.Errorf("No known peers")
 	}
@@ -158,7 +158,7 @@ func chooseSeeds(c *Cluster) ([]*etcdutil.Member, error) {
 		} else if len(bestPeer) == 0 {
 			bestPeer = append(bestPeer, m)
 		} else if m.SEQ > bestPeer[0].SEQ {
-			bestPeer = []*etcdutil.Member{m}
+			bestPeer = []*util.Member{m}
 		} else {
 			bestPeer = append(bestPeer, m)
 		}
@@ -169,8 +169,8 @@ func chooseSeeds(c *Cluster) ([]*etcdutil.Member, error) {
 	return bestPeer, nil
 }
 
-func chooseMember(c *Cluster) (*etcdutil.Member, error) {
-	var bestPeer *etcdutil.Member
+func chooseMember(c *Cluster) (*util.Member, error) {
+	var bestPeer *util.Member
 	if c.peers == nil {
 		return nil, fmt.Errorf("No known peers")
 	}
@@ -194,8 +194,8 @@ func chooseMember(c *Cluster) (*etcdutil.Member, error) {
 	return bestPeer, nil
 }
 
-func chooseCurrentPrimary(c *Cluster) (*etcdutil.Member, error) {
-	var bestPeer *etcdutil.Member
+func chooseCurrentPrimary(c *Cluster) (*util.Member, error) {
+	var bestPeer *util.Member
 	if c.peers == nil {
 		return nil, fmt.Errorf("No known peers")
 	}
@@ -233,7 +233,7 @@ func (c *Cluster) startCommand(asPrimary bool, primaries int32) string {
 	return api.PrimaryCommandKey
 }
 
-func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
+func (c *Cluster) startAppMember(m *util.Member, asPrimary bool) error {
 	action := c.startCommand(asPrimary, c.peers.AppPrimaries())
 	if asPrimary && c.peers.AppPrimaries() == 0 {
 		c.logger.Infof("Seeding from pod %v: %v", m.Name, m.SEQ)
@@ -253,7 +253,7 @@ func (c *Cluster) startAppMember(m *etcdutil.Member, asPrimary bool) error {
 	return nil
 }
 
-func (c *Cluster) stopAppMember(m *etcdutil.Member) error {
+func (c *Cluster) stopAppMember(m *util.Member) error {
 	_, _, err, _ := c.execute(api.StopCommandKey, m.Name, false)
 	if err != nil {
 		m.AppFailed = true

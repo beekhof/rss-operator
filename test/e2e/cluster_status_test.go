@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/beekhof/rss-operator/pkg/util/retryutil"
+	"github.com/beekhof/rss-operator/pkg/util"
 	"github.com/beekhof/rss-operator/test/e2e/e2eutil"
 	"github.com/beekhof/rss-operator/test/e2e/framework"
 
@@ -31,7 +31,7 @@ func TestReadyMembersStatus(t *testing.T) {
 		t.Parallel()
 	}
 	f := framework.Global
-	size := 1
+	size := int32(1)
 	testEtcd, err := e2eutil.CreateCluster(t, f.CRClient, f.Namespace, e2eutil.NewCluster("test-etcd-", size, "", nil, nil))
 	if err != nil {
 		t.Fatal(err)
@@ -43,17 +43,17 @@ func TestReadyMembersStatus(t *testing.T) {
 		}
 	}()
 
-	if _, err := e2eutil.WaitUntilSizeReached(t, f.CRClient, size, 3, testEtcd); err != nil {
+	if _, err := e2eutil.WaitUntilSizeReached(t, f.CRClient, int(size), 3, testEtcd); err != nil {
 		t.Fatalf("failed to create %d members etcd cluster: %v", size, err)
 	}
 
-	err = retryutil.Retry(5*time.Second, 3, func() (done bool, err error) {
+	err = util.Retry(5*time.Second, 3, func() (done bool, err error) {
 		currEtcd, err := f.CRClient.ClusterlabsV1alpha1().ReplicatedStatefulSets(f.Namespace).Get(testEtcd.Name, metav1.GetOptions{})
 		if err != nil {
 			e2eutil.LogfWithTimestamp(t, "failed to get updated cluster object: %v", err)
 			return false, nil
 		}
-		if len(currEtcd.Status.Members.Ready) != size {
+		if len(currEtcd.Status.Members.Ready) != int(size) {
 			e2eutil.LogfWithTimestamp(t, "size of ready members want = %d, get = %d ReadyMembers(%v) UnreadyMembers(%v). Will retry checking ReadyMembers", size, len(currEtcd.Status.Members.Ready), currEtcd.Status.Members.Ready, currEtcd.Status.Members.Unready)
 			return false, nil
 		}

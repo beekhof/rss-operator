@@ -20,8 +20,8 @@ import (
 
 	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
 	"github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
+	"github.com/beekhof/rss-operator/pkg/util"
 	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
-	"github.com/beekhof/rss-operator/pkg/util/retryutil"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,7 +47,7 @@ func UpdateCluster(crClient versioned.Interface, cl *api.ReplicatedStatefulSet, 
 
 func AtomicUpdateClusterCR(crClient versioned.Interface, name, namespace string, maxRetries int, updateFunc k8sutil.ReplicatedStatefulSetCRUpdateFunc) (*api.ReplicatedStatefulSet, error) {
 	result := &api.ReplicatedStatefulSet{}
-	err := retryutil.Retry(1*time.Second, maxRetries, func() (done bool, err error) {
+	err := util.Retry(1*time.Second, maxRetries, func() (done bool, err error) {
 		etcdCluster, err := crClient.ClusterlabsV1alpha1().ReplicatedStatefulSets(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return false, err

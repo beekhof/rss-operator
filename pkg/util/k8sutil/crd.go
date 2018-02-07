@@ -20,7 +20,7 @@ import (
 	"time"
 
 	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
-	"github.com/beekhof/rss-operator/pkg/util/retryutil"
+	"github.com/beekhof/rss-operator/pkg/util"
 
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -79,7 +79,7 @@ func CreateCRD(clientset apiextensionsclient.Interface, crdName, rkind, rplural,
 }
 
 func WaitCRDReady(clientset apiextensionsclient.Interface, crdName string) error {
-	err := retryutil.Retry(5*time.Second, 20, func() (bool, error) {
+	err := util.Retry(5*time.Second, 20, func() (bool, error) {
 		crd, err := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
 		if err != nil {
 			return false, err

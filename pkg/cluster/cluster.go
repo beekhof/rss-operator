@@ -27,9 +27,7 @@ import (
 	"github.com/beekhof/rss-operator/pkg/debug"
 	"github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
 	"github.com/beekhof/rss-operator/pkg/util"
-	"github.com/beekhof/rss-operator/pkg/util/etcdutil"
 	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
-	"github.com/beekhof/rss-operator/pkg/util/retryutil"
 	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
@@ -83,7 +81,7 @@ type Cluster struct {
 	// members repsersents the members in the etcd cluster.
 	// the name of the member is the the name of the pod the member
 	// process runs in.
-	peers etcdutil.MemberSet
+	peers util.MemberSet
 
 	tlsConfig *tls.Config
 
@@ -164,7 +162,7 @@ func (c *Cluster) setup() error {
 		if err != nil {
 			return err
 		}
-		c.tlsConfig, err = etcdutil.NewTLSConfig(d.CertData, d.KeyData, d.CAData)
+		c.tlsConfig, err = util.NewTLSConfig(d.CertData, d.KeyData, d.CAData)
 		if err != nil {
 			return err
 		}
@@ -336,11 +334,11 @@ func (c *Cluster) run() {
 				// TODO: More to do here?
 				if c.rss.Spec.GetNumReplicas() == 0 {
 					c.logger.Infof("all %v pods are stopped.", c.rss.Name)
-					c.peers = etcdutil.MemberSet{}
+					c.peers = util.MemberSet{}
 
 				} else {
 					c.logger.Warningf("all %v pods are dead.", c.rss.Name)
-					c.peers, err = c.peers.Reconcile(etcdutil.MemberSet{}, c.rss.Spec.GetNumReplicas())
+					c.peers, err = c.peers.Reconcile(util.MemberSet{}, c.rss.Spec.GetNumReplicas())
 					errors = appendNonNil(errors, err)
 				}
 
@@ -532,7 +530,7 @@ func (c *Cluster) pollPods() (running, pending []*v1.Pod, err error) {
 	return running, pending, nil
 }
 
-func (c *Cluster) updateMemberStatus(members etcdutil.MemberSet, running []string) {
+func (c *Cluster) updateMemberStatus(members util.MemberSet, running []string) {
 	var failed []string
 	var unready []string
 	var primary []string
@@ -611,7 +609,7 @@ func (c *Cluster) reportFailedStatus() {
 		return false, nil
 	}
 
-	retryutil.Retry(retryInterval, math.MaxInt64, f)
+	util.Retry(retryInterval, math.MaxInt64, f)
 }
 
 func (c *Cluster) name() string {

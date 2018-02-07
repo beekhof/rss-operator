@@ -22,7 +22,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/beekhof/rss-operator/pkg/util/retryutil"
+	"github.com/beekhof/rss-operator/pkg/util"
 	"github.com/golang/glog"
 	//"github.com/pborman/uuid"
 	"github.com/pkg/errors"
@@ -77,7 +77,7 @@ func CreateAndWaitPod(kubecli kubernetes.Interface, ns string, pod *v1.Pod, time
 
 	interval := 5 * time.Second
 	var retPod *v1.Pod
-	err = retryutil.Retry(interval, int(timeout/(interval)), func() (bool, error) {
+	err = util.Retry(interval, int(timeout/(interval)), func() (bool, error) {
 		retPod, err = kubecli.CoreV1().Pods(ns).Get(pod.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
@@ -93,7 +93,7 @@ func CreateAndWaitPod(kubecli kubernetes.Interface, ns string, pod *v1.Pod, time
 	})
 
 	if err != nil {
-		if retryutil.IsRetryFailure(err) {
+		if util.IsRetryFailure(err) {
 			return nil, fmt.Errorf("failed to wait pod running, it is still pending: %v", err)
 		}
 		return nil, fmt.Errorf("failed to wait pod running: %v", err)

@@ -25,9 +25,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
+	"github.com/beekhof/rss-operator/pkg/util/constants"
 	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
-	"github.com/pkg/errors"
 
+	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -211,20 +212,20 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 		if len(container.Env) == 0 {
 			container.Env = []v1.EnvVar{
 				{
-					Name:  "SERVICE_NAME",
+					Name:  constants.EnvOperatorServiceName,
 					Value: cluster.ServiceName(true),
 				},
 			}
 
 		} else {
 			container.Env = append(container.Env, v1.EnvVar{
-				Name:  "SERVICE_NAME",
+				Name:  constants.EnvOperatorServiceName,
 				Value: cluster.ServiceName(true),
 			})
 		}
 		// The spec author could add themselves though...
 		container.Env = append(container.Env, v1.EnvVar{
-			Name: "POD_NAME",
+			Name: constants.EnvOperatorPodName,
 			ValueFrom: &v1.EnvVarSource{
 				FieldRef: &v1.ObjectFieldSelector{
 					APIVersion: "v1",
@@ -234,7 +235,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 		})
 
 		container.Env = append(container.Env, v1.EnvVar{
-			Name: "POD_NAMESPACE",
+			Name: constants.EnvOperatorPodNamespace,
 			ValueFrom: &v1.EnvVarSource{
 				FieldRef: &v1.ObjectFieldSelector{
 					APIVersion: "v1",

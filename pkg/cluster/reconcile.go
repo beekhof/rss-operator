@@ -19,9 +19,10 @@ import (
 	"fmt"
 
 	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
-	"github.com/beekhof/rss-operator/pkg/util/etcdutil"
+	"github.com/beekhof/rss-operator/pkg/util"
 
 	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ErrLostQuorum indicates that the etcd cluster lost its quorum.
@@ -48,7 +49,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 
 	// On controller restore, we could have "members == nil"
 	if c.peers == nil {
-		c.peers = etcdutil.MemberSet{}
+		c.peers = util.MemberSet{}
 	}
 
 	var err error
@@ -132,4 +133,36 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 	}
 
 	return errors
+}
+
+func (c *Cluster) podsToMemberSet(pods []*v1.Pod, sc bool) util.MemberSet {
+	members := util.MemberSet{}
+	for _, pod := range pods {
+		m := c.newMember(pod.Name, pod.Namespace)
+		m.Online = true
+		members.Add(m)
+	}
+	return members
+}
+
+func (c *Cluster) newMember(name string, namespace string) *util.Member {
+	if namespace == "" {
+		namespace = c.rss.Namespace
+	}
+	return &util.Member{
+		Name:         name,
+		Namespace:    namespace,
+		SecurePeer:   c.isSecurePeer(),
+		SecureClient: c.isSecureClient(),
+	}
+}
+
+func (c *Cluster) deleteMember(m *util.Member) error {
+	err := c.config.KubeCli.CoreV1().Pods(c.rss.Namespace).Delete(m.Name, &metav1.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("reconcile: could not delete pod %v", m.Name, err)
+	}
+	c.logger.Warnf("reconcile: deleted pod %v", m.Name)
+	m.Offline()
+	return nil
 }

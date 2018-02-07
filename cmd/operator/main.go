@@ -28,10 +28,10 @@ import (
 	"github.com/beekhof/rss-operator/pkg/client"
 	"github.com/beekhof/rss-operator/pkg/controller"
 	"github.com/beekhof/rss-operator/pkg/debug"
+	"github.com/beekhof/rss-operator/pkg/util"
 	"github.com/beekhof/rss-operator/pkg/util/constants"
 	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
 	"github.com/beekhof/rss-operator/pkg/util/probe"
-	"github.com/beekhof/rss-operator/pkg/util/retryutil"
 	"github.com/beekhof/rss-operator/version"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -173,7 +173,7 @@ func newControllerConfig() controller.Config {
 
 func getMyPodServiceAccount(kubecli kubernetes.Interface) (string, error) {
 	var sa string
-	err := retryutil.Retry(5*time.Second, 100, func() (bool, error) {
+	err := util.Retry(5*time.Second, 100, func() (bool, error) {
 		pod, err := kubecli.CoreV1().Pods(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			logrus.Errorf("fail to get operator pod (%s): %v", name, err)

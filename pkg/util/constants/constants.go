@@ -20,6 +20,7 @@ const (
 	DefaultDialTimeout    = 5 * time.Second
 	DefaultRequestTimeout = 5 * time.Second
 
-	EnvOperatorPodName      = "MY_POD_NAME"
-	EnvOperatorPodNamespace = "MY_POD_NAMESPACE"
+	EnvOperatorPodName      = "POD_NAME"
+	EnvOperatorPodNamespace = "POD_NAMESPACE"
+	EnvOperatorServiceName  = "SERVICE_NAME"
 )

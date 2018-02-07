@@ -15,7 +15,7 @@
 package k8sutil
 
 import (
-	"github.com/beekhof/rss-operator/pkg/util/etcdutil"
+	"github.com/beekhof/rss-operator/pkg/util"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -33,8 +33,8 @@ func GetTLSDataFromSecret(kubecli kubernetes.Interface, ns, se string) (*TLSData
 		return nil, err
 	}
 	return &TLSData{
-		CertData: secret.Data[etcdutil.CliCertFile],
-		KeyData:  secret.Data[etcdutil.CliKeyFile],
-		CAData:   secret.Data[etcdutil.CliCAFile],
+		CertData: secret.Data[util.CliCertFile],
+		KeyData:  secret.Data[util.CliKeyFile],
+		CAData:   secret.Data[util.CliCAFile],
 	}, nil
 }

@@ -26,7 +26,7 @@ import (
 	"github.com/beekhof/rss-operator/pkg/util/constants"
 	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
 	"github.com/beekhof/rss-operator/pkg/util/probe"
-	"github.com/beekhof/rss-operator/pkg/util/retryutil"
+	"github.com/beekhof/rss-operator/pkg/util"
 	"github.com/beekhof/rss-operator/test/e2e/e2eutil"
 
 	"github.com/sirupsen/logrus"

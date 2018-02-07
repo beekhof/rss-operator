@@ -25,7 +25,6 @@ import (
 	"github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
 	"github.com/beekhof/rss-operator/pkg/util"
 	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
-	"github.com/beekhof/rss-operator/pkg/util/retryutil"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,7 +48,7 @@ func CalculateRestoreWaitTime(needDataClone bool) int {
 
 func WaitUntilPodSizeReached(t *testing.T, kubeClient kubernetes.Interface, size, retries int, cl *api.ReplicatedStatefulSet) ([]string, error) {
 	var names []string
-	err := retryutil.Retry(retryInterval, retries, func() (done bool, err error) {
+	err := util.Retry(retryInterval, retries, func() (done bool, err error) {
 		podList, err := kubeClient.Core().Pods(cl.Namespace).List(k8sutil.ClusterListOpt(cl.Name))
 		if err != nil {
 			return false, err
@@ -82,7 +81,7 @@ func WaitUntilSizeReached(t *testing.T, crClient versioned.Interface, size, retr
 }
 
 func WaitSizeAndVersionReached(t *testing.T, kubeClient kubernetes.Interface, version string, size, retries int, cl *api.ReplicatedStatefulSet) error {
-	return retryutil.Retry(retryInterval, retries, func() (done bool, err error) {
+	return util.Retry(retryInterval, retries, func() (done bool, err error) {
 		var names []string
 		podList, err := kubeClient.Core().Pods(cl.Namespace).List(k8sutil.ClusterListOpt(cl.Name))
 		if err != nil {
@@ -119,7 +118,7 @@ func getVersionFromImage(image string) string {
 
 func waitSizeReachedWithAccept(t *testing.T, crClient versioned.Interface, size, retries int, cl *api.ReplicatedStatefulSet, accepts ...acceptFunc) ([]string, error) {
 	var names []string
-	err := retryutil.Retry(retryInterval, retries, func() (done bool, err error) {
+	err := util.Retry(retryInterval, retries, func() (done bool, err error) {
 		currCluster, err := crClient.ClusterlabsV1alpha1().ReplicatedStatefulSets(cl.Namespace).Get(cl.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
@@ -146,7 +145,7 @@ func waitSizeReachedWithAccept(t *testing.T, crClient versioned.Interface, size,
 
 func WaitUntilMembersWithNamesDeleted(t *testing.T, crClient versioned.Interface, retries int, cl *api.ReplicatedStatefulSet, targetNames ...string) ([]string, error) {
 	var remaining []string
-	err := retryutil.Retry(retryInterval, retries, func() (done bool, err error) {
+	err := util.Retry(retryInterval, retries, func() (done bool, err error) {
 		currCluster, err := crClient.ClusterlabsV1alpha1().ReplicatedStatefulSets(cl.Namespace).Get(cl.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
@@ -175,7 +174,7 @@ func WaitUntilMembersWithNamesDeleted(t *testing.T, crClient versioned.Interface
 func waitResourcesDeleted(t *testing.T, kubeClient kubernetes.Interface, cl *api.ReplicatedStatefulSet) error {
 	undeletedPods, err := WaitPodsDeleted(kubeClient, cl.Namespace, 3, k8sutil.ClusterListOpt(cl.Name))
 	if err != nil {
-		if retryutil.IsRetryFailure(err) && len(undeletedPods) > 0 {
+		if util.IsRetryFailure(err) && len(undeletedPods) > 0 {
 			p := undeletedPods[0]
 			LogfWithTimestamp(t, "waiting pod (%s) to be deleted.", p.Name)
 
@@ -190,7 +189,7 @@ func waitResourcesDeleted(t *testing.T, kubeClient kubernetes.Interface, cl *api
 		return fmt.Errorf("fail to wait pods deleted: %v", err)
 	}
 
-	err = retryutil.Retry(retryInterval, 3, func() (done bool, err error) {
+	err = util.Retry(retryInterval, 3, func() (done bool, err error) {
 		list, err := kubeClient.CoreV1().Services(cl.Namespace).List(k8sutil.ClusterListOpt(cl.Name))
 		if err != nil {
 			return false, err
@@ -229,7 +228,7 @@ func WaitPodsDeletedCompletely(kubecli kubernetes.Interface, namespace string, r
 
 func waitPodsDeleted(kubecli kubernetes.Interface, namespace string, retries int, lo metav1.ListOptions, filters ...filterFunc) ([]*v1.Pod, error) {
 	var pods []*v1.Pod
-	err := retryutil.Retry(retryInterval, retries, func() (bool, error) {
+	err := util.Retry(retryInterval, retries, func() (bool, error) {
 		podList, err := kubecli.CoreV1().Pods(namespace).List(lo)
 		if err != nil {
 			return false, err
@@ -258,7 +257,7 @@ func WaitUntilOperatorReady(kubecli kubernetes.Interface, namespace, name string
 	lo := metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(NameLabelSelector(name)).String(),
 	}
-	err := retryutil.Retry(10*time.Second, 6, func() (bool, error) {
+	err := util.Retry(10*time.Second, 6, func() (bool, error) {
 		podList, err := kubecli.CoreV1().Pods(namespace).List(lo)
 		if err != nil {
 			return false, err
