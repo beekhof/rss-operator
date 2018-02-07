@@ -124,15 +124,15 @@ func (m *Member) Restore(last *Member) {
 }
 
 func (ms MemberSet) Reconcile(running MemberSet, max int) (MemberSet, error) {
-
-	lostMembers := ms.Diff(running)
-	newMembers := running.Diff(ms)
-
+	// The only thing we take from 'running' is new members and the value of .Online
 	for _, last := range ms {
 		if m, ok := running[last.Name]; ok {
 			m.Restore(last)
 		}
 	}
+
+	lostMembers := ms.Diff(running)
+	newMembers := running.Diff(ms)
 
 	if lostMembers.Size() > 0 || newMembers.Size() > 0 {
 		logger.Infof("Updating membership: new=%s, lost=%s", newMembers, lostMembers)
