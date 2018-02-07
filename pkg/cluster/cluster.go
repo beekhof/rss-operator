@@ -346,7 +346,7 @@ func (c *Cluster) run() {
 
 				break
 
-			} else if len(running) == c.rss.Spec.GetNumReplicas() {
+			} else if int32(len(running)) == c.rss.Spec.GetNumReplicas() {
 				c.status.RestoreReplicas = len(running)
 				c.updateCRStatus("mainloop")
 			}
@@ -412,18 +412,24 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 	}
 	oldsts := sts.DeepCopy()
 
-	if c.rss.Spec.GetNumReplicas() != oldSpec.GetNumReplicas() {
-
-		if oldSpec.GetNumReplicas() == 0 && c.rss.Spec.GetNumReplicas() < c.rss.Status.RestoreReplicas {
-			// c.logger.Infof("Replica count (%v) for %v is too low (should be %v or higher)", c.rss.Spec.GetNumReplicas(), stsname, c.rss.Status.RestoreReplicas)
+	if *sts.Spec.Replicas != c.rss.Spec.GetNumReplicas() {
+		if *sts.Spec.Replicas == int32(0) && c.rss.Spec.GetNumReplicas() < int32(c.rss.Status.RestoreReplicas) {
 			err := fmt.Errorf("Replica count (%v) for %v is too low (should be %v or higher)", c.rss.Spec.GetNumReplicas(), stsname, c.rss.Status.RestoreReplicas)
-			c.rss.Spec.Replicas = &c.rss.Status.RestoreReplicas
-			return err
+			c.status.SetPhase(api.ClusterPhasePaused)
+			c.status.SetReason(err.Error())
+			c.logger.Errorf(err.Error())
+			c.updateCRStatus("modify")
+			return nil
 
 		} else {
 			c.logger.Infof("Changing the Replica count for %v from %v to %v", stsname, oldSpec.GetNumReplicas(), c.rss.Spec.GetNumReplicas())
 			intVal := int32(c.rss.Spec.GetNumReplicas())
 			sts.Spec.Replicas = &intVal
+			if c.status.Phase == api.ClusterPhasePaused {
+				c.status.SetPhase(api.ClusterPhaseRunning)
+				c.status.SetReason("Replica count is consistent")
+				c.updateCRStatus("modify")
+			}
 		}
 
 	}

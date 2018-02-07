@@ -38,7 +38,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 	defer c.logger.Infoln("Finish reconciling")
 
 	defer func() {
-		c.status.Replicas = c.peers.Size()
+		c.status.Replicas = len(c.peers)
 		c.updateCRStatus("reconcile")
 	}()
 

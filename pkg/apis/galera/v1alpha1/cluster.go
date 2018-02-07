@@ -31,7 +31,7 @@ import (
 var (
 	// TODO: move validation code into separate package.
 	ErrBackupUnsetRestoreSet = errors.New("spec: backup policy must be set if restore policy is set")
-	minClusterSize           = 3
+	minClusterSize           = int32(3)
 )
 
 const (
@@ -102,8 +102,8 @@ type ClusterSpec struct {
 	// Size is the expected size of the galera cluster.
 	// The rss-operator will eventually make the size of the running
 	// cluster equal to the expected size.
-	Replicas          *int           `json:"replicas"`
-	Primaries         *int           `json:"primaries,omitempty"`
+	Replicas          *int32         `json:"replicas"`
+	Primaries         *int32         `json:"primaries,omitempty"`
 	ReconcileInterval *time.Duration `json:"reconcileInterval,omitempty"`
 
 	// An optional list of references to secrets in the same namespace
@@ -232,7 +232,7 @@ func (c *ClusterSpec) GetServicePorts() []v1.ServicePort {
 	}
 }
 
-func (c *ClusterSpec) GetNumReplicas() int {
+func (c *ClusterSpec) GetNumReplicas() int32 {
 	if c.Replicas == nil {
 		return minClusterSize
 
@@ -246,7 +246,7 @@ func (c *ClusterSpec) GetNumReplicas() int {
 	return *c.Replicas
 }
 
-func (c *ClusterSpec) GetNumPrimaries() int {
+func (c *ClusterSpec) GetNumPrimaries() int32 {
 	replicas := c.GetNumReplicas()
 	if c.Primaries == nil {
 		return replicas

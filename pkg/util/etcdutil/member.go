@@ -123,7 +123,7 @@ func (m *Member) Restore(last *Member) {
 	m.SEQ = last.SEQ
 }
 
-func (ms MemberSet) Reconcile(running MemberSet, max int) (MemberSet, error) {
+func (ms MemberSet) Reconcile(running MemberSet, max int32) (MemberSet, error) {
 	// The only thing we take from 'running' is new members and the value of .Online
 	for _, last := range ms {
 		if m, ok := running[last.Name]; ok {
@@ -142,7 +142,7 @@ func (ms MemberSet) Reconcile(running MemberSet, max int) (MemberSet, error) {
 		logger.Infof("Pod %s available", m.Name)
 	}
 
-	if len(running) <= max {
+	if int32(len(running)) <= max {
 		// If we're scaling down, there is no need to restore lost members
 		for _, m := range lostMembers {
 			if _, ok := running[m.Name]; !ok {
@@ -172,12 +172,12 @@ func (ms MemberSet) IsEqual(other MemberSet) bool {
 	return true
 }
 
-func (ms MemberSet) Size() int {
-	return len(ms)
+func (ms MemberSet) Size() int32 {
+	return int32(len(ms))
 }
 
-func (ms MemberSet) AppPrimaries() int {
-	count := 0
+func (ms MemberSet) AppPrimaries() int32 {
+	count := int32(0)
 	for _, m := range ms {
 		if m.Online && m.AppPrimary && m.AppRunning {
 			count += 1
@@ -186,8 +186,8 @@ func (ms MemberSet) AppPrimaries() int {
 	return count
 }
 
-func (ms MemberSet) AppMembers() int {
-	count := 0
+func (ms MemberSet) AppMembers() int32 {
+	count := int32(0)
 	for _, m := range ms {
 		if m.Online && m.AppRunning {
 			count += 1
@@ -196,8 +196,8 @@ func (ms MemberSet) AppMembers() int {
 	return count
 }
 
-func (ms MemberSet) ActiveMembers() int {
-	count := 0
+func (ms MemberSet) ActiveMembers() int32 {
+	count := int32(0)
 	for _, m := range ms {
 		if m.Online {
 			count += 1
@@ -206,8 +206,8 @@ func (ms MemberSet) ActiveMembers() int {
 	return count
 }
 
-func (ms MemberSet) InActiveMembers() int {
-	count := 0
+func (ms MemberSet) InActiveMembers() int32 {
+	count := int32(0)
 	for _, m := range ms {
 		if !m.Online {
 			count += 1

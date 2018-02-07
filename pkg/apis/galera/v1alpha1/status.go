@@ -28,6 +28,7 @@ const (
 	ClusterPhaseNone     ClusterPhase = ""
 	ClusterPhaseCreating              = "Creating"
 	ClusterPhaseRunning               = "Running"
+	ClusterPhasePaused                = "Paused"
 	ClusterPhaseFailed                = "Failed"
 
 	// See ./doc/user/conditions_and_events.md
@@ -131,12 +132,12 @@ func (cs *ClusterStatus) SetReason(r string) {
 	cs.Reason = r
 }
 
-func (cs *ClusterStatus) SetScalingUpCondition(from, to int) {
+func (cs *ClusterStatus) SetScalingUpCondition(from, to int32) {
 	c := newClusterCondition(ClusterConditionScaling, v1.ConditionTrue, "Scaling up", scalingMsg(from, to))
 	cs.setClusterCondition(*c)
 }
 
-func (cs *ClusterStatus) SetScalingDownCondition(from, to int) {
+func (cs *ClusterStatus) SetScalingDownCondition(from, to int32) {
 	c := newClusterCondition(ClusterConditionScaling, v1.ConditionTrue, "Scaling down", scalingMsg(from, to))
 	cs.setClusterCondition(*c)
 }
@@ -204,6 +205,6 @@ func newClusterCondition(condType ClusterConditionType, status v1.ConditionStatu
 	}
 }
 
-func scalingMsg(from, to int) string {
+func scalingMsg(from, to int32) string {
 	return fmt.Sprintf("Current cluster size: %d, desired cluster size: %d", from, to)
 }

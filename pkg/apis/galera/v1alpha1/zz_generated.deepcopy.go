@@ -109,7 +109,7 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 		if *in == nil {
 			*out = nil
 		} else {
-			*out = new(int)
+			*out = new(int32)
 			**out = **in
 		}
 	}
@@ -118,7 +118,7 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 		if *in == nil {
 			*out = nil
 		} else {
-			*out = new(int)
+			*out = new(int32)
 			**out = **in
 		}
 	}

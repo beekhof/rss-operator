@@ -217,7 +217,7 @@ func chooseCurrentPrimary(c *Cluster) (*etcdutil.Member, error) {
 	return bestPeer, nil
 }
 
-func (c *Cluster) startCommand(asPrimary bool, primaries int) string {
+func (c *Cluster) startCommand(asPrimary bool, primaries int32) string {
 
 	if asPrimary && primaries == 0 {
 		if _, ok := c.rss.Spec.Pod.Commands[api.SeedCommandKey]; ok {
