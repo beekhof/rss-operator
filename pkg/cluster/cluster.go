@@ -331,7 +331,7 @@ func (c *Cluster) run() {
 				continue
 			}
 
-			if len(running) == 0 && c.rss.Spec.GetNumReplicas() == 0 {
+			if len(running) == 0 {
 				// TODO: More to do here?
 				if c.rss.Spec.GetNumReplicas() == 0 {
 					c.logger.Infof("all %v pods are stopped.", c.rss.Name)
