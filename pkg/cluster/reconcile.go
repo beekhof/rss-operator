@@ -88,9 +88,9 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 			switch rc {
 			case 0:
 				if !m.AppRunning {
-					c.logger.Infof("reconcile: Detected active applcation on %v: %v", m.Name, err)
+					c.logger.Infof("reconcile: Detected active applcation on %v", m.Name)
 				} else if m.AppPrimary {
-					c.logger.Warnf("reconcile: Detected demoted primary on %v: %v", m.Name, err)
+					c.logger.Warnf("reconcile: Detected demoted primary on %v", m.Name)
 				}
 				m.AppRunning = true
 				m.AppPrimary = false
