@@ -62,6 +62,51 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 
 		// TODO: Make the threshold configurable
 		// ' > 1' means that we tried at least a start and a stop
+		if m.AppFailed || !m.Online {
+			continue
+
+		}
+		_, _, err, rc := c.execute(api.StatusCommandKey, m.Name, false)
+
+		if _, ok := c.rss.Spec.Pod.Commands[api.SecondaryCommandKey]; rc == 0 && !ok {
+			// Secondaries are not in use, map to primary
+			rc = 8
+		}
+
+		switch rc {
+		case 0:
+			if !m.AppRunning {
+				c.logger.Infof("reconcile: Detected active applcation on %v", m.Name)
+			} else if m.AppPrimary {
+				c.logger.Warnf("reconcile: Detected demoted primary on %v", m.Name)
+			}
+			m.AppRunning = true
+			m.AppPrimary = false
+		case 7:
+			if m.AppRunning {
+				c.logger.Warnf("reconcile: Detected stopped applcation on %v: %v", m.Name, err)
+			}
+			m.AppRunning = false
+			m.AppPrimary = false
+		case 8:
+			if !m.AppRunning {
+				c.logger.Infof("reconcile: Detected active primary applcation on %v: %v", m.Name, err)
+			} else if !m.AppPrimary {
+				c.logger.Warnf("reconcile: Detected promoted secondary on %v: %v", m.Name, err)
+			}
+			m.AppPrimary = true
+			m.AppRunning = true
+		default:
+			c.logger.Errorf("reconcile: Check failed on %v: %v", m.Name, err)
+			m.AppRunning = true
+			m.AppFailed = true
+		}
+	}
+
+	for _, m := range c.peers {
+
+		// TODO: Make the threshold configurable
+		// ' > 1' means that we tried at least a start and a stop
 		if m.AppFailed && m.Failures > 1 {
 			errors = append(errors, fmt.Errorf("%v deletion after %v failures", m.Name, m.Failures))
 			errors = appendNonNil(errors, c.deleteMember(m))
@@ -75,43 +120,6 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 			if err := c.stopAppMember(m); err != nil {
 				errors = append(errors, fmt.Errorf("%v deletion after stop failure: %v", m.Name, err))
 				errors = appendNonNil(errors, c.deleteMember(m))
-			}
-
-		} else {
-			_, _, err, rc := c.execute(api.StatusCommandKey, m.Name, false)
-
-			if _, ok := c.rss.Spec.Pod.Commands[api.SecondaryCommandKey]; rc == 0 && !ok {
-				// Secondaries are not in use, map to primary
-				rc = 8
-			}
-
-			switch rc {
-			case 0:
-				if !m.AppRunning {
-					c.logger.Infof("reconcile: Detected active applcation on %v", m.Name)
-				} else if m.AppPrimary {
-					c.logger.Warnf("reconcile: Detected demoted primary on %v", m.Name)
-				}
-				m.AppRunning = true
-				m.AppPrimary = false
-			case 7:
-				if m.AppRunning {
-					c.logger.Warnf("reconcile: Detected stopped applcation on %v: %v", m.Name, err)
-				}
-				m.AppRunning = false
-				m.AppPrimary = false
-			case 8:
-				if !m.AppRunning {
-					c.logger.Infof("reconcile: Detected active primary applcation on %v: %v", m.Name, err)
-				} else if !m.AppPrimary {
-					c.logger.Warnf("reconcile: Detected promoted secondary on %v: %v", m.Name, err)
-				}
-				m.AppPrimary = true
-				m.AppRunning = true
-			default:
-				c.logger.Errorf("reconcile: Check failed on %v: %v", m.Name, err)
-				m.AppRunning = true
-				m.AppFailed = true
 			}
 		}
 	}
