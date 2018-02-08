@@ -30,6 +30,7 @@ import (
 	"github.com/mgutz/ansi"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
+	// "github.com/golang/glog"
 	//	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
@@ -66,14 +67,25 @@ func LogOutput(logger *logrus.Entry, level logrus.Level, id string, result strin
 	}
 }
 
+var log *logrus.Entry
+
+func createLogger() {
+	if log == nil {
+		l := logrus.New()
+		f := new(TextFormatter)
+		f.ForceFormatting = true
+		f.FullTimestamp = true
+		f.ForceColors = true
+		l.Formatter = f
+		l.Level = logrus.DebugLevel
+		log = l.WithField("pkg", "rss")
+		log.Info("log init")
+	}
+}
+
 func GetLogger(component string) *logrus.Entry {
-	l := logrus.New()
-	f := new(TextFormatter)
-	f.ForceFormatting = true
-	f.FullTimestamp = true
-	f.ForceColors = true
-	l.Formatter = f
-	return l.WithField("pkg", component)
+	createLogger()
+	return log.WithField("c", component)
 }
 
 func JsonLogObject(logger *logrus.Entry, spec interface{}, text string) {
