@@ -173,17 +173,19 @@ func (ms MemberSet) Reconcile(running MemberSet, max int32) (MemberSet, error) {
 
 	for _, m := range newMembers {
 		logger.Infof("Pod %s available", m.Name)
+		result[m.Name].Online = true
 	}
 
-	if running.Size() <= max {
+	for _, m := range lostMembers {
 		// If we're scaling down, there is no need to restore lost members
-		for _, m := range lostMembers {
-			if _, ok := result[m.Name]; !ok {
-				result[m.Name] = m.Copy()
-			}
+		if _, ok := result[m.Name]; !ok && running.Size() <= max {
+			result[m.Name] = m.Copy()
+			result[m.Name].Offline()
+		} else {
 			result[m.Name].Offline()
 		}
 	}
+
 	// if running.AppPrimaries() < ms.AppPrimaries() && running.AppPrimaries() < max/2+1 {
 	// 	logger.Warnf("Quorum lost")
 	// 	// return running, fmt.Errorf("Quorum lost")
@@ -199,6 +201,8 @@ func (ms MemberSet) IsEqual(other MemberSet) bool {
 	}
 	for n := range ms {
 		if _, ok := other[n]; !ok {
+			return false
+		} else if ms[n].Online != other[n].Online {
 			return false
 		}
 	}

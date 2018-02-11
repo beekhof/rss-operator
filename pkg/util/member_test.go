@@ -132,17 +132,22 @@ func TestMemberReconcile(t *testing.T) {
 		ms1:  NewMemberSet(ma, mc),
 		ms2:  NewMemberSet(ra, rb),
 		wRes: NewMemberSet(ma, rb, offc),
-		max:  2,
+		max:  3,
 	}, {
 		ms1:  NewMemberSet(ra, mc),
 		ms2:  NewMemberSet(ma, rb),
 		wRes: NewMemberSet(ra, rb, offc),
-		max:  2,
+		max:  3,
 	}, {
 		ms1:  NewMemberSet(offa, offb, mc),
 		ms2:  NewMemberSet(ra, mb),
 		wRes: NewMemberSet(ra, rb, offc),
-		max:  2,
+		max:  3,
+	}, {
+		ms1:  NewMemberSet(offa, mb, mc),
+		ms2:  NewMemberSet(ra, rb, rc),
+		wRes: NewMemberSet(ra, mb, mc),
+		max:  3,
 	}}
 	for i, tt := range tests {
 		t.Logf("=== Test #%d ====", i)
