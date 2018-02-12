@@ -416,7 +416,7 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 			return nil
 
 		} else {
-			old := 0
+			old := int32(0)
 			if sts.Spec.Replicas != nil {
 				old = *sts.Spec.Replicas
 			}
