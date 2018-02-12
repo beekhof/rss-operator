@@ -97,7 +97,7 @@ func New(config Config, rss *api.ReplicatedStatefulSet) *Cluster {
 		logger: lg,
 		config: config,
 		execContext: k8sutil.ExecContext{
-			Logger: lg.WithField("c", "exec"),
+			Logger: lg.WithField("sub", "exec"),
 			Cli:    &config.KubeCli,
 		},
 		rss:       rss,

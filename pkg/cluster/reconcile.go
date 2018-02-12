@@ -46,7 +46,7 @@ func (c *Cluster) recover(peers util.MemberSet) []error {
 			errors = appendNonNil(errors, c.deleteMember(m))
 
 		} else if !m.Online {
-			c.logger.Infof("reconcile: Skipping offline pod %v", m.Name)
+			c.logger.Debugf("reconcile: Skipping offline pod %v", m.Name)
 			continue
 
 		} else if m.AppFailed {
