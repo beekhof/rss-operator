@@ -42,6 +42,7 @@ func (c *Cluster) replicate() []error {
 
 	// Always detect members (so that the most up-to-date ones get started)
 	c.detectMembers()
+	c.detectMembers()
 
 	if c.peers.AppPrimaries() == 0 {
 		seeds, err := chooseSeeds(c)
