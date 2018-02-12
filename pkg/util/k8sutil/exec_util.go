@@ -137,17 +137,7 @@ func ExecWithOptions(context *ExecContext, options ExecOptions) (string, string,
 		return "", "", err
 	}
 
-	// Sanitise timeouts
-	minTimeout := 10 * time.Second
-	if options.Timeout > minTimeout {
-		context.Config.Timeout = options.Timeout
-
-	} else if options.Timeout > time.Duration(0) {
-		context.Config.Timeout = minTimeout
-
-	} else {
-		context.Config.Timeout = 10 * time.Minute
-	}
+	context.Config.Timeout = options.Timeout
 
 	cli := *context.Cli
 	if options.ContainerName == "" {

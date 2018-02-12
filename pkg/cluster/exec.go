@@ -93,6 +93,14 @@ func (c *Cluster) execute(action string, podName string, silent bool) (string, s
 	cmd := c.rss.Spec.Pod.Commands[action]
 	timeout := parseDuration(cmd.Timeout)
 
+	// Sanitise timeouts
+	minTimeout := 10 * time.Second
+	if timeout == time.Duration(0) {
+		timeout = 10 * time.Minute
+	} else if timeout < minTimeout {
+		timeout = minTimeout
+	}
+
 	str := fmt.Sprintf("Calling '%v' command on %v with timeout %v: %v", action, podName, timeout, cmd.Command)
 
 	switch action {
