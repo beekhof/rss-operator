@@ -73,7 +73,9 @@ func (m *Member) String() string {
 	} else if m.AppFailed {
 		return fmt.Sprintf("%v!", m.Name)
 	} else if m.AppRunning {
-		return fmt.Sprintf("%v+", m.Name)
+		return fmt.Sprintf("%v+%v", m.Name, m.SEQ)
+	} else if m.SEQ > 0 {
+		return fmt.Sprintf("%v:%v", m.Name, m.SEQ)
 	}
 	return m.Name
 }
@@ -151,15 +153,45 @@ func (m *Member) Copy() *Member {
 	return &c
 }
 
+func (m Member) IsEqual(other Member) bool {
+	if m.Online != other.Online {
+		// logger.Warnf("Pod %v Online %v/%v", m.Name, m.Online, other.Online)
+		return false
+	} else if m.SEQ != other.SEQ {
+		// logger.Warnf("Pod %v SEQ %v/%v", m.Name, m.SEQ, other.SEQ)
+		return false
+	} else if m.AppRunning != other.AppRunning {
+		// logger.Warnf("Pod %v running %v/%v", m.Name, m.AppRunning, other.AppRunning)
+		return false
+	} else if m.AppPrimary != other.AppPrimary {
+		// logger.Warnf("Pod %v primary %v/%v", m.Name, m.AppPrimary, other.AppPrimary)
+		return false
+	} else if m.AppFailed != other.AppFailed {
+		// logger.Warnf("Pod %v failed %v/%v", m.Name, m.AppFailed, other.AppFailed)
+		return false
+	}
+
+	return true
+}
+
+func (m *Member) Offline() {
+	if m.Online {
+		logger.Warnf("Pod %v offline", m.Name)
+	}
+	m.Online = false
+	m.AppPrimary = false
+	m.AppRunning = false
+	m.AppFailed = false
+	m.SEQ = 0
+}
+
 func (ms MemberSet) Reconcile(running MemberSet, max int32) (MemberSet, error) {
 	// The only thing we take from 'running' is new members and the value of .Online
 
 	result := ms.Copy()
 
 	for n, appeared := range running {
-		if m, ok := result[n]; ok {
-			m.Restore(appeared)
-		} else {
+		if _, ok := result[n]; !ok {
 			result[n] = appeared.Copy()
 		}
 	}
@@ -202,7 +234,7 @@ func (ms MemberSet) IsEqual(other MemberSet) bool {
 	for n := range ms {
 		if _, ok := other[n]; !ok {
 			return false
-		} else if ms[n].Online != other[n].Online {
+		} else if !ms[n].IsEqual(*other[n]) {
 			return false
 		}
 	}
@@ -284,16 +316,6 @@ func (ms MemberSet) Add(m *Member) {
 
 func (ms MemberSet) Remove(name string) {
 	delete(ms, name)
-}
-
-func (m *Member) Offline() {
-	if m.Online {
-		logger.Warnf("Pod %v offline", m.Name)
-	}
-	m.Online = false
-	m.AppPrimary = false
-	m.AppRunning = false
-	m.AppFailed = false
 }
 
 func (ms MemberSet) ClientURLs() []string {

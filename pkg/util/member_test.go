@@ -111,8 +111,8 @@ func TestMemberReconcile(t *testing.T) {
 	rb := &Member{Name: "b", Online: true}
 	rc := &Member{Name: "c", Online: true}
 
-	ma := &Member{Name: "a", Online: true, AppRunning: true}
-	mb := &Member{Name: "b", Online: true, AppRunning: true}
+	ma := &Member{Name: "a", Online: true, AppRunning: true, SEQ: 1}
+	mb := &Member{Name: "b", Online: true, AppRunning: true, SEQ: 2}
 	mc := &Member{Name: "c", Online: true}
 
 	offa := &Member{Name: "a"}
