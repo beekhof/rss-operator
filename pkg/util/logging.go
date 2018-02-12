@@ -88,7 +88,7 @@ func GetLogger(component string) *RssLogger {
 		rootLogger.Formatter = f
 		rootLogger.Level = logrus.DebugLevel
 
-		dummyLogger = &RssLogger{rootLogger.WithField("c", "default")}
+		dummyLogger = &RssLogger{logrus.New().WithField("c", "default")}
 		dummyLogger.Level = logrus.PanicLevel
 	})
 
