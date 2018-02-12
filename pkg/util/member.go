@@ -69,13 +69,13 @@ func (m *Member) peerScheme() string {
 
 func (m *Member) String() string {
 	if !m.Online {
-		return fmt.Sprintf("%v-", m.Name)
+		return fmt.Sprintf("%v~", m.Name)
 	} else if m.AppFailed {
 		return fmt.Sprintf("%v!", m.Name)
 	} else if m.AppRunning {
-		return fmt.Sprintf("%v+%v", m.Name, m.SEQ)
-	} else if m.SEQ > 0 {
 		return fmt.Sprintf("%v:%v", m.Name, m.SEQ)
+	} else if m.SEQ > 0 {
+		return fmt.Sprintf("%v?%v", m.Name, m.SEQ)
 	}
 	return m.Name
 }

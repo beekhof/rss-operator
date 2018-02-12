@@ -90,8 +90,8 @@ type Cluster struct {
 }
 
 func New(config Config, rss *api.ReplicatedStatefulSet) *Cluster {
-	lg := util.GetLogger("cluster").WithField("cluster-name", rss.Name)
-	lg.Infof("Creating %v", rss.Name)
+	lg := util.GetLogger(rss.Name)
+	lg.Info("Creating")
 
 	c := &Cluster{
 		logger: lg,
@@ -416,7 +416,11 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 			return nil
 
 		} else {
-			c.logger.Infof("Changing the Replica count for %v from %v to %v", stsname, sts.Spec.Replicas, c.rss.Spec.GetNumReplicas())
+			old := 0
+			if sts.Spec.Replicas != nil {
+				old = *sts.Spec.Replicas
+			}
+			c.logger.Infof("Changing the Replica count for %v from %v to %v", stsname, old, c.rss.Spec.GetNumReplicas())
 			intVal := int32(c.rss.Spec.GetNumReplicas())
 			sts.Spec.Replicas = &intVal
 			if c.status.Phase == api.ClusterPhasePaused {
