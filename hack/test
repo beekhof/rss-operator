@@ -8,8 +8,7 @@ set -o pipefail
 KUBECONFIG=${KUBECONFIG:-""}
 
 if [ -z "${PASSES-}" ]; then
-	PASSES="prep simple build e2e e2eslow unit"
-	PASSES="prep simple build e2e"
+	PASSES="e2e e2eslow unit"
 fi
 
 function listPkgs() {
@@ -19,69 +18,6 @@ function listPkgs() {
 function listFiles() {
 	# pipeline is much faster than for loop
 	listPkgs | xargs -I {} find "${GOPATH}/src/{}" -name '*.go' | grep -v generated
-}
-
-function prep_pass {
-	if ! "./hack/k8s/codegen/verify-generated.sh"; then
-		exit 1
-	fi
-
-	allfiles=$(listFiles)
-
-	echo "Checking gofmt..."
-	for file in $allfiles; do
-		checkRes=$(gofmt -l -s -d $file)
-		if [ -n "${checkRes}" ]; then
-			echo -e "gofmt checking failed:\n${checkRes}"
-			exit 255
-		fi
-	done
-
-	go get honnef.co/go/tools/cmd/unused || true
-	if which unused >/dev/null; then
-		echo "Checking unused..."
-		checkRes=$(unused `listPkgs | grep -v -e apis/galera/v1alpha1`) || true
-		if [ -n "${checkRes}" ]; then
-				echo -e "unused checking failed:\n${checkRes}"
-				exit 255
-		fi
-	else
-		echo "Skipping unused: failed to install"
-	fi
-
-	echo "Checking for license header..."
-	licRes=""
-	for file in $allfiles; do
-		if ! head -n3 "${file}" | grep -Eq "(Copyright|generated|GENERATED)" ; then
-			licRes="${licRes}"$(echo -e "  ${file}")
-		fi
-	done
-	if [ -n "${licRes}" ]; then
-		echo -e "license header checking failed:\n${licRes}"
-		exit 255
-	fi
-}
-function simple_pass {
-	allfiles=$(listFiles)
-
-	
-	go get honnef.co/go/tools/cmd/gosimple || true
-	if which gosimple >/dev/null; then
-		echo "Checking gosimple..."
-		# Generated deepcopy code failed checking... Ignore it at the moment
-		checkRes=$(gosimple `listPkgs | grep -v -e apis/galera/v1alpha1`) || true
-		if [ -n "${checkRes}" ]; then
-			echo -e "gosimple checking failed:\n${checkRes}"
-			exit 255
-		fi
-	else
-		echo "Skipping gosimple: failed to install"
-	fi
-}
-
-function build_pass {
-	hack/build/operator/build
-	IMAGE=$OPERATOR_IMAGE hack/build/docker_push
 }
 
 function e2e_pass {
