@@ -97,6 +97,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 		if _, ok := c.rss.Spec.Pod.Commands[api.SecondaryCommandKey]; rc == 0 && !ok {
 			// Secondaries are not in use, map to primary
 			rc = 8
+			err = fmt.Errorf("remapped from 0")
 		}
 
 		switch rc {
@@ -111,19 +112,22 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 		case 7:
 			if m.AppRunning {
 				c.logger.Warnf("reconcile: Detected stopped applcation on %v: %v", m.Name, err)
+				errors = appendNonNil(errors, err)
 			}
 			m.AppRunning = false
 			m.AppPrimary = false
 		case 8:
 			if !m.AppRunning {
-				c.logger.Infof("reconcile: Detected active primary applcation on %v: %v", m.Name, err)
+				c.logger.Infof("reconcile: Detected active primary applcation on %v: %v", m.Name)
 			} else if !m.AppPrimary {
 				c.logger.Warnf("reconcile: Detected promoted secondary on %v: %v", m.Name, err)
+				errors = appendNonNil(errors, err)
 			}
 			m.AppPrimary = true
 			m.AppRunning = true
 		default:
 			c.logger.Errorf("reconcile: Check failed on %v: %v", m.Name, err)
+			errors = appendNonNil(errors, err)
 			m.AppRunning = true
 			m.AppFailed = true
 		}
