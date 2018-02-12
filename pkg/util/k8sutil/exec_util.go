@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/beekhof/rss-operator/pkg/util"
-	"github.com/sirupsen/logrus"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +54,7 @@ type ExecOptions struct {
 }
 
 type ExecContext struct {
-	Logger *logrus.Entry
+	Logger *util.RssLogger
 	Cli    *kubernetes.Interface
 	Config *rest.Config
 }

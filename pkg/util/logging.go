@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -27,12 +28,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/mgutz/ansi"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
-	// "github.com/golang/glog"
 	//	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
+
+type RssLogger struct {
+	*logrus.Entry
+}
 
 // PresentIn returns true if the given string is part of an array of strings
 func PresentIn(a string, list []string) bool {
@@ -44,7 +49,7 @@ func PresentIn(a string, list []string) bool {
 	return false
 }
 
-func LogOutput(logger *logrus.Entry, level logrus.Level, id string, result string) {
+func LogOutput(logger *RssLogger, level logrus.Level, id string, result string) {
 	if result != "" {
 		lines := strings.Split(result, "\n")
 		for n, l := range lines {
@@ -67,28 +72,60 @@ func LogOutput(logger *logrus.Entry, level logrus.Level, id string, result strin
 	}
 }
 
-var log *logrus.Entry
+var (
+	rootLogger  = logrus.New()
+	dummyLogger *RssLogger
+	once        sync.Once
+)
 
-func createLogger() {
-	if log == nil {
-		l := logrus.New()
+func GetLogger(component string) *RssLogger {
+	once.Do(func() {
 		f := new(TextFormatter)
 		f.ForceFormatting = true
 		f.FullTimestamp = true
 		f.ForceColors = true
-		l.Formatter = f
-		//l.Level = logrus.DebugLevel
-		log = l.WithField("pkg", "rss")
-		log.Info("log init")
+
+		rootLogger.Formatter = f
+		rootLogger.Level = logrus.DebugLevel
+
+		dummyLogger = &RssLogger{rootLogger.WithField("c", "default")}
+		dummyLogger.Level = logrus.PanicLevel
+	})
+
+	return &RssLogger{rootLogger.WithField("c", component)}
+}
+
+func (entry *RssLogger) WithField(name, value string) *RssLogger {
+	return &RssLogger{entry.Entry.WithField(name, value)}
+}
+
+func (entry *RssLogger) Debug(args ...interface{}) {
+	if entry.Data["c"] == "default" {
+		return
 	}
+	entry.V(1).Entry.Debug(args...)
 }
 
-func GetLogger(component string) *logrus.Entry {
-	createLogger()
-	return log.WithField("c", component)
+func (entry *RssLogger) Debugf(format string, args ...interface{}) {
+	if entry.Data["c"] == "default" {
+		return
+	}
+	entry.V(1).Entry.Debug(fmt.Sprintf(format, args...))
 }
 
-func JsonLogObject(logger *logrus.Entry, spec interface{}, text string) {
+func (entry *RssLogger) V(level int) *RssLogger {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	//	logrus.Infof("log check %v %v %v", glog.V(glog.Level(level)), rootLogger.Level, dummyLogger.Level)
+
+	if flag.Parsed() && glog.V(glog.Level(level)) == glog.Verbose(true) {
+		return entry
+	}
+	return dummyLogger
+}
+
+func JsonLogObject(logger *RssLogger, spec interface{}, text string) {
 	specBytes, err := json.MarshalIndent(spec, "", "    ")
 	if err != nil {
 		logger.Errorf("failed to marshal spec for '%v': %v", text, err)

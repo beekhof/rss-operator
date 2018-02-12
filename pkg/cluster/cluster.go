@@ -24,13 +24,11 @@ import (
 	"time"
 
 	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
-	"github.com/beekhof/rss-operator/pkg/debug"
 	"github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
 	"github.com/beekhof/rss-operator/pkg/util"
 	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
 	"github.com/pkg/errors"
 
-	"github.com/sirupsen/logrus"
 	// "github.com/pborman/uuid"
 
 	"k8s.io/api/apps/v1beta1"
@@ -64,8 +62,7 @@ type Config struct {
 }
 
 type Cluster struct {
-	logger      *logrus.Entry
-	debugLogger *debug.DebugLogger
+	logger      *util.RssLogger
 	execContext k8sutil.ExecContext
 
 	config Config
@@ -97,9 +94,8 @@ func New(config Config, rss *api.ReplicatedStatefulSet) *Cluster {
 	lg.Infof("Creating %v", rss.Name)
 
 	c := &Cluster{
-		logger:      lg,
-		debugLogger: debug.New(rss.Name),
-		config:      config,
+		logger: lg,
+		config: config,
 		execContext: k8sutil.ExecContext{
 			Logger: lg,
 			Cli:    &config.KubeCli,
@@ -634,10 +630,10 @@ func (c *Cluster) logSpecUpdate(oldSpec, newSpec api.ClusterSpec) {
 	if c.isDebugLoggerEnabled() {
 		newSpecBytes, _ := json.MarshalIndent(newSpec, "", "    ")
 		oldSpecBytes, _ := json.MarshalIndent(oldSpec, "", "    ")
-		c.debugLogger.LogClusterSpecUpdate(string(oldSpecBytes), string(newSpecBytes))
+		c.logger.V(2).Debug(string(oldSpecBytes), string(newSpecBytes))
 	}
 }
 
 func (c *Cluster) isDebugLoggerEnabled() bool {
-	return c.debugLogger != nil
+	return false
 }

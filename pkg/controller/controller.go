@@ -21,6 +21,7 @@ import (
 	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
 	"github.com/beekhof/rss-operator/pkg/cluster"
 	"github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
+	"github.com/beekhof/rss-operator/pkg/util"
 	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
 
 	"github.com/sirupsen/logrus"
@@ -37,7 +38,7 @@ type Event struct {
 }
 
 type Controller struct {
-	logger *logrus.Entry
+	logger *util.RssLogger
 	Config
 
 	clusters map[string]*cluster.Cluster
@@ -54,7 +55,7 @@ type Config struct {
 
 func New(cfg Config) *Controller {
 	return &Controller{
-		logger: logrus.WithField("pkg", "controller"),
+		logger: util.GetLogger("controller"),
 
 		Config:   cfg,
 		clusters: make(map[string]*cluster.Cluster),
