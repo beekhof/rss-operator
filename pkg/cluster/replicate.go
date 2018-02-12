@@ -129,6 +129,9 @@ func (c *Cluster) replicate() []error {
 
 func (c *Cluster) detectMembers() {
 	for _, m := range c.peers {
+		if !m.Online {
+			continue
+		}
 		raw, _, err, _ := c.execute(api.SequenceCommandKey, m.Name, true)
 		if err == nil {
 			last := c.peers[m.Name].SEQ
