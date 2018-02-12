@@ -7,6 +7,10 @@ The dates below should not be considered authoritative, but rather indicative of
 
 ### 2018
 
+#### Documentation
+
+- Pretty much everything needs documenting
+
 #### Cleanups
 
 - Remove last traces of etcd and galera references and terminology

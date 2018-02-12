@@ -43,14 +43,14 @@ Follow the prompts.
 - After build, push image:
 
 ```bash
-$ IMAGE=quay.io/coreos/etcd-operator:$VERSION hack/build/docker_push
+$ IMAGE=quay.io/beekhof/rss-operator:$VERSION hack/build/docker_push
 ```
 
 - Retag "latest":
 
 ```bash
-$ docker tag quay.io/coreos/etcd-operator:$VERSION quay.io/coreos/etcd-operator:latest
-$ docker push quay.io/coreos/etcd-operator:latest
+$ docker tag quay.io/beekhof/rss-operator:$VERSION quay.io/coreos/etcd-operator:latest
+$ docker push quay.io/beekhof/rss-operator:latest
 ```
 
 ## Github release

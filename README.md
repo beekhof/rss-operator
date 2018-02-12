@@ -1,18 +1,18 @@
 # etcd operator
 unit/integration:
-[![Build Status](https://jenkins-etcd-public.prod.coreos.systems/view/operator/job/etcd-operator-unit-master/badge/icon)](https://jenkins-etcd-public.prod.coreos.systems/view/operator/job/etcd-operator-unit-master/)
+[![Build Status](https://quay.io/repository/beekhof/rss-operator/status)](https://quay.io/repository/beekhof/rss-operator)
 e2e (Kubernetes stable):
-[![Build Status](https://jenkins-etcd-public.prod.coreos.systems/buildStatus/icon?job=etcd-operator-master)](https://jenkins-etcd-public.prod.coreos.systems/job/etcd-operator-master/)
+[![Build Status](#)](#)
 e2e (upgrade):
-[![Build Status](https://jenkins-etcd.prod.coreos.systems/buildStatus/icon?job=etcd-operator-upgrade)](https://jenkins-etcd.prod.coreos.systems/job/etcd-operator-upgrade/)
+[![Build Status](#)](#)
 
 ### Project status: beta
 
 Major planned features have been completed and while no breaking API changes are currently planned, we reserve the right to address bugs and API changes in a backwards incompatible way before the project is declared stable. See [upgrade guide](./doc/user/upgrade/upgrade_guide.md) for safe upgrade process.
 
-Currently user facing etcd cluster objects are created as [Kubernetes Custom Resources](https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/), however, taking advantage of [User Aggregated API Servers](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/aggregated-api-servers.md) to improve reliability, validation and versioning is planned. The use of Aggregated API should be minimally disruptive to existing users but may change what Kubernetes objects are created or how users deploy the etcd operator.
+Currently user facing rss cluster objects are created as [Kubernetes Custom Resources](https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/), however, taking advantage of [User Aggregated API Servers](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/aggregated-api-servers.md) to improve reliability, validation and versioning is planned. The use of Aggregated API should be minimally disruptive to existing users but may change what Kubernetes objects are created or how users deploy the operator.
 
-We expect to consider the etcd operator stable soon; backwards incompatible changes will not be made once the project reaches stability.
+We expect to consider the operator stable soon; backwards incompatible changes will not be made once the project reaches stability.
 
 ### Overview
 
@@ -45,14 +45,15 @@ See the [Resources and Labels](./doc/user/resource_labels.md) doc for an overvie
 
 ![etcd Operator demo](https://raw.githubusercontent.com/beekhof/rss-operator/master/doc/gif/demo.gif)
 
-### Deploy etcd operator
+### Deploy rss operator
 
 See [instructions on how to install/uninstall etcd operator](doc/user/install_guide.md) .
+$ kubectl create -f example/operator.yaml
 
-### Create and destroy an etcd cluster
+### Create and destroy an rss cluster
 
 ```bash
-$ kubectl create -f example/example-etcd-cluster.yaml
+$ kubectl create -f example/deployment.yaml
 ```
 
 A 3 member etcd cluster will be created.

@@ -2,10 +2,17 @@ E2E_TEST_SELECTOR=TestCreateCluster
 NS=test
 TEST_APP=galera
 KUBEHOST=192.168.124.10
-BUILD_STATUS=https://quay.io/repository/beekhof/rss-operator/status
-OPERATOR_IMAGE=quay.io/beekhof/rss-operator:latest
+
+IMAGE_REPO=quay.io
+IMAGE_USER=beekhof
+
+IMAGE=$(IMAGE_REPO)/$(IMAGE_USER)/rss-operator:latest
+IMAGE_STATUS=https://$(IMAGE_REPO)/repository/$(IMAGE_USER)/rss-operator/status
+
+
 PROJECT=github.com/beekhof/rss-operator
 DOCKER_REPO_ROOT="/go/src/$(PROJECT)"
+
 GIT_SHA=$(shell git rev-parse --short HEAD || echo GitNotFound)
 export KUBECONFIG=$(HOME)/.kube/config
 export GOPATH=$(HOME)/go
@@ -28,8 +35,8 @@ wait:
 	date
 	@echo "Waiting for the container to build..." 
 	sleep 5
-	-while [ "x$$(curl -s $(BUILD_STATUS) | tr '<' '\n' | grep -v -e '>$$'  -e '^/' | sed 's/.*>//' | tail -n 1)" = xbuilding ]; do sleep 50; /bin/echo -n .; done
-	curl -s $(BUILD_STATUS) | tr '<' '\n' | grep -v -e ">$$"  -e '^/' | sed 's/.*>//' | tail -n 1
+	-while [ "x$$(curl -s $(IMAGE_STATUS) | tr '<' '\n' | grep -v -e '>$$'  -e '^/' | sed 's/.*>//' | tail -n 1)" = xbuilding ]; do sleep 50; /bin/echo -n .; done
+	curl -s $(IMAGE_STATUS) | tr '<' '\n' | grep -v -e ">$$"  -e '^/' | sed 's/.*>//' | tail -n 1
 	date
 
 push: dockerfile-checks gitpush wait
@@ -39,9 +46,9 @@ test-quick:
 
 publish: check build
 	@echo "building container..."
-	docker build --tag "${OPERATOR_IMAGE}" -f hack/build/Dockerfile .
-	@echo "Uploading to $(OPERATOR_IMAGE)"
-	docker push $(OPERATOR_IMAGE)
+	docker build --tag "${IMAGE}" -f hack/build/Dockerfile .
+	@echo "Uploading to $(IMAGE)"
+	docker push $(IMAGE)
 	@echo "upload complete"
 
 # Called from Dockerfile
@@ -62,7 +69,7 @@ e2e-clean:
 
 e2e: test-quick e2e-clean
 	@echo "Running tests: $(E2E_TEST_SELECTOR)"
-	PASSES=e2e TEST_NAMESPACE=$(NS) OPERATOR_IMAGE=$(OPERATOR_IMAGE) E2E_TEST_SELECTOR="$(E2E_TEST_SELECTOR)" hack/test 
+	PASSES=e2e TEST_NAMESPACE=$(NS) OPERATOR_IMAGE=$(IMAGE) E2E_TEST_SELECTOR="$(E2E_TEST_SELECTOR)" hack/test 
 
 generated:
 	-rm -rf pkg/generated

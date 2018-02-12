@@ -18,12 +18,11 @@ We provide a script to build binaries, build image, and push image to registry.
 Required tools:
 - Docker
 - Go 1.8+
-- git, hg
+- git
 
 Build in project root dir:
 
 ```
 ( under $GOPATH/src/github.com/beekhof/rss-operator/ )
-$ IMAGE=${your_image} hack/build/operator/build
+$ make IMAGE=quay.io/your_username/rss-operator:latest publish
 ```
-`IMAGE` is the container image, e.g. "gcr.io/coreos/etcd-operator" .
