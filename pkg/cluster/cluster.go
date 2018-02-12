@@ -416,7 +416,7 @@ func (c *Cluster) handleUpdateEvent(event *clusterEvent) error {
 			return nil
 
 		} else {
-			c.logger.Infof("Changing the Replica count for %v from %v to %v", stsname, oldSpec.GetNumReplicas(), c.rss.Spec.GetNumReplicas())
+			c.logger.Infof("Changing the Replica count for %v from %v to %v", stsname, sts.Spec.Replicas, c.rss.Spec.GetNumReplicas())
 			intVal := int32(c.rss.Spec.GetNumReplicas())
 			sts.Spec.Replicas = &intVal
 			if c.status.Phase == api.ClusterPhasePaused {
