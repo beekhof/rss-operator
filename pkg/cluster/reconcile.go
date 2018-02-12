@@ -118,7 +118,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 			m.AppPrimary = false
 		case 8:
 			if !m.AppRunning {
-				c.logger.Infof("reconcile: Detected active primary applcation on %v: %v", m.Name)
+				c.logger.Infof("reconcile: Detected active primary applcation on %v", m.Name)
 			} else if !m.AppPrimary {
 				c.logger.Warnf("reconcile: Detected promoted secondary on %v: %v", m.Name, err)
 				errors = appendNonNil(errors, err)
