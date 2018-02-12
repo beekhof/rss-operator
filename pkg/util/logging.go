@@ -77,7 +77,7 @@ func createLogger() {
 		f.FullTimestamp = true
 		f.ForceColors = true
 		l.Formatter = f
-		l.Level = logrus.DebugLevel
+		//l.Level = logrus.DebugLevel
 		log = l.WithField("pkg", "rss")
 		log.Info("log init")
 	}

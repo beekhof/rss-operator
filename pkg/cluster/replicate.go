@@ -24,6 +24,8 @@ import (
 )
 
 func (c *Cluster) replicate() []error {
+	c.logger.Infoln("Start replication")
+	defer c.logger.Infoln("Finish replication")
 	defer c.updateCRStatus("replicate")
 
 	errors := []error{}
@@ -118,6 +120,7 @@ func (c *Cluster) replicate() []error {
 
 	} else {
 		c.logger.Errorf("%v: %v", status, combineErrors(errors))
+		errors = appendAllNonNil(errors, c.recover(c.peers))
 	}
 
 	return errors
@@ -139,7 +142,7 @@ func (c *Cluster) detectMembers() {
 				}
 			}
 			if last != c.peers[m.Name].SEQ {
-				c.logger.WithField("pod", m.Name).Infof("discover:  pod %v sequence now: %v", m.Name, c.peers[m.Name].SEQ)
+				c.logger.WithField("pod", m.Name).Infof("discover:  pod %v sequence now: %v (was %v)", m.Name, c.peers[m.Name].SEQ, last)
 			}
 		}
 	}

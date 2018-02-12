@@ -33,6 +33,33 @@ var (
 // reconcile reconciles cluster current state to desired state specified by spec.
 // - it tries to reconcile the cluster to desired size.
 // - if the cluster needs for upgrade, it tries to upgrade old member one by one.
+func (c *Cluster) recover(peers util.MemberSet) []error {
+	var errors []error
+	c.logger.Infoln("Start recovery")
+	defer c.logger.Infoln("Finish recovery")
+	for _, m := range peers {
+
+		// TODO: Make the threshold configurable
+		// ' > 1' means that we tried at least a start and a stop
+		if m.AppFailed && m.Failures > 1 {
+			errors = append(errors, fmt.Errorf("%v deletion after %v failures", m.Name, m.Failures))
+			errors = appendNonNil(errors, c.deleteMember(m))
+
+		} else if !m.Online {
+			c.logger.Infof("reconcile: Skipping offline pod %v", m.Name)
+			continue
+
+		} else if m.AppFailed {
+			c.logger.Warnf("reconcile: Cleaning up pod %v", m.Name)
+			if err := c.stopAppMember(m); err != nil {
+				errors = append(errors, fmt.Errorf("%v deletion after stop failure: %v", m.Name, err))
+				errors = appendNonNil(errors, c.deleteMember(m))
+			}
+		}
+	}
+	return errors
+}
+
 func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 	var errors []error
 	c.logger.Infoln("Start reconciling")
@@ -45,7 +72,6 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 
 	sp := c.rss.Spec
 	running := c.podsToMemberSet(pods, c.isSecureClient())
-	c.logger.Infof("    running members: %s", running)
 
 	// On controller restore, we could have "members == nil"
 	if c.peers == nil {
@@ -103,28 +129,10 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 		}
 	}
 
-	for _, m := range c.peers {
+	errors = appendAllNonNil(errors, c.recover(c.peers))
 
-		// TODO: Make the threshold configurable
-		// ' > 1' means that we tried at least a start and a stop
-		if m.AppFailed && m.Failures > 1 {
-			errors = append(errors, fmt.Errorf("%v deletion after %v failures", m.Name, m.Failures))
-			errors = appendNonNil(errors, c.deleteMember(m))
-
-		} else if !m.Online {
-			c.logger.Infof("reconcile: Skipping offline pod %v", m.Name)
-			continue
-
-		} else if m.AppFailed {
-			c.logger.Warnf("reconcile: Cleaning up pod %v", m.Name)
-			if err := c.stopAppMember(m); err != nil {
-				errors = append(errors, fmt.Errorf("%v deletion after stop failure: %v", m.Name, err))
-				errors = appendNonNil(errors, c.deleteMember(m))
-			}
-		}
-	}
-
-	c.logger.Infof("previous membership: %s", last)
+	c.logger.Debugf("    running members: %s", running)
+	c.logger.Debugf("previous membership: %s", last)
 	c.logger.Infof(" current membership: %s", c.peers)
 
 	if c.peers.ActiveMembers() > sp.GetNumReplicas() {
