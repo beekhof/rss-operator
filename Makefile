@@ -6,6 +6,7 @@ BUILD_STATUS=https://quay.io/repository/beekhof/rss-operator/status
 OPERATOR_IMAGE=quay.io/beekhof/rss-operator:latest
 PROJECT=github.com/beekhof/rss-operator
 DOCKER_REPO_ROOT="/go/src/$(PROJECT)"
+GIT_SHA=$(shell git rev-parse --short HEAD || echo GitNotFound)
 export KUBECONFIG=$(HOME)/.kube/config
 export GOPATH=$(HOME)/go
 export GREP=grep --color=never
