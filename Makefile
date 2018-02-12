@@ -1,5 +1,5 @@
 E2E_TEST_SELECTOR=TestCreateCluster
-NS=testing
+NS=test
 TEST_APP=galera
 KUBEHOST=192.168.124.10
 BUILD_STATUS=https://quay.io/repository/beekhof/rss-operator/status

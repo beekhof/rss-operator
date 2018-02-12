@@ -70,12 +70,12 @@ spec:
         imagePullPolicy: Always
         # restartPolicy: Never
         env:
-        - name: MY_POD_NAMESPACE
+        - name: POD_NAMESPACE
           valueFrom:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        - name: MY_POD_NAME
+        - name: POD_NAME
           valueFrom:
             fieldRef:
               apiVersion: v1
@@ -89,7 +89,7 @@ metadata:
   labels:
     kind: galera
 spec:
-  replicas: 5
+  replicas: 4
   chaosLevel: 3
   pod:
     antiAffinity: true
