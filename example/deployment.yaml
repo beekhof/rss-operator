@@ -2,7 +2,7 @@ apiVersion: clusterlabs.org/v1alpha1
 kind: ReplicatedStatefulSet
 metadata:
   # https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#idempotency
-  generateName: dummy-
+  name: example
   labels:
     kind: dummy
 spec:

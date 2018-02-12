@@ -119,6 +119,10 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config, i
 		}
 
 	} else {
+		ips := []string{}
+		if cluster.Spec.Service != nil {
+			ips = cluster.Spec.Service.ExternalIPs
+		}
 		svc = &v1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   cluster.ServiceName(internal),
@@ -128,7 +132,7 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config, i
 				Type:        "ClusterIP",
 				Ports:       cluster.Spec.GetServicePorts(),
 				Selector:    k8sutil.LabelsForCluster(cluster.Name),
-				ExternalIPs: cluster.Spec.Service.ExternalIPs,
+				ExternalIPs: ips,
 				//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 			},
 		}

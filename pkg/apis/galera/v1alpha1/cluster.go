@@ -169,7 +169,7 @@ func (rss *ReplicatedStatefulSet) AsOwner() metav1.OwnerReference {
 
 func (rss *ReplicatedStatefulSet) ServiceName(internal bool) string {
 	var name string
-	if rss.Spec.Service.ServiceName != "" {
+	if rss.Spec.Service != nil && rss.Spec.Service.ServiceName != "" {
 		name = rss.Spec.Service.ServiceName
 	} else {
 		name = fmt.Sprintf("%s-svc", rss.Name)
