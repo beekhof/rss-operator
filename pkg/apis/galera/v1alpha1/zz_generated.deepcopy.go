@@ -26,7 +26,6 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	reflect "reflect"
-	time "time"
 )
 
 // GetGeneratedDeepCopyFuncs returns the generated funcs, since we aren't registering them.
@@ -127,7 +126,7 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 		if *in == nil {
 			*out = nil
 		} else {
-			*out = new(time.Duration)
+			*out = new(string)
 			**out = **in
 		}
 	}

@@ -20,12 +20,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"os"
 	"reflect"
 	"time"
 
 	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
 	"github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
 	"github.com/beekhof/rss-operator/pkg/util"
+	"github.com/beekhof/rss-operator/pkg/util/constants"
 	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
 	"github.com/pkg/errors"
 
@@ -273,6 +275,10 @@ func (c *Cluster) send(ev *clusterEvent) {
 
 func (c *Cluster) run() {
 	//	c.status.ServiceName = k8sutil.ClientServiceName(c.rss.Name)
+	recInterval := parseDuration(c.rss.Spec.ReconcileInterval)
+	if recInterval <= time.Duration(0) {
+		recInterval = time.Duration(1 * time.Minute)
+	}
 
 	c.status.SetPhase(api.ClusterPhaseRunning)
 	c.updateCRStatus("initial")
@@ -300,7 +306,7 @@ func (c *Cluster) run() {
 				panic("unknown event type" + event.typ)
 			}
 
-		case <-time.After(*c.rss.Spec.ReconcileInterval):
+		case <-time.After(recInterval):
 			start := time.Now()
 
 			if c.rss.Spec.Paused {

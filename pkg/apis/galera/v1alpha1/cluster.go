@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	// "github.com/golang/glog"
 
@@ -102,9 +101,9 @@ type ClusterSpec struct {
 	// Size is the expected size of the galera cluster.
 	// The rss-operator will eventually make the size of the running
 	// cluster equal to the expected size.
-	Replicas          *int32         `json:"replicas"`
-	Primaries         *int32         `json:"primaries,omitempty"`
-	ReconcileInterval *time.Duration `json:"reconcileInterval,omitempty"`
+	Replicas          *int32  `json:"replicas"`
+	Primaries         *int32  `json:"primaries,omitempty"`
+	ReconcileInterval *string `json:"reconcileInterval,omitempty"`
 
 	// An optional list of references to secrets in the same namespace
 	// to use for pulling prometheus and alertmanager images from registries
@@ -264,13 +263,11 @@ func (c *ClusterSpec) GetNumPrimaries() int32 {
 // Cleanup cleans up user passed spec, e.g. defaulting, transforming fields.
 // TODO: move this to admission controller
 func (c *ClusterSpec) Cleanup() {
-
-	if c.ReconcileInterval == nil {
-		intVal := 60 * time.Second
-		c.ReconcileInterval = &intVal
-	}
 	if c.Resources.Requests == nil {
 		c.Resources.Requests = v1.ResourceList{}
+	}
+	if c.Service == nil {
+		c.Service = &ServicePolicy{}
 	}
 	if _, ok := c.Resources.Requests[v1.ResourceMemory]; !ok {
 		c.Resources.Requests[v1.ResourceMemory] = resource.MustParse("2M")
