@@ -1,3 +1,7 @@
 #!/bin/bash
 
-exit 0
+if [ -e /.running ]; then
+	exit 0
+fi
+
+exit 7
