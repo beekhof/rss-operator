@@ -9,7 +9,6 @@ IMAGE_USER=beekhof
 IMAGE=$(IMAGE_REPO)/$(IMAGE_USER)/rss-operator:latest
 IMAGE_STATUS=https://$(IMAGE_REPO)/repository/$(IMAGE_USER)/rss-operator/status
 
-
 PROJECT=github.com/beekhof/rss-operator
 DOCKER_REPO_ROOT="/go/src/$(PROJECT)"
 
@@ -113,7 +112,7 @@ dummy:
 	make TEST_APP=$@ NS=$@ clean test
 
 test: ns
-	@echo "Loading apps/$(TEST_APP)/deployment.yaml..."
+	@echo "Loading apps/$(TEST_APP)/deployment.yaml into $(NS)"
 	-kubectl -n $(NS) create -f apps/$(TEST_APP)/deployment.yaml
 	@echo "Waiting for the operator to become active"
 	while [ "x$$(kubectl -n $(NS) get po | grep rss-operator.*Running)" = x ]; do sleep 5; /bin/echo -n .; done

@@ -1,8 +1,8 @@
 ## Resource Labels
-The etcd-operator creates the following Kubernetes resources for each etcd cluster:
-- Pods for the etcd nodes
-- Services for the etcd client and peer
+The rss-operator creates the following Kubernetes resources for each rss cluster:
+- Pods for the member nodes
+- Services for clients and peer members
 
 where each resource has the following labels:
-- `app=etcd`
-- `etcd_cluster=<cluster-name>`
+- `app=<cluster-name>`
+- `rss-operator-managed=true`

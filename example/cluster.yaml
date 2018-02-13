@@ -1,25 +1,20 @@
 apiVersion: clusterlabs.org/v1alpha1
 kind: ReplicatedStatefulSet
 metadata:
-  # https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#idempotency
   name: example
-  labels:
-    kind: dummy
 spec:
   replicas: 3
-  chaosLevel: 0
   pod:
     antiAffinity: true
     commands:
       sequence: 
-        timeout: 20s
         command: ["/sequence.sh"]
       primary: 
         command: ["/start.sh"]
       seed: 
         command: ["/seed.sh"]
       status: 
-        timeout: 2m
+        timeout: 60s
         command: ["/check.sh"]
       stop: 
         command: ["/stop.sh"]
@@ -27,3 +22,6 @@ spec:
     - name: dummy
       image: quay.io/beekhof/dummy:latest
       imagePullPolicy: Always
+  service:
+    name: dummy-svc
+    sessionAffinity: None
