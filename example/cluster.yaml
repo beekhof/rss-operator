@@ -4,6 +4,7 @@ metadata:
   name: example
 spec:
   replicas: 3
+  reconcileInterval: 30s
   pod:
     antiAffinity: true
     commands:
@@ -21,7 +22,3 @@ spec:
     containers:
     - name: dummy
       image: quay.io/beekhof/dummy:latest
-      imagePullPolicy: Always
-  service:
-    name: dummy-svc
-    sessionAffinity: None

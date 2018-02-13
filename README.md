@@ -103,18 +103,18 @@ metadata:
   name: example
 spec:
   replicas: 5
+  reconcileInterval: 30s
   pod:
     antiAffinity: true
     commands:
       sequence: 
-        timeout: 20s
         command: ["/sequence.sh"]
       primary: 
         command: ["/start.sh"]
       seed: 
         command: ["/seed.sh"]
       status: 
-        timeout: 2m
+        timeout: 60s
         command: ["/check.sh"]
       stop: 
         command: ["/stop.sh"]
@@ -149,18 +149,18 @@ metadata:
   name: example
 spec:
   replicas: 3
+  reconcileInterval: 30s
   pod:
     antiAffinity: true
     commands:
       sequence: 
-        timeout: 20s
         command: ["/sequence.sh"]
       primary: 
         command: ["/start.sh"]
       seed: 
         command: ["/seed.sh"]
       status: 
-        timeout: 2m
+        timeout: 60s
         command: ["/check.sh"]
       stop: 
         command: ["/stop.sh"]
