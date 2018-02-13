@@ -24,7 +24,7 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
+	api "github.com/beekhof/rss-operator/pkg/apis/clusterlabs/v1alpha1"
 	"github.com/beekhof/rss-operator/pkg/util/constants"
 	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
 

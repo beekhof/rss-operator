@@ -199,19 +199,19 @@ func (rss *ReplicatedStatefulSet) Validate() error {
 
 	for k := range rss.Labels {
 		if k == "app" {
-			return errors.New(fmt.Sprintf("Validate: definition contains reserved label: %v=%v", k, rss.Labels[k]))
+			return fmt.Errorf("Validate: definition contains reserved label: %v=%v", k, rss.Labels[k])
 		} else if strings.HasPrefix(k, "rss") {
-			return errors.New(fmt.Sprintf("Validate: definition contains reserved value: %v=%v", k, rss.Labels[k]))
+			return fmt.Errorf("Validate: definition contains reserved value: %v=%v", k, rss.Labels[k])
 		}
 	}
 
 	if len(rss.Spec.Pod.Containers) < 1 {
-		return errors.New(fmt.Sprintf("Validate: No containers configured for: %v", rss.Name))
+		return fmt.Errorf("Validate: No containers configured for: %v", rss.Name)
 
 	}
 	for n, c := range rss.Spec.Pod.Containers {
 		if c.Image == "" {
-			return errors.New(fmt.Sprintf("Validate: No image configured for container[%v]: %v", n, c.Name))
+			return fmt.Errorf("Validate: No image configured for container[%v]: %v", n, c.Name)
 		}
 	}
 	return nil

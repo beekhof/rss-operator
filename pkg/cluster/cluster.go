@@ -24,7 +24,7 @@ import (
 	"reflect"
 	"time"
 
-	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
+	api "github.com/beekhof/rss-operator/pkg/apis/clusterlabs/v1alpha1"
 	"github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
 	"github.com/beekhof/rss-operator/pkg/util"
 	"github.com/beekhof/rss-operator/pkg/util/constants"

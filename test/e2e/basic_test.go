@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
+	api "github.com/beekhof/rss-operator/pkg/apis/clusterlabs/v1alpha1"
 	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
 	"github.com/beekhof/rss-operator/test/e2e/e2eutil"
 	"github.com/beekhof/rss-operator/test/e2e/framework"

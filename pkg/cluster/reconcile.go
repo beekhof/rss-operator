@@ -18,7 +18,7 @@ import (
 	"errors"
 	"fmt"
 
-	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
+	api "github.com/beekhof/rss-operator/pkg/apis/clusterlabs/v1alpha1"
 	"github.com/beekhof/rss-operator/pkg/util"
 
 	"k8s.io/api/core/v1"

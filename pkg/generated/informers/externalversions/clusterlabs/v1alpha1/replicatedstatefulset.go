@@ -19,7 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	galera_v1alpha1 "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
+	clusterlabs_v1alpha1 "github.com/beekhof/rss-operator/pkg/apis/clusterlabs/v1alpha1"
 	versioned "github.com/beekhof/rss-operator/pkg/generated/clientset/versioned"
 	internalinterfaces "github.com/beekhof/rss-operator/pkg/generated/informers/externalversions/internalinterfaces"
 	v1alpha1 "github.com/beekhof/rss-operator/pkg/generated/listers/clusterlabs/v1alpha1"
@@ -54,7 +54,7 @@ func NewReplicatedStatefulSetInformer(client versioned.Interface, namespace stri
 				return client.ClusterlabsV1alpha1().ReplicatedStatefulSets(namespace).Watch(options)
 			},
 		},
-		&galera_v1alpha1.ReplicatedStatefulSet{},
+		&clusterlabs_v1alpha1.ReplicatedStatefulSet{},
 		resyncPeriod,
 		indexers,
 	)
@@ -65,7 +65,7 @@ func defaultReplicatedStatefulSetInformer(client versioned.Interface, resyncPeri
 }
 
 func (f *replicatedStatefulSetInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&galera_v1alpha1.ReplicatedStatefulSet{}, defaultReplicatedStatefulSetInformer)
+	return f.factory.InformerFor(&clusterlabs_v1alpha1.ReplicatedStatefulSet{}, defaultReplicatedStatefulSetInformer)
 }
 
 func (f *replicatedStatefulSetInformer) Lister() v1alpha1.ReplicatedStatefulSetLister {

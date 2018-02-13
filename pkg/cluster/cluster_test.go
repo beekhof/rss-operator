@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/beekhof/rss-operator/pkg/apis/galera/v1alpha1"
+	api "github.com/beekhof/rss-operator/pkg/apis/clusterlabs/v1alpha1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
