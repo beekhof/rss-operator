@@ -90,7 +90,7 @@ type Cluster struct {
 }
 
 func New(config Config, rss *api.ReplicatedStatefulSet) *Cluster {
-	lg := util.GetLogger(rss.Name)
+	lg := util.GetLogger(rss.Name).WithField("o", os.Getenv(constants.EnvOperatorPodName))
 	lg.Info("Creating")
 
 	c := &Cluster{
