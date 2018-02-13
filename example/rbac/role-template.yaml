@@ -5,11 +5,9 @@ metadata:
   namespace: <NAMESPACE>
 rules:
 - apiGroups:
-  - galera.database.beekhof.net
+  - clusterlabs.org
   resources:
-  - etcdclusters
-  - etcdbackups
-  - etcdrestores
+  - replicatedstatefulsets
   verbs:
   - "*"
 - apiGroups:

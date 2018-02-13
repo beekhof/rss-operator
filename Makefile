@@ -103,7 +103,8 @@ deps:
 
 ns:
 	-kubectl create ns $(NS)
-	-kubectl -n $(NS) create clusterrolebinding $(NS)-everything --clusterrole=cluster-admin --serviceaccount=$(NS):default
+	example/rbac/create_role.sh  --namespace $(NS)
+#	-kubectl -n $(NS) create clusterrolebinding $(NS)-everything --clusterrole=cluster-admin --serviceaccount=$(NS):default
 
 galera: 
 	make TEST_APP=$@ NS=$@ clean test

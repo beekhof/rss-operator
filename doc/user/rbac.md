@@ -1,16 +1,16 @@
 # Operator RBAC setup
 
-If RBAC is in place, users need to setup RBAC rules for etcd operator. This doc serves a tutorial for it.
+If RBAC is in place, users need to setup RBAC rules for the RSS operator. This doc serves a tutorial for it.
 
 ## Production setup
 
 For production, we recommend users to limit access to only the resources operator needs, and create a specific role, for the operator.
 
-The example below binds a role to the `default` service account in the namespace that the etcd-operator is running in. To bind to a different serviceaccount modify the `subjects.name` field in the [rolebinding templates](../../example/rbac) as needed.
+The example below binds a role to the `default` service account in the namespace that the rss-operator is running in. To bind to a different serviceaccount modify the `subjects.name` field in the [rolebinding templates](../../example/rbac) as needed.
 
 ### Role vs ClusterRole
 
-The permission model required for the etcd-operator depends on the value of its `--create-crd` flag:
+The permission model required for the rss-operator depends on the value of its `--create-crd` flag:
 - `--create-crd=true` This the default behavior in which the operator will first try to create the CRD if it doesn't exist
   - In this mode the operator requires a ClusterRole with the permission to create a CRD.
 - `--create-crd=false` The operator skips creating the CRD before creating the CR

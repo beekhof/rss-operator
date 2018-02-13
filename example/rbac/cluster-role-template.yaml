@@ -4,11 +4,9 @@ metadata:
   name: <ROLE_NAME>
 rules:
 - apiGroups:
-  - galera.database.beekhof.net
+  - clusterlabs.org
   resources:
-  - etcdclusters
-  - etcdbackups
-  - etcdrestores
+  - replicatedstatefulsets
   verbs:
   - "*"
 - apiGroups:
