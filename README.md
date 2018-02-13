@@ -1,4 +1,4 @@
-# RSS operator
+# Replication (RSS) operator
 unit/integration:
 [![Build Status](https://quay.io/repository/beekhof/rss-operator/status)](https://quay.io/repository/beekhof/rss-operator)
 e2e (Kubernetes stable):
@@ -16,7 +16,7 @@ We expect to consider the operator stable soon; backwards incompatible changes w
 
 ### Overview
 
-The RSS operator manages etcd clusters deployed to [Kubernetes][k8s-home] and automates tasks related to operating a cluster.
+The replication operator manages application clusters deployed to [Kubernetes][k8s-home] and automates tasks related to seeding, and operating a cluster.
 
 - [Create and destroy](#create-and-destroy-a-cluster)
 - [Resize](#resize-a-cluster)
@@ -24,11 +24,11 @@ The RSS operator manages etcd clusters deployed to [Kubernetes][k8s-home] and au
 - [Rolling upgrade](#upgrade-a-cluster)
 - [Backup and Restore](#backup-and-restore-a-cluster)
 
-There are [more spec examples (TODO)](./doc/user/spec_examples.md) on setting up clusters with different configurations
+There are [more examples](./apps) of different applications and specs for driving them
 
-Read [Best Practices (TODO)](./doc/best_practices.md) for more information on how to better use RSS operator.
+Read [Best Practices (TODO)](./doc/best_practices.md) for more information on how to better use the replication operator.
 
-Read [RBAC docs (TODO)](./doc/user/rbac.md) for how to setup RBAC rules for RSS operator if RBAC is in place.
+Read [RBAC docs](./doc/user/rbac.md) for how to setup RBAC rules for the replication operator if RBAC is in place.
 
 Read [Developer Guide](./doc/dev/developer_guide.md) for setting up development environment if you want to contribute.
 
@@ -42,11 +42,11 @@ See the [Resources and Labels](./doc/user/resource_labels.md) doc for an overvie
 
 ## Getting started
 
-![RSS operator demo](https://raw.githubusercontent.com/beekhof/rss-operator/master/doc/gif/demo.gif)
+![replication operator demo](https://raw.githubusercontent.com/beekhof/rss-operator/master/doc/gif/demo.gif)
 
-### Deploy rss operator
+### Deploy replication operator
 
-See [instructions on how to install/uninstall RSS operator](doc/user/install_guide.md) .
+See [instructions on how to install/uninstall replication operator](doc/user/install_guide.md) .
 $ kubectl create -f example/operator.yaml
 
 ### Create and destroy a cluster
@@ -74,11 +74,11 @@ Primaries: [rss-example-0 rss-example-1 rss-example-2]
 Members:   [rss-example-0 rss-example-1 rss-example-2]
 ```
 
-See [client service](doc/user/client_service.md) for how to access clusters created by the RSS operator.
+See [client service](doc/user/client_service.md) for how to access clusters created by the replication operator.
 
 If you are working with [minikube locally](https://github.com/kubernetes/minikube#minikube) create a nodePort service and _TODO..._
 
-Destroy etcd cluster:
+Destroy a replicated cluster:
 
 ```bash
 $ kubectl delete -f example/cluster.yaml
@@ -127,7 +127,7 @@ Apply the size change to the cluster CR:
 ```
 $ kubectl apply -f example/cluster.yaml
 ```
-The etcd cluster will scale to 5 members (5 pods):
+The replicated cluster will scale to 5 members (5 pods):
 ```
 $ kubectl get pods
 NAME            READY     STATUS    RESTARTS   AGE
@@ -185,7 +185,7 @@ rss-operator    1/1       Running   0          11m
 
 ### Failover
 
-If any members crash, the RSS operator will automatically recover the failure.
+If any members crash, the replication operator will automatically recover the failure.
 Let's walk through in the following steps.
 
 Create a cluster:
@@ -200,7 +200,7 @@ Wait until all three members are up. Simulate a member failure by deleting a pod
 $ kubectl delete pod rss-example-0 --now
 ```
 
-The RSS operator will recover the failure by recreating the pod `rss-example-0 `:
+The replication operator will recover the failure by recreating the pod `rss-example-0 `:
 
 ```bash
 $ kubectl get pods
@@ -216,9 +216,9 @@ Destroy dummy cluster:
 $ kubectl delete -f example/cluster.yaml
 ```
 
-### RSS operator recovery
+### Replication operator recovery
 
-If the RSS operator restarts, it can recover its previous state.
+If the replication operator restarts, it can recover its previous state.
 Let's walk through in the following steps.
 
 ```
@@ -235,7 +235,7 @@ $ kubectl delete pod rss-example-0  --now
 pod "rss-example-0 " deleted
 ```
 
-Then restart the RSS operator. It should recover itself and the clusters it manages.
+Then restart the replication operator. It should recover itself and the clusters it manages.
 
 ```bash
 $ kubectl create -f example/operator.yaml
@@ -260,9 +260,9 @@ TODO
 
 ### Limitations
 
-- The RSS operator only manages clusters created in the same namespace. Users need to create multiple operators in different namespaces to manage clusters in different namespaces.
+- The replication operator only manages clusters created in the same namespace. Users need to create multiple operators in different namespaces to manage clusters in different namespaces.
 
-- Lights-out recovery of the RSS operator currently requires shared storage. Backup and restore capability will be added in the future if there is sufficient interest. 
+- Lights-out recovery of the replication operator currently requires shared storage. Backup and restore capability will be added in the future if there is sufficient interest. 
 
 
 [k8s-home]: http://kubernetes.io

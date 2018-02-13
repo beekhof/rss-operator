@@ -40,16 +40,14 @@ Follow the prompts.
 
 - Please read [developer_guide.md](./developer_guide.md) .
 
-- After build, push image:
-
 ```bash
-$ IMAGE=quay.io/beekhof/rss-operator:$VERSION hack/build/docker_push
+$ make IMAGE=quay.io/beekhof/rss-operator:$VERSION publish
 ```
 
 - Retag "latest":
 
 ```bash
-$ docker tag quay.io/beekhof/rss-operator:$VERSION quay.io/coreos/etcd-operator:latest
+$ docker tag quay.io/beekhof/rss-operator:$VERSION quay.io/beekhof/rss-operator:latest
 $ docker push quay.io/beekhof/rss-operator:latest
 ```
 

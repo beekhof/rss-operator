@@ -1,5 +1,11 @@
-# cat ceph.client.admin.keyring | tail -n 1 | awk '{print $3}' >> admin.secret
-# kubectl create secret generic ceph-secret-admin --type="kubernetes.io/rbd" --from-file=admin.secret --namespace=kube-system
+# An example of connecting to Ceph for shared storage
+#
+# My ceph nodes happen to be: ceph2-[1..3]
+# The required secrets can be populated by running:
+#
+#   cat ceph.client.admin.keyring | tail -n 1 | awk '{print $3}' >> admin.secret
+#   kubectl create secret generic ceph-secret-admin --type="kubernetes.io/rbd" --from-file=admin.secret --namespace=kube-system
+#
 apiVersion: v1
 data:
   admin.secret: QVFBQkt5VmF0K0FhSXhBQU5xcElISnlZY2krQ2t6UFNsNWpZQ1E9PQo=

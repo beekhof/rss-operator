@@ -9,11 +9,16 @@ The dates below should not be considered authoritative, but rather indicative of
 
 #### Documentation
 
-- Pretty much everything needs documenting
+- Pretty much everything needs documenting 
+- Anything that is documented is carried over from the etcd-operator and in need of revision
 
 #### Cleanups
 
-- Remove last traces of etcd and galera references and terminology
+- Remove lingering traces of etcd and galera references and terminology
+
+- Check conformance with the [controller pattern](https://github.com/kubernetes/community/blob/master/contributors/devel/controllers.md)
+
+- Check conformance with [logging conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/logging.md)
 
 #### Features
 
@@ -30,8 +35,16 @@ The dates below should not be considered authoritative, but rather indicative of
 
 - Create a Rabbit MQ sample app
 
+- Decide on an upgrade story
+
+- Implement backup/restore (Great for demos where there is no shared storage)
+
+- Review TLS code/docs for relevance
+
+- Create a demo
 
 #### Stability/Reliability
 
 - Additional unit tests
+
 - e2e testing

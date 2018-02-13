@@ -1,6 +1,6 @@
 # Operator RBAC setup
 
-If RBAC is in place, users need to setup RBAC rules for the RSS operator. This doc serves a tutorial for it.
+If RBAC is in place, users need to setup RBAC rules for the replciation operator. This doc serves a tutorial for it.
 
 ## Production setup
 

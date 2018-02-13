@@ -19,7 +19,7 @@ export GREP=grep --color=never
 
 PKGS=$(shell go list ./cmd/... ./pkg/... | grep -v -e generated -e apis/clusterlabs/v1alpha1)
 TEST_PKGS=$(shell go list ./test/... | grep -v -e generated -e apis/clusterlabs/v1alpha1)
-GENERATE_CMD=docker run --rm -v "$(PWD):$(DOCKER_REPO_ROOT)" -w "$(DOCKER_REPO_ROOT)" gcr.io/coreos-k8s-scale-testing/codegen /go/src/k8s.io/code-generator/generate-groups.sh all $(PROJECT)/pkg/generated $(PROJECT)/pkg/apis clusterlabs:v1alpha1 --go-header-file "./hack/k8s/codegen/boilerplate.go.txt"
+GENERATE_CMD=docker run --rm -v "$(PWD):$(DOCKER_REPO_ROOT)" -w "$(DOCKER_REPO_ROOT)" gcr.io/coreos-k8s-scale-testing/codegen /go/src/k8s.io/code-generator/generate-groups.sh all $(PROJECT)/pkg/generated $(PROJECT)/pkg/apis clusterlabs:v1alpha1 --go-header-file "./boilerplate.go.txt"
 
 simple:
 	$(GOPATH)/bin/gosimple $(PKGS)
