@@ -60,9 +60,10 @@ clean: e2e-clean
 
 e2e-clean:
 	# Delete stuff, wait for the pods to die, then delete the entire namespace
-	-ssh root@$(KUBEHOST) -- kubectl -n $(NS) delete crd,deploy,rs,rss,sts,svc,pods --all
+	-ssh root@$(KUBEHOST) -- kubectl -n $(NS) delete rss --all
+	-kubectl -n $(NS) delete crd,deploy,rs,rss,sts,svc,pods --all
 	while [ "x$$(kubectl -n $(NS) get po 2>/dev/null)" != "x" ]; do sleep 5; /bin/echo -n .; done
-	-ssh root@$(KUBEHOST) -- kubectl delete ns $(NS)
+	-kubectl delete ns $(NS)
 	while [ "x$$(kubectl get ns $(NS) 2>/dev/null)" != "x" ]; do sleep 5; /bin/echo -n .; done
 
 
