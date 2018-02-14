@@ -142,14 +142,14 @@ const defaultTimestampFormat = time.RFC3339
 var (
 	baseTimestamp      time.Time    = time.Now()
 	defaultColorScheme *ColorScheme = &ColorScheme{
-		InfoLevelStyle:  "black",
+		InfoLevelStyle:  "",
 		WarnLevelStyle:  "yellow",
 		ErrorLevelStyle: "red",
 		FatalLevelStyle: "red",
 		PanicLevelStyle: "red",
 		DebugLevelStyle: "blue",
 		PrefixStyle:     "cyan",
-		TimestampStyle:  "black+h",
+		TimestampStyle:  "grey+h",
 	}
 	noColorsColorScheme *compiledColorScheme = &compiledColorScheme{
 		InfoLevelColor:  ansi.ColorFunc(""),
