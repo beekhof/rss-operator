@@ -42,7 +42,8 @@ See the [Resources and Labels](./doc/user/resource_labels.md) doc for an overvie
 
 ## Getting started
 
-![replication operator demo](https://raw.githubusercontent.com/beekhof/rss-operator/master/doc/gif/demo.gif)
+
+[![asciicast](https://asciinema.org/a/nDVcCon4EmiOD6XVuwqjXP7Al.png)](https://asciinema.org/a/nDVcCon4EmiOD6XVuwqjXP7Al)
 
 ### Deploy replication operator
 
