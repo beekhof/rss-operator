@@ -74,18 +74,18 @@ func LogOutput(logger *RssLogger, level logrus.Level, id string, result string) 
 
 var (
 	rootLogger  = logrus.New()
+	formatter   = new(TextFormatter)
 	dummyLogger *RssLogger
 	once        sync.Once
 )
 
 func GetLogger(component string) *RssLogger {
 	once.Do(func() {
-		f := new(TextFormatter)
-		f.ForceFormatting = true
-		f.FullTimestamp = true
-		f.ForceColors = true
+		formatter.ForceFormatting = true
+		formatter.FullTimestamp = true
+		formatter.ForceColors = true
 
-		rootLogger.Formatter = f
+		rootLogger.Formatter = formatter
 		rootLogger.Level = logrus.DebugLevel
 
 		dummyLogger = &RssLogger{logrus.New().WithField("c", "default")}
