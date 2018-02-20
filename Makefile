@@ -63,7 +63,7 @@ e2e-clean:
 	-ssh root@$(KUBEHOST) -- kubectl -n $(NS) delete rss --all
 	-kubectl -n $(NS) delete crd,deploy,rs,rss,sts,svc,pods --all
 	while [ "x$$(kubectl -n $(NS) get po 2>/dev/null)" != "x" ]; do sleep 5; /bin/echo -n .; done
-	-kubectl delete ns $(NS)
+	-kubectl delete ns/$(NS) clusterrole/$(NS)-operator clusterrolebinding/$(NS)-operator
 	while [ "x$$(kubectl get ns $(NS) 2>/dev/null)" != "x" ]; do sleep 5; /bin/echo -n .; done
 
 
@@ -104,7 +104,7 @@ deps:
 
 ns:
 	-kubectl create ns $(NS)
-	example/rbac/create_role.sh  --namespace $(NS)
+	example/rbac/create_role.sh  --namespace $(NS) --role-name $(NS)-operator --role-binding-name $(NS)-operator
 #	-kubectl -n $(NS) create clusterrolebinding $(NS)-everything --clusterrole=cluster-admin --serviceaccount=$(NS):default
 
 galera: 
