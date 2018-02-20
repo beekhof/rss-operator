@@ -23,4 +23,6 @@ const (
 	EnvOperatorPodName      = "POD_NAME"
 	EnvOperatorPodNamespace = "POD_NAMESPACE"
 	EnvOperatorServiceName  = "SERVICE_NAME"
+
+	MemberActiveKey = "rss-active-member"
 )

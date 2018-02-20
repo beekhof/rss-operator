@@ -44,6 +44,7 @@ func (c *Cluster) recover(peers util.MemberSet) []error {
 		if m.AppFailed && m.Failures > 1 {
 			errors = append(errors, fmt.Errorf("%v deletion after %v failures", m.Name, m.Failures))
 			errors = appendNonNil(errors, c.deleteMember(m))
+			c.tagAppMember(m, false)
 
 		} else if !m.Online {
 			c.logger.Debugf("reconcile: Skipping offline pod %v", m.Name)
@@ -89,9 +90,10 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 		// TODO: Make the threshold configurable
 		// ' > 1' means that we tried at least a start and a stop
 		if m.AppFailed || !m.Online {
+			// c.tagAppMember(m, false) // In case it failed last time?
 			continue
-
 		}
+
 		_, _, err, rc := c.execute(api.StatusCommandKey, m.Name, false)
 
 		if _, ok := c.rss.Spec.Pod.Commands[api.SecondaryCommandKey]; rc == 0 && !ok {
@@ -130,6 +132,10 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 			errors = appendNonNil(errors, err)
 			m.AppRunning = true
 			m.AppFailed = true
+		}
+
+		if m.AppFailed {
+			c.tagAppMember(m, false)
 		}
 	}
 

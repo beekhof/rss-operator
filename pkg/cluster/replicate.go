@@ -21,6 +21,12 @@ import (
 
 	api "github.com/beekhof/rss-operator/pkg/apis/clusterlabs/v1alpha1"
 	"github.com/beekhof/rss-operator/pkg/util"
+	"github.com/beekhof/rss-operator/pkg/util/constants"
+	"github.com/beekhof/rss-operator/pkg/util/k8sutil"
+
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func (c *Cluster) replicate() []error {
@@ -258,10 +264,46 @@ func (c *Cluster) startAppMember(m *util.Member, asPrimary bool) error {
 	m.AppPrimary = asPrimary
 	m.AppRunning = true
 	m.AppFailed = false
+	c.tagAppMember(m, true)
+	return nil
+}
+
+func (c *Cluster) tagAppMember(m *util.Member, online bool) error {
+
+	pod, err := c.config.KubeCli.CoreV1().Pods(m.Namespace).Get(m.Name, metav1.GetOptions{})
+	if err != nil {
+		c.logger.Errorf("failed to get pod %v: %v", m.Name, err)
+		return err
+	}
+
+	oldPod := pod.DeepCopy()
+
+	labels := pod.GetLabels()
+	if online {
+		labels[constants.MemberActiveKey] = "true"
+
+	} else {
+		labels[constants.MemberActiveKey] = "false"
+	}
+	pod.SetLabels(labels)
+
+	patchdata, err := k8sutil.CreatePatch(oldPod, pod, v1.Pod{})
+	if err != nil {
+		c.logger.Errorf("error creating label patch for %v: %v", m.Name, err)
+		return err
+	}
+
+	_, err = c.config.KubeCli.CoreV1().Pods(m.Namespace).Patch(m.Name, types.StrategicMergePatchType, patchdata)
+	if err != nil {
+		c.logger.Errorf("fail to update the labels for %s: %v", m.Name, err)
+		return err
+	}
+
 	return nil
 }
 
 func (c *Cluster) stopAppMember(m *util.Member) error {
+	c.tagAppMember(m, false)
 	_, _, err, _ := c.execute(api.StopCommandKey, m.Name, false)
 	if err != nil {
 		m.AppFailed = true

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/beekhof/rss-operator/pkg/util"
+	"github.com/beekhof/rss-operator/pkg/util/constants"
 	"github.com/golang/glog"
 	//"github.com/pborman/uuid"
 	"github.com/pkg/errors"
@@ -200,6 +201,12 @@ func LabelsForCluster(clusterName string) map[string]string {
 		"app": clusterName,
 		"rss-operator-managed": "true",
 	}
+}
+
+func LabelsForActiveCluster(clusterName string) map[string]string {
+	m := LabelsForCluster(clusterName)
+	m[constants.MemberActiveKey] = "true"
+	return m
 }
 
 func CreatePatch(o, n, datastruct interface{}) ([]byte, error) {

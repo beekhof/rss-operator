@@ -112,9 +112,10 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config, i
 
 	if internal {
 		spec = v1.ServiceSpec{
-			ClusterIP: "None",
-			Ports:     cluster.Spec.GetServicePorts(),
-			Selector:  k8sutil.LabelsForCluster(cluster.Name),
+			ClusterIP:                "None",
+			Ports:                    cluster.Spec.GetServicePorts(),
+			Selector:                 k8sutil.LabelsForCluster(cluster.Name),
+			PublishNotReadyAddresses: true, // Ensure unready members show up in DNS
 			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 		}
 
@@ -123,7 +124,7 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config, i
 		spec = v1.ServiceSpec{
 			Type:     v1.ServiceTypeLoadBalancer,
 			Ports:    cluster.Spec.GetServicePorts(),
-			Selector: k8sutil.LabelsForCluster(cluster.Name),
+			Selector: k8sutil.LabelsForActiveCluster(cluster.Name),
 			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 		}
 
@@ -131,7 +132,7 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config, i
 		spec = v1.ServiceSpec{
 			Type:        "ClusterIP",
 			Ports:       cluster.Spec.GetServicePorts(),
-			Selector:    k8sutil.LabelsForCluster(cluster.Name),
+			Selector:    k8sutil.LabelsForActiveCluster(cluster.Name),
 			ExternalIPs: ips,
 			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 		}
