@@ -1,10 +1,6 @@
 # Replication (RSS) operator
-unit/integration:
+
 [![Build Status](https://quay.io/repository/beekhof/rss-operator/status)](https://quay.io/repository/beekhof/rss-operator)
-e2e (Kubernetes stable):
-[![Build Status](#)](#)
-e2e (upgrade):
-[![Build Status](#)](#)
 
 ### Project status: beta
 
@@ -19,6 +15,9 @@ Currently user facing _replication_ cluster objects are created as [Kubernetes C
 We expect to consider the operator stable soon; backwards incompatible changes
 will not be made once the project reaches stability.
 
+See the [roadmap](./ROADMAP.md).
+
+
 ### Overview
 
 The replication operator manages application clusters deployed to [Kubernetes][k8s-home] and automates tasks related to seeding, and operating a cluster.
@@ -29,7 +28,7 @@ The replication operator manages application clusters deployed to [Kubernetes][k
 
 There are [more examples](./apps) of different applications and specs for driving them
 
-Read [how replication is managed](./doc/design/replication.md)
+Read [why](./doc/rationale.md) the operator exists and [how](./doc/design/replication.md) replication is managed.
 
 Read [RBAC docs](./doc/user/rbac.md) for how to setup RBAC rules for the replication operator if RBAC is in place.
 
@@ -50,7 +49,7 @@ See the [Resources and Labels](./doc/user/resource_labels.md) doc for an overvie
 
 ### Deploy replication operator
 
-See [instructions on how to install/uninstall replication operator](doc/user/install_guide.md) .
+See [instructions on how to install/uninstall replication operator](./doc/user/install_guide.md) .
 
 ### Create and destroy a cluster
 
