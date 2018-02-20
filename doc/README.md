@@ -1,8 +1,7 @@
-# Almost everything in this directory is stale and in need of revision
+# Parts of this directory are stale and in need of revision
 
-Particularly the following directories:
+Most of the documentation has been updated to reflect the changes associated
+with the replication operator. The exceptions are currently:
 
-- design
-- gif
 - user/upgrades
 - user/walkthough

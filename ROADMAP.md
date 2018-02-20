@@ -9,8 +9,11 @@ The dates below should not be considered authoritative, but rather indicative of
 
 #### Documentation
 
-- Pretty much everything needs documenting 
-- Anything that is documented is carried over from the etcd-operator and in need of revision
+- Need user facing documentation.  Much of the current documentation in
+ [doc/user](doc/user) was carried over from the etcd-operator and is in need of
+ revision.
+
+- Need a Galera demo
 
 #### Cleanups
 

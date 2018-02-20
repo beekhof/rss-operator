@@ -8,11 +8,16 @@ e2e (upgrade):
 
 ### Project status: beta
 
-Most major planned features have been completed and while no breaking API changes are currently planned, we reserve the right to address bugs and API changes in a backwards incompatible way before the project is declared stable. See [upgrade guide](./doc/user/upgrade/upgrade_guide.md) for safe upgrade process.
+Most major planned features have been completed and while no breaking API
+changes are currently planned, we reserve the right to address bugs and API
+changes in a backwards incompatible way before the project is declared stable.
+See [upgrade guide](./doc/user/upgrade/upgrade_guide.md) for safe upgrade
+process.
 
-Currently user facing _rss_ cluster objects are created as [Kubernetes Custom Resources](https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/), however, taking advantage of [User Aggregated API Servers](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/aggregated-api-servers.md) to improve reliability, validation and versioning is planned. The use of Aggregated API should be minimally disruptive to existing users but may change what Kubernetes objects are created or how users deploy the operator.
+Currently user facing _replication_ cluster objects are created as [Kubernetes Custom Resources](https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/), however, like the etcd operator we may take advantage of [User Aggregated API Servers](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/aggregated-api-servers.md) to improve reliability, validation and versioning. The use of Aggregated API should be minimally disruptive to existing users but may change what Kubernetes objects are created or how users deploy the operator.
 
-We expect to consider the operator stable soon; backwards incompatible changes will not be made once the project reaches stability.
+We expect to consider the operator stable soon; backwards incompatible changes
+will not be made once the project reaches stability.
 
 ### Overview
 
@@ -21,12 +26,10 @@ The replication operator manages application clusters deployed to [Kubernetes][k
 - [Create and destroy](#create-and-destroy-a-cluster)
 - [Resize](#resize-a-cluster)
 - [Failover](#failover)
-- [Rolling upgrade](#upgrade-a-cluster)
-- [Backup and Restore](#backup-and-restore-a-cluster)
 
 There are [more examples](./apps) of different applications and specs for driving them
 
-Read [Best Practices (TODO)](./doc/best_practices.md) for more information on how to better use the replication operator.
+Read [how replication is managed](./doc/design/replication.md)
 
 Read [RBAC docs](./doc/user/rbac.md) for how to setup RBAC rules for the replication operator if RBAC is in place.
 
@@ -48,7 +51,6 @@ See the [Resources and Labels](./doc/user/resource_labels.md) doc for an overvie
 ### Deploy replication operator
 
 See [instructions on how to install/uninstall replication operator](doc/user/install_guide.md) .
-$ kubectl create -f example/operator.yaml
 
 ### Create and destroy a cluster
 
@@ -250,14 +252,6 @@ rss-example-2   1/1       Running   0          13m
 rss-operator    1/1       Running   0          4m
 ```
 
-### Upgrade a cluster
-
-TODO
-
-
-### Backup and Restore a cluster
-
-TODO
 
 ### Limitations
 

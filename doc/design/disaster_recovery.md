@@ -1,33 +1,32 @@
 # Disaster Recovery
 
-## Overview
+## Loosing a Majority of Pods
 
-If a cluster has less than majority of members alive, operator considers it disastrous failure. There might be other disastrous failures. Operator will do disaster recovery on such cases and try to recover entire cluster from snapshot.
+In the event that more than half the configured Pods are lost, the underlying
+application may have lost quorum.
 
-We have a backup pod to save checkpoints of the cluster.
+So long as the configured `status` command reports the application is healthy
+on the remaining Pods, the operator will follow its normal recovery proceedure
+of waiting for the StatefulSet (STS) controller to respawn lost Pods and following the [replication logic](replication.md).
 
-If disastrous failure happened but no checkpoint is found, operator would consider the cluster dead.
+If the loss of quorum results in the applcation self-terminating or entering a
+zombie state, the operator will execute the configured `stop` command on those
+pods as part of the [reconciliation logic](reconciliation.md), wait for the
+STS controller to respawn lost Pods and once again follow the [replication logic](replication.md).
 
-## Technical details
+There is no need to be concerned with backup and recovery processes as each
+pod has their own persistent copy the data.
 
-We have a backup pod as sidecar:
-- We use Kubernetes replication set to manage the backup pod to achieve highly availability.
-- It periodically pull snapshots from the etcd cluster.
-- It persists the pulled snapshot into attached stable storage like Persistent Volume or cloud storage like GCS/S3.
-- It serves latest snapshot to etcd members for disaster recovery.
+## Scaling up from Zero
 
-## Disaster recovery process
+One special case does occur however when scaling an application back up from zero.
 
-Recovery process of entire cluster:
-- If there is any running members, we first save snapshot of the member with the highest storage revision.
-  Then we kill all running members.
-- Restart the cluster as a one member cluster. The seed member will do recovery process described below.
-- Then the reconciliation will start to bring the etcd cluster back to the desired number of members.
+The replication CRD stores a copy of the configured replica count whenever it
+is greater than 0 and matches the actual number of running pods.
 
-Recovery process of an etcd emember:
-- pull the latest snapshot from its backup pod, and use etcdctl recovery to prepare initial state.
-- start etcd process.
-Note that this could happen not only in disaster recovery, but also in partial recovery.
-
-## Architecture diagram
-![](./arch.png)
+This allows it to ensure that the same number of copies (or more) are once
+again created when the operator recreates the applicaiton cluster (perhaps
+after a lights out failure or an upgrade proceedure).  This avoids any
+possibile race conditions that might result in or from `Pod N` holding the
+most recent copy of the data _AND_ the configured number of replicas being
+less than N.

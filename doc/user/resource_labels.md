@@ -1,5 +1,5 @@
 ## Resource Labels
-The rss-operator creates the following Kubernetes resources for each rss cluster:
+The rss-operator creates the following Kubernetes resources for each application cluster:
 - Pods for the member nodes
 - Services for clients and peer members
 
