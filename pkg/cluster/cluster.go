@@ -225,7 +225,7 @@ func (c *Cluster) create() error {
 	if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.rss, c.config, true)); err != nil {
 		return errors.Wrap(err, "synchronizing internal service failed")
 	}
-	if c.rss.Spec.Service != nil && len(c.rss.Spec.Service.ExternalIPs) > 0 {
+	if c.rss.Spec.Service != nil {
 		if err := k8sutil.CreateOrUpdateService(svcClient, makeStatefulSetService(c.rss, c.config, false)); err != nil {
 			return errors.Wrap(err, "synchronizing external service failed")
 		}

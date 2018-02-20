@@ -103,41 +103,47 @@ func (l *ConfigMapReferenceList) Swap(i, j int) {
 }
 
 func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config, internal bool) *v1.Service {
-	var svc *v1.Service
+	var spec v1.ServiceSpec
+
+	ips := []string{}
+	if cluster.Spec.Service != nil {
+		ips = cluster.Spec.Service.ExternalIPs
+	}
+
 	if internal {
-		svc = &v1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   cluster.ServiceName(internal),
-				Labels: mergeLabels(cluster.Labels, k8sutil.LabelsForCluster(cluster.Name)),
-			},
-			Spec: v1.ServiceSpec{
-				ClusterIP: "None",
-				Ports:     cluster.Spec.GetServicePorts(),
-				Selector:  k8sutil.LabelsForCluster(cluster.Name),
-				//SessionAffinity: cluster.Spec.Service.SessionAfinity,
-			},
+		spec = v1.ServiceSpec{
+			ClusterIP: "None",
+			Ports:     cluster.Spec.GetServicePorts(),
+			Selector:  k8sutil.LabelsForCluster(cluster.Name),
+			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
+		}
+
+	} else if len(ips) == 0 {
+		// Create an anonymous loadbalancer
+		spec = v1.ServiceSpec{
+			Type:     v1.ServiceTypeLoadBalancer,
+			Ports:    cluster.Spec.GetServicePorts(),
+			Selector: k8sutil.LabelsForCluster(cluster.Name),
+			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 		}
 
 	} else {
-		ips := []string{}
-		if cluster.Spec.Service != nil {
-			ips = cluster.Spec.Service.ExternalIPs
-		}
-		svc = &v1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   cluster.ServiceName(internal),
-				Labels: mergeLabels(cluster.Labels, k8sutil.LabelsForCluster(cluster.Name)),
-			},
-			Spec: v1.ServiceSpec{
-				Type:        "ClusterIP",
-				Ports:       cluster.Spec.GetServicePorts(),
-				Selector:    k8sutil.LabelsForCluster(cluster.Name),
-				ExternalIPs: ips,
-				//SessionAffinity: cluster.Spec.Service.SessionAfinity,
-			},
+		spec = v1.ServiceSpec{
+			Type:        "ClusterIP",
+			Ports:       cluster.Spec.GetServicePorts(),
+			Selector:    k8sutil.LabelsForCluster(cluster.Name),
+			ExternalIPs: ips,
+			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 		}
 	}
-	return svc
+
+	return &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   cluster.ServiceName(internal),
+			Labels: mergeLabels(cluster.Labels, k8sutil.LabelsForCluster(cluster.Name)),
+		},
+		Spec: spec,
+	}
 }
 
 func applyPodSpecPolicy(clusterName string, podSpec *v1.PodSpec, policy *api.PodPolicy) {
