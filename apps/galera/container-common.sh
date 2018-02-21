@@ -1,4 +1,4 @@
-: ${CHAOS_LEVEL=0}
+: ${CHAOS_MODULO=0}
 
 function gcomm_from_args() {
 	gcomm="gcomm://"
@@ -16,7 +16,7 @@ function gcomm_from_args() {
 function handle_result() {
 	action=$1; shift
 	if [ $1 = 0 ]; then
-		kubectl label --overwrite pods $HOSTNAME state=stopped
+		kubectl label --overwrite pods $HOSTNAME state=$action
 		ocf_log info "$action complete."
 	else
 		ocf_log info "$action failed: $1"

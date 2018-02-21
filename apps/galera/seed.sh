@@ -16,7 +16,7 @@ else
 	load_sql=1
 fi
 
-if [ ${CHAOS_LEVEL} -gt 2 -a $(( $RANDOM % ${CHAOS_LEVEL} )) = 0 ]; then
+if [ ${CHAOS_MODULO} -gt 2 -a $(( $RANDOM % ${CHAOS_MODULO} )) = 0 ]; then
 	ocf_log info "Monkeys everywhere!!"
 	exit 1
 fi
