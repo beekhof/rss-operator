@@ -1,4 +1,6 @@
-: ${CHAOS_MODULO=0}
+if [ x${CHAOS_MODULO} = x ]; then
+	export CHAOS_MODULO=1
+fi
 
 function gcomm_from_args() {
 	gcomm="gcomm://"
