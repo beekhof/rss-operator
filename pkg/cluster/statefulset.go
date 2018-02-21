@@ -122,9 +122,10 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config, i
 	} else if len(ips) == 0 {
 		// Create an anonymous loadbalancer
 		spec = v1.ServiceSpec{
-			Type:     v1.ServiceTypeLoadBalancer,
-			Ports:    cluster.Spec.GetServicePorts(),
-			Selector: k8sutil.LabelsForActiveCluster(cluster.Name),
+			Type:                     v1.ServiceTypeLoadBalancer,
+			Ports:                    cluster.Spec.GetServicePorts(),
+			Selector:                 k8sutil.LabelsForActiveCluster(cluster.Name),
+			PublishNotReadyAddresses: true, // We'll manage the up/down part via labels
 			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 		}
 
