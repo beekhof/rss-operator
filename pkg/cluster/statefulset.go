@@ -102,51 +102,18 @@ func (l *ConfigMapReferenceList) Swap(i, j int) {
 	l.Items[i], l.Items[j] = l.Items[j], l.Items[i]
 }
 
-func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config, internal bool) *v1.Service {
-	var spec v1.ServiceSpec
-
-	ips := []string{}
-	if cluster.Spec.Service != nil {
-		ips = cluster.Spec.Service.ExternalIPs
-	}
-
-	if internal {
-		// Headless service for DNS lookups within STS pods
-		spec = v1.ServiceSpec{
-			ClusterIP:                "None",
+func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config) *v1.Service {
+	return &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   cluster.ServiceName(),
+			Labels: mergeLabels(cluster.Labels, k8sutil.LabelsForCluster(cluster.Name)),
+		},
+		Spec: v1.ServiceSpec{
+			ClusterIP:                v1.ClusterIPNone,
 			Ports:                    cluster.Spec.GetServicePorts(),
 			Selector:                 k8sutil.LabelsForCluster(cluster.Name),
 			PublishNotReadyAddresses: true, // Ensure unready members show up in DNS
-		}
-
-	} else if len(ips) == 0 {
-		// Create an anonymous loadbalancer
-		spec = v1.ServiceSpec{
-			Type:                     v1.ServiceTypeLoadBalancer,
-			Ports:                    cluster.Spec.GetServicePorts(),
-			Selector:                 k8sutil.LabelsForActiveCluster(cluster.Name),
-			ExternalTrafficPolicy:    v1.ServiceExternalTrafficPolicyTypeLocal, // "Cluster" seems problematic
-			PublishNotReadyAddresses: true,                                     // Let the rss- labels handle "ready"
-			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
-		}
-
-	} else {
-		spec = v1.ServiceSpec{
-			Type:                  v1.ServiceTypeClusterIP,
-			Ports:                 cluster.Spec.GetServicePorts(),
-			Selector:              k8sutil.LabelsForActiveCluster(cluster.Name),
-			ExternalIPs:           ips,
-			ExternalTrafficPolicy: v1.ServiceExternalTrafficPolicyTypeLocal, // "Cluster" seems problematic
-			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
-		}
-	}
-
-	return &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   cluster.ServiceName(internal),
-			Labels: mergeLabels(cluster.Labels, k8sutil.LabelsForCluster(cluster.Name)),
 		},
-		Spec: spec,
 	}
 }
 
@@ -227,14 +194,14 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 			container.Env = []v1.EnvVar{
 				{
 					Name:  constants.EnvOperatorServiceName,
-					Value: cluster.ServiceName(true),
+					Value: cluster.ServiceName(),
 				},
 			}
 
 		} else {
 			container.Env = append(container.Env, v1.EnvVar{
 				Name:  constants.EnvOperatorServiceName,
-				Value: cluster.ServiceName(true),
+				Value: cluster.ServiceName(),
 			})
 		}
 		// The spec author could add themselves though...
@@ -337,7 +304,7 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	}
 
 	return &v1beta1.StatefulSetSpec{
-		ServiceName:          cluster.ServiceName(true),
+		ServiceName:          cluster.ServiceName(),
 		Replicas:             &intSize,
 		PodManagementPolicy:  v1beta1.ParallelPodManagement,
 		VolumeClaimTemplates: cluster.Spec.Pod.VolumeClaimTemplates,

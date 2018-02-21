@@ -68,13 +68,6 @@ type ReplicationCommand struct {
 	Command []string `json:"command"`
 }
 
-type ServicePolicy struct {
-	ServiceName     string             `json:"serviceName,omitempty"`
-	ServicePorts    []v1.ServicePort   `json:"servicePorts,omitempty"`
-	ExternalIPs     []string           `json:"externalIPs,omitempty"`
-	SessionAffinity v1.ServiceAffinity `json:"sessionAffinity,omitempty"`
-}
-
 type PodPolicy struct {
 	// NodeSelector specifies a map of key-value pairs. For the pod to be eligible
 	// to run on a node, the node must have each of the indicated key-value pairs as
@@ -117,8 +110,8 @@ type ClusterSpec struct {
 	// Pod defines the policy to create pod for the galera pod.
 	//
 	// Updating Pod does not take effect on any existing galera pods.
-	Pod     PodPolicy      `json:"pod"`
-	Service *ServicePolicy `json:"service,omitempty"`
+	Pod          PodPolicy        `json:"pod"`
+	ServicePorts []v1.ServicePort `json:"servicePorts,omitempty"`
 
 	// galera cluster TLS configuration
 	TLS *TLSPolicy `json:"TLS,omitempty"`
@@ -136,7 +129,7 @@ type ClusterSpec struct {
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// ServiceAccountName is the name of the ServiceAccount to use to run the
-	// Prometheus Pods.
+	// application Pods.
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
 	// Secrets is a list of Secrets in the same namespace as the Prometheus
@@ -166,17 +159,8 @@ func (rss *ReplicatedStatefulSet) AsOwner() metav1.OwnerReference {
 	}
 }
 
-func (rss *ReplicatedStatefulSet) ServiceName(internal bool) string {
-	var name string
-	if rss.Spec.Service != nil && rss.Spec.Service.ServiceName != "" {
-		name = rss.Spec.Service.ServiceName
-	} else {
-		name = fmt.Sprintf("%s-svc", rss.Name)
-	}
-	if internal {
-		name = fmt.Sprintf("%s-int", name)
-	}
-	return name
+func (rss *ReplicatedStatefulSet) ServiceName() string {
+	return fmt.Sprintf("%s-svc", rss.Name)
 }
 
 func (rss *ReplicatedStatefulSet) Validate() error {
@@ -218,15 +202,15 @@ func (rss *ReplicatedStatefulSet) Validate() error {
 }
 
 func (c *ClusterSpec) GetServicePorts() []v1.ServicePort {
-	if c.Service.ServicePorts != nil {
-		return c.Service.ServicePorts
+	if c.ServicePorts != nil {
+		return c.ServicePorts
 	}
 
 	return []v1.ServicePort{
 		{
-			Name:       "web",
-			Port:       9090,
-			TargetPort: intstr.FromString("web"),
+			Name:       "dummy",
+			Port:       12345,
+			TargetPort: intstr.FromString("dummy"),
 		},
 	}
 }
@@ -265,9 +249,6 @@ func (c *ClusterSpec) GetNumPrimaries() int32 {
 func (c *ClusterSpec) Cleanup() {
 	if c.Resources.Requests == nil {
 		c.Resources.Requests = v1.ResourceList{}
-	}
-	if c.Service == nil {
-		c.Service = &ServicePolicy{}
 	}
 	if _, ok := c.Resources.Requests[v1.ResourceMemory]; !ok {
 		c.Resources.Requests[v1.ResourceMemory] = resource.MustParse("2M")
