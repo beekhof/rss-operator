@@ -111,12 +111,12 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config, i
 	}
 
 	if internal {
+		// Headless service for DNS lookups within STS pods
 		spec = v1.ServiceSpec{
 			ClusterIP:                "None",
 			Ports:                    cluster.Spec.GetServicePorts(),
 			Selector:                 k8sutil.LabelsForCluster(cluster.Name),
 			PublishNotReadyAddresses: true, // Ensure unready members show up in DNS
-			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 		}
 
 	} else if len(ips) == 0 {
@@ -130,7 +130,7 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config, i
 
 	} else {
 		spec = v1.ServiceSpec{
-			Type:        "ClusterIP",
+			Type:        v1.ServiceTypeClusterIP,
 			Ports:       cluster.Spec.GetServicePorts(),
 			Selector:    k8sutil.LabelsForActiveCluster(cluster.Name),
 			ExternalIPs: ips,
@@ -154,7 +154,7 @@ func applyPodSpecPolicy(clusterName string, podSpec *v1.PodSpec, policy *api.Pod
 
 	if policy.AntiAffinity {
 		ls := &metav1.LabelSelector{MatchLabels: map[string]string{
-			"rss_cluster": clusterName,
+			constants.ClusterNameLabel: clusterName,
 		}}
 
 		affinity := &v1.Affinity{

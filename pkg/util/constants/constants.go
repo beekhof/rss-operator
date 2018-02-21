@@ -24,5 +24,6 @@ const (
 	EnvOperatorPodNamespace = "POD_NAMESPACE"
 	EnvOperatorServiceName  = "SERVICE_NAME"
 
-	MemberActiveKey = "rss-active-member"
+	MemberActiveKey  = "rss-active-member"
+	ClusterNameLabel = "rss-cluster"
 )
