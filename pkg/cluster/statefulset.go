@@ -125,16 +125,18 @@ func makeStatefulSetService(cluster *api.ReplicatedStatefulSet, config Config, i
 			Type:                     v1.ServiceTypeLoadBalancer,
 			Ports:                    cluster.Spec.GetServicePorts(),
 			Selector:                 k8sutil.LabelsForActiveCluster(cluster.Name),
-			PublishNotReadyAddresses: true, // We'll manage the up/down part via labels
+			ExternalTrafficPolicy:    v1.ServiceExternalTrafficPolicyTypeLocal, // "Cluster" seems problematic
+			PublishNotReadyAddresses: true,                                     // Let the rss- labels handle "ready"
 			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 		}
 
 	} else {
 		spec = v1.ServiceSpec{
-			Type:        v1.ServiceTypeClusterIP,
-			Ports:       cluster.Spec.GetServicePorts(),
-			Selector:    k8sutil.LabelsForActiveCluster(cluster.Name),
-			ExternalIPs: ips,
+			Type:                  v1.ServiceTypeClusterIP,
+			Ports:                 cluster.Spec.GetServicePorts(),
+			Selector:              k8sutil.LabelsForActiveCluster(cluster.Name),
+			ExternalIPs:           ips,
+			ExternalTrafficPolicy: v1.ServiceExternalTrafficPolicyTypeLocal, // "Cluster" seems problematic
 			//SessionAffinity: cluster.Spec.Service.SessionAfinity,
 		}
 	}
