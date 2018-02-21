@@ -270,9 +270,9 @@ func (c *Cluster) startAppMember(m *util.Member, asPrimary bool) error {
 
 func (c *Cluster) tagAppMember(m *util.Member, online bool) error {
 
-	pod, err := c.config.KubeCli.CoreV1().Pods(m.Namespace).Get(m.Name, metav1.GetOptions{})
+	pod, err := c.config.KubeCli.CoreV1().Pods(c.rss.Namespace).Get(m.Name, metav1.GetOptions{})
 	if err != nil {
-		c.logger.Errorf("failed to get pod %v: %v", m.Name, err)
+		c.logger.Errorf("failed to get pod %v in order to update labels: %v", m.Name, err)
 		return err
 	}
 
@@ -293,7 +293,7 @@ func (c *Cluster) tagAppMember(m *util.Member, online bool) error {
 		return err
 	}
 
-	_, err = c.config.KubeCli.CoreV1().Pods(m.Namespace).Patch(m.Name, types.StrategicMergePatchType, patchdata)
+	_, err = c.config.KubeCli.CoreV1().Pods(c.rss.Namespace).Patch(m.Name, types.StrategicMergePatchType, patchdata)
 	if err != nil {
 		c.logger.Errorf("fail to update the labels for %s: %v", m.Name, err)
 		return err
