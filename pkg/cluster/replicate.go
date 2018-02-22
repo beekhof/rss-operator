@@ -30,8 +30,8 @@ import (
 )
 
 func (c *Cluster) replicate() []error {
-	c.logger.Infoln("Start replication")
-	defer c.logger.Infoln("Finish replication")
+	c.logger.Debug("Start replication")
+	defer c.logger.Debug("Finish replication")
 	defer c.updateCRStatus("replicate")
 
 	errors := []error{}

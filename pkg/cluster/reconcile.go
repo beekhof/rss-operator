@@ -21,6 +21,8 @@ import (
 	api "github.com/beekhof/rss-operator/pkg/apis/clusterlabs/v1alpha1"
 	"github.com/beekhof/rss-operator/pkg/util"
 
+	"github.com/sirupsen/logrus"
+
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -63,8 +65,8 @@ func (c *Cluster) recover(peers util.MemberSet) []error {
 
 func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 	var errors []error
-	c.logger.Infoln("Start reconciling")
-	defer c.logger.Infoln("Finish reconciling")
+	c.logger.Debug("Start reconciling")
+	defer c.logger.Debug("Finish reconciling")
 
 	defer func() {
 		c.status.Replicas = len(c.peers)
@@ -87,6 +89,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 
 	for _, m := range c.peers {
 
+		needOutput := false
 		// TODO: Make the threshold configurable
 		// ' > 1' means that we tried at least a start and a stop
 		if m.AppFailed || !m.Online {
@@ -94,7 +97,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 			continue
 		}
 
-		_, _, err, rc := c.execute(api.StatusCommandKey, m.Name, false)
+		stdout, stderr, err, rc := c.execute(api.StatusCommandKey, m.Name, true)
 
 		if _, ok := c.rss.Spec.Pod.Commands[api.SecondaryCommandKey]; rc == 0 && !ok {
 			// Secondaries are not in use, map to primary
@@ -108,6 +111,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 				c.logger.Infof("reconcile: Detected active applcation on %v", m.Name)
 			} else if m.AppPrimary {
 				c.logger.Warnf("reconcile: Detected demoted primary on %v", m.Name)
+				needOutput = true
 			}
 			m.AppRunning = true
 			m.AppPrimary = false
@@ -115,6 +119,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 			if m.AppRunning {
 				c.logger.Warnf("reconcile: Detected stopped applcation on %v: %v", m.Name, err)
 				errors = appendNonNil(errors, err)
+				needOutput = true
 			}
 			m.AppRunning = false
 			m.AppPrimary = false
@@ -124,6 +129,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 			} else if !m.AppPrimary {
 				c.logger.Warnf("reconcile: Detected promoted secondary on %v: %v", m.Name, err)
 				errors = appendNonNil(errors, err)
+				needOutput = true
 			}
 			m.AppPrimary = true
 			m.AppRunning = true
@@ -132,6 +138,15 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 			errors = appendNonNil(errors, err)
 			m.AppRunning = true
 			m.AppFailed = true
+			needOutput = true
+		}
+
+		if needOutput {
+			c.logger.Errorf("Application check on pod %v failed: %v", m.Name, err)
+			util.LogOutput(c.logger.WithField("check", "stdout"), logrus.ErrorLevel, m.Name, stdout)
+			util.LogOutput(c.logger.WithField("check", "stderr"), logrus.ErrorLevel, m.Name, stderr)
+		} else {
+			c.logger.Debugf("Application check on pod %v passed", m.Name)
 		}
 
 		if m.AppFailed {
