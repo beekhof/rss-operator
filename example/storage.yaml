@@ -5,17 +5,8 @@
 #
 #   cat ceph.client.admin.keyring | tail -n 1 | awk '{print $3}' >> admin.secret
 #   kubectl create secret generic ceph-secret-admin --type="kubernetes.io/rbd" --from-file=admin.secret --namespace=kube-system
+#   kubectl create secret generic ceph-secret-user --type="kubernetes.io/rbd" --from-file=admin.secret
 #
-apiVersion: v1
-data:
-  admin.secret: QVFBQkt5VmF0K0FhSXhBQU5xcElISnlZY2krQ2t6UFNsNWpZQ1E9PQo=
-kind: Secret
-metadata:
-  name: ceph-secret-admin
-  namespace: kube-system
-type: kubernetes.io/rbd
----
-# kubectl create secret generic ceph-secret-user --type="kubernetes.io/rbd" --from-file=admin.secret
 apiVersion: v1
   data:
     admin.secret: QVFBQkt5VmF0K0FhSXhBQU5xcElISnlZY2krQ2t6UFNsNWpZQ1E9PQo=
@@ -41,15 +32,17 @@ parameters:
   userSecretName: ceph-secret-user
 provisioner: kubernetes.io/rbd
 reclaimPolicy: Delete
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: my-storage-claim
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 3Gi
-  storageClassName: my-storage-class
+#---
+# Example Claim
+#
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: my-storage-claim
+# spec:
+#   accessModes:
+#   - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: 3Gi
+#   storageClassName: my-storage-class
