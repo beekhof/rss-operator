@@ -37,8 +37,8 @@ var (
 // - if the cluster needs for upgrade, it tries to upgrade old member one by one.
 func (c *Cluster) recover(peers util.MemberSet) []error {
 	var errors []error
-	c.logger.Infoln("Start recovery")
-	defer c.logger.Infoln("Finish recovery")
+	c.logger.Debug("Start recovery")
+	defer c.logger.Debug("Finish recovery")
 	for _, m := range peers {
 
 		// TODO: Make the threshold configurable
@@ -67,11 +67,6 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 	var errors []error
 	c.logger.Debug("Start reconciling")
 	defer c.logger.Debug("Finish reconciling")
-
-	defer func() {
-		c.status.Replicas = len(c.peers)
-		c.updateCRStatus("reconcile")
-	}()
 
 	sp := c.rss.Spec
 	running := c.podsToMemberSet(pods, c.isSecureClient())
@@ -147,6 +142,7 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 			util.LogOutput(c.logger.WithField("check", "stderr"), logrus.ErrorLevel, m.Name, stderr)
 		} else {
 			c.logger.Debugf("Application check on pod %v passed", m.Name)
+			util.LogOutput(c.logger.WithField("check", "stderr"), logrus.DebugLevel, m.Name, stderr)
 		}
 
 		if m.AppFailed {
@@ -172,6 +168,9 @@ func (c *Cluster) reconcile(pods []*v1.Pod) []error {
 	} else {
 		c.status.SetReadyCondition()
 	}
+
+	c.status.Replicas = len(c.peers)
+	c.updateCRStatus("reconcile")
 
 	return errors
 }

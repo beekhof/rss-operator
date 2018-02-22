@@ -572,6 +572,8 @@ func (c *Cluster) updateCRStatus(prefix string) error {
 	if err != nil {
 		c.logger.Warningf("%v: failed to update CR status: %v", prefix, err)
 		return fmt.Errorf("%v: failed to update CR status: %v", prefix, err)
+	} else {
+		c.logger.Debugf("%v: updated CRD status", prefix)
 	}
 
 	c.rss = newCluster
