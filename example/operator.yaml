@@ -6,8 +6,9 @@ spec:
   containers:
   - name: operator
     image: quay.io/beekhof/rss-operator:latest
-    # Defaults to just '/usr/local/bin/rss-operator' but show debug logs in the example
-    command: [ "/usr/local/bin/rss-operator", "-alsologtostderr", "-v", "1" ]
+    # Defaults to just '/usr/local/bin/rss-operator' this is how we'd enable
+    # debug logging:
+    # command: [ "/usr/local/bin/rss-operator", "-alsologtostderr", "-v", "1" ]
     env:
     - name: POD_NAMESPACE
       valueFrom:

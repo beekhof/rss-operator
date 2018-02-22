@@ -1,49 +1,84 @@
+#
+# See example/storage.yaml for details on how to set up a Ceph backed storage class
+#
 apiVersion: clusterlabs.org/v1alpha1
 kind: ReplicatedStatefulSet
 metadata:
   # https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#idempotency
-  generateName: galera-
+  name: galera-demo
   labels:
     kind: galera
 spec:
-  replicas: 3
-  pod:
-    antiAffinity: true
-  service:
-    name: galera-svc
-    sessionAffinity: None
+  replicas: 4
+  chaosLevel: 0
   servicePorts:
   - name: galera
-    port: 13306
+    protocol: TCP
+    port: 3306
     targetPort: 3306
-    # https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
-  volumes:
-  - emptyDir: {}
-    name: galera-vwsgr-db
-  containers:
-  - name: rss
-    image: quay.io/beekhof/galera:latest
-    imagePullPolicy: Always
-    ports:
-    - containerPort: 3306
-      name: galera
-      protocol: TCP
-      # http://galeracluster.com/documentation-webpages/firewallsettings.html
-      # 3306 For MySQL client connections and State Snapshot Transfer that use the mysqldump method.
-      # 4567 For Galera Cluster replication traffic, multicast replication uses both UDP transport and TCP on this port.
-      # 4568 For Incremental State Transfer.
-      # 4444 For all other State Snapshot Transfer.
-    volumeMounts:
-    - mountPath: /var/galera/data
-      name: galera-vwsgr-db
-  commands:
-    sequence:
-    - /sequence.sh
-    primary:
-    - /start.sh
-    seed:
-    - /seed.sh
-    status:
-    - /check.sh
-    stop:
-    - /stop.sh
+  pod:
+    antiAffinity: true
+    commands:
+      sequence: 
+        timeout: 20s
+        command: ["/sequence.sh"]
+      primary: 
+        command: ["/start.sh"]
+      seed: 
+        command: ["/seed.sh"]
+      status: 
+        timeout: 2m
+        command: ["/check.sh"]
+      stop: 
+        command: ["/stop.sh"]
+    volumeClaimTemplates:
+    - metadata:
+        name: mysql-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: my-storage-class
+        resources:
+          requests:
+            storage: 1Gi
+    - metadata:
+        name: mysql-logs
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: my-storage-class
+        resources:
+          requests:
+            storage: 1Gi
+    containers:
+    - name: galera
+      image: quay.io/beekhof/galera:latest
+      imagePullPolicy: Always
+      lifecycle:
+        preStop:
+            exec:
+              command: ["/stop.sh"]
+      ports:
+      - containerPort: 3306
+        name: galera
+        protocol: TCP
+      - containerPort: 4567
+        name: galera-tcp-rep
+        protocol: TCP
+      - containerPort: 4567
+        name: galera-udp-rep
+        protocol: UDP
+      - containerPort: 4568
+        name: galera-state
+        protocol: TCP
+      - containerPort: 4444
+        name: galera-snap
+        protocol: TCP
+        # http://galeracluster.com/documentation-webpages/firewallsettings.html
+        # 3306 For MySQL client connections and State Snapshot Transfer that use the mysqldump method.
+        # 4567 For Galera Cluster replication traffic, multicast replication uses both UDP transport and TCP on this port.
+        # 4568 For Incremental State Transfer.
+        # 4444 For all other State Snapshot Transfer.
+      volumeMounts:
+      - mountPath: /var/lib/mysql
+        name: mysql-data
+      - mountPath: /var/log
+        name: mysql-logs

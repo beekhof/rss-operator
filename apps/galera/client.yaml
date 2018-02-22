@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+spec:
+  containers:
+  - image: quay.io/beekhof/galera:latest
+    name: mysql
+    command: [ "/run.sh" ]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: galera-demo
+  name: galera-demo-external
+spec:
+  externalTrafficPolicy: Local
+  ports:
+  - name: galera
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  publishNotReadyAddresses: true
+  selector:
+    app: galera-demo
+    rss-active-member: "true"
+  sessionAffinity: ClientIP
+  type: LoadBalancer

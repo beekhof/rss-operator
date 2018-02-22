@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: rss-operator
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: rss-operator
+    spec:
+      containers:
+      - name: rss-operator
+        image: quay.io/beekhof/rss-operator:latest
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
