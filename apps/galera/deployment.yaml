@@ -67,7 +67,8 @@ spec:
       containers:
       - name: rss-operator
         image: quay.io/beekhof/rss-operator:latest
-        imagePullPolicy: Always
+        # command: [ "/usr/local/bin/rss-operator", "-alsologtostderr", "-v", "1" ]
+        # imagePullPolicy: Always
         # restartPolicy: Never
         env:
         - name: POD_NAMESPACE
@@ -85,12 +86,17 @@ apiVersion: clusterlabs.org/v1alpha1
 kind: ReplicatedStatefulSet
 metadata:
   # https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#idempotency
-  generateName: galera-
+  name: galera-demo
   labels:
     kind: galera
 spec:
   replicas: 4
-  chaosLevel: 3
+  chaosLevel: 0
+  servicePorts:
+  - name: galera
+    protocol: TCP
+    port: 3306
+    targetPort: 3306
   pod:
     antiAffinity: true
     commands:
@@ -136,8 +142,11 @@ spec:
         name: galera
         protocol: TCP
       - containerPort: 4567
-        name: galera-rep
+        name: galera-tcp-rep
         protocol: TCP
+      - containerPort: 4567
+        name: galera-udp-rep
+        protocol: UDP
       - containerPort: 4568
         name: galera-state
         protocol: TCP
@@ -154,16 +163,6 @@ spec:
         name: mysql-data
       - mountPath: /var/log
         name: mysql-logs
-  service:
-    serviceName: galera-svc
-    sessionAffinity: None
-    servicePorts:
-    - name: galera
-      port: 13306
-      targetPort: 3306
-      # https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
-    #externalIPs:
-    #- 192.168.124.101
 ---
 apiVersion: v1
 kind: Pod
@@ -172,5 +171,5 @@ metadata:
 spec:
   containers:
   - image: quay.io/beekhof/galera:latest
-    imagePullPolicy: Always
     name: mysql
+    command: [ "/run.sh" ]
