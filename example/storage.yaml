@@ -8,12 +8,12 @@
 #   kubectl create secret generic ceph-secret-user --type="kubernetes.io/rbd" --from-file=admin.secret
 #
 apiVersion: v1
-  data:
-    admin.secret: QVFBQkt5VmF0K0FhSXhBQU5xcElISnlZY2krQ2t6UFNsNWpZQ1E9PQo=
-  kind: Secret
-  metadata:
-    name: ceph-secret-user
-  type: kubernetes.io/rbd
+data:
+  admin.secret: QVFBQkt5VmF0K0FhSXhBQU5xcElISnlZY2krQ2t6UFNsNWpZQ1E9PQo=
+kind: Secret
+metadata:
+  name: ceph-secret-user
+type: kubernetes.io/rbd
 ---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass

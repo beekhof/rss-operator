@@ -114,8 +114,9 @@ dummy:
 	make TEST_APP=$@ NS=$@ clean test
 
 test: ns
-	@echo "Loading apps/$(TEST_APP)/deployment.yaml into $(NS)"
+	@echo "Loading apps/$(TEST_APP)/cluster.yaml into $(NS)"
 	kubectl -n $(NS) create -f example/crd.yaml
+	-kubectl -n $(NS) create -f example/storage.yaml
 	kubectl -n $(NS) create -f example/deployment-operator.yaml
 	@echo "Waiting for the operator to become active"
 	while [ "x$$(kubectl -n $(NS) get po | grep rss-operator.*Running)" = x ]; do sleep 5; /bin/echo -n .; done
