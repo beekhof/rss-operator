@@ -41,7 +41,7 @@ See the [Resources and Labels](./doc/user/resource_labels.md) doc for an overvie
 
 - Kubernetes 1.9+
 
-## Demo
+## Demo - Replicated Database
 
 [![asciicast](https://asciinema.org/a/164903.png)](https://asciinema.org/a/164903)
 
@@ -72,13 +72,12 @@ In addition to the pod status, we can check the state of the application by exam
 
 ```bash
 $ kubectl -n dummy get rss/example -o=jsonpath='{"Primaries: "}{.status.members.primary}{"\n"}{"Members:   "}{.status.members.ready}{"\n"}'
-Primaries: [rss-example-0 rss-example-1 rss-example-2]
+Primaries: [rss-example-0 rss-example-2]
 Members:   [rss-example-0 rss-example-1 rss-example-2]
 ```
 
-See [client service](doc/user/client_service.md) for how to access clusters created by the replication operator.
-
-If you are working with [minikube locally](https://github.com/kubernetes/minikube#minikube) create a nodePort service and _TODO..._
+See [client service](doc/user/client_service.md) for how to access clusters
+created by the replication operator.
 
 Destroy a replicated cluster:
 
