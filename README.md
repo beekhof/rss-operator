@@ -1,4 +1,4 @@
-# Replication (RSS) operator
+# Replicated Stateful Set (RSS) Operator
 
 [![Build Status](https://quay.io/repository/beekhof/rss-operator/status)](https://quay.io/repository/beekhof/rss-operator)
 
@@ -45,7 +45,7 @@ See the [Resources and Labels](./doc/user/resource_labels.md) doc for an overvie
 ## Getting started
 
 
-[![asciicast](https://asciinema.org/a/nDVcCon4EmiOD6XVuwqjXP7Al.png)](https://asciinema.org/a/nDVcCon4EmiOD6XVuwqjXP7Al)
+[![asciicast](https://asciinema.org/a/164903.png)](https://asciinema.org/a/164903)
 
 ### Deploy replication operator
 

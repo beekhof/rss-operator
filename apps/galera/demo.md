@@ -16,9 +16,7 @@ kubectl -n $NAMESPACE create -f example/operator.yaml
 echo Wait for the operator to start
 kubectl -n $NAMESPACE get pods -w
 
-
-
-echo Define a Ceph back storgae-class
+echo Define a Ceph backed storgae-class
 kubectl -n $NAMESPACE create -f example/storage.yaml
 
 echo Define a cluster
@@ -27,11 +25,8 @@ kubectl -n $NAMESPACE create -f apps/galera/cluster.yaml
 echo Watch the pods come up
 kubectl -n $NAMESPACE get pods -w
 
-
-
-
 echo See how the operator created it
-kubectl -n $NAMESPACE logs --tail 100 po/rss-operator
+kubectl -n $NAMESPACE logs --tail 70 po/rss-operator | grep -v stdout
 
 echo Check the cluster status
 kubectl -n $NAMESPACE get rss/galera-demo -o=jsonpath='{"Primaries: "}{.status.members.primary}{"\n"}{"Members:   "}{.status.members.ready}{"\n"}'
@@ -54,9 +49,6 @@ kubectl -n $NAMESPACE delete pod rss-galera-demo-0 --now
 
 echo Watch the pod be recovered
 kubectl -n $NAMESPACE get pods -w
-
-
-
 
 echo See how the operator recovered it
 kubectl -n $NAMESPACE logs --tail 20 po/rss-operator
