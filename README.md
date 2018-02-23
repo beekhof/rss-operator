@@ -20,7 +20,7 @@ See the [roadmap](./ROADMAP.md).
 
 The replication operator manages application clusters deployed to [Kubernetes][k8s-home]
 and automates tasks related to seeding, and operating a cluster. It has been
-adapted from the [etcd operator](https://github.com/CoreOS/etcd- operator)
+adapted from the [etcd operator](https://github.com/CoreOS/etcd-operator)
 from the CoreOS folks.
 
 - [Create and destroy](#create-and-destroy-a-cluster)
@@ -43,10 +43,9 @@ See the [Resources and Labels](./doc/user/resource_labels.md) doc for an overvie
 
 ## Demo
 
-## Getting started
-
-
 [![asciicast](https://asciinema.org/a/164903.png)](https://asciinema.org/a/164903)
+
+## Getting started
 
 ### Deploy replication operator
 
