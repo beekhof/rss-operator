@@ -10,8 +10,6 @@ changes in a backwards incompatible way before the project is declared stable.
 See [upgrade guide](./doc/user/upgrade/upgrade_guide.md) for safe upgrade
 process.
 
-Currently user facing _replication_ cluster objects are created as [Kubernetes Custom Resources](https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/), however, like the etcd operator we may take advantage of [User Aggregated API Servers](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/aggregated-api-servers.md) to improve reliability, validation and versioning. The use of Aggregated API should be minimally disruptive to existing users but may change what Kubernetes objects are created or how users deploy the operator.
-
 We expect to consider the operator stable soon; backwards incompatible changes
 will not be made once the project reaches stability.
 

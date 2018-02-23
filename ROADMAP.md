@@ -13,8 +13,6 @@ The dates below should not be considered authoritative, but rather indicative of
  [doc/user](doc/user) was carried over from the etcd-operator and is in need of
  revision.
 
-- Need a Galera demo
-
 #### Cleanups
 
 - Remove lingering traces of etcd and galera references and terminology
@@ -22,6 +20,15 @@ The dates below should not be considered authoritative, but rather indicative of
 - Check conformance with the [controller pattern](https://github.com/kubernetes/community/blob/master/contributors/devel/controllers.md)
 
 - Check conformance with [logging conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/logging.md)
+
+- Incorporate [Subresources for CustomResources](https://github.com/nikhita/community/blob/f38bf972a7044206e84966d52521b6d7c9ae10db/contributors/design-proposals/api-machinery/customresources-subresources.md)
+
+- Incorporate [User Aggregated API Servers](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/aggregated-api-servers.md) to improve reliability, validation and versioning. 
+
+  The use of Aggregated API should be minimally disruptive to existing users
+  but may change what Kubernetes objects are created or how users deploy the
+  operator.
+
 
 #### Features
 
