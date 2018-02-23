@@ -26,9 +26,9 @@ The replication operator manages application clusters deployed to [Kubernetes][k
 - [Resize](#resize-a-cluster)
 - [Failover](#failover)
 
-There are [more examples](./apps) of different applications and specs for driving them
+There are [examples](./apps) of different applications and specs for driving them
 
-Read [why](./doc/rationale.md) the operator exists and [how](./doc/design/replication.md) replication is managed.
+Read [why](./doc/Rationale.md) the operator exists and [how](./doc/design/replication.md) replication is managed.
 
 Read [RBAC docs](./doc/user/rbac.md) for how to setup RBAC rules for the replication operator if RBAC is in place.
 
