@@ -1,28 +1,49 @@
+#
+# The database uses storage from the worker hosting the Pod
+#
+# The data will be persisted after a lights-out event but transactions may be
+# lost if not all workers end up hosting a Pod and it remains to be seen what
+# happens if multiple Pods are active on the same worker.
+#
+# Mostly useful for demos and proof-of-concept work. See
+# apps/galera/cluster.yaml for an example backed by a Ceph storage class
+#
 apiVersion: clusterlabs.org/v1alpha1
 kind: ReplicatedStatefulSet
 metadata:
-  # https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#idempotency
-  generateName: galera-
+  name: galera-local-demo
   labels:
     kind: galera
 spec:
-  replicas: 3
+  replicas: 4
+  servicePorts:
+  - name: galera
+    protocol: TCP
+    port: 3306
+    targetPort: 3306
   pod:
     antiAffinity: true
     commands:
       sequence: 
+        timeout: 20s
         command: ["/sequence.sh"]
       primary: 
         command: ["/start.sh"]
       seed: 
         command: ["/seed.sh"]
       status: 
-        timeout: 60
+        timeout: 2m
         command: ["/check.sh"]
       stop: 
         command: ["/stop.sh"]
+    volumes:
+    - name: mysql-data
+      hostPath:
+        # directory location on host
+        path: /var/mysql-data
+        type: Directory
     containers:
-    - name: rss
+    - name: galera
       image: quay.io/beekhof/galera:latest
       imagePullPolicy: Always
       lifecycle:
@@ -34,8 +55,11 @@ spec:
         name: galera
         protocol: TCP
       - containerPort: 4567
-        name: galera-rep
+        name: galera-tcp-rep
         protocol: TCP
+      - containerPort: 4567
+        name: galera-udp-rep
+        protocol: UDP
       - containerPort: 4568
         name: galera-state
         protocol: TCP
@@ -47,11 +71,6 @@ spec:
         # 4567 For Galera Cluster replication traffic, multicast replication uses both UDP transport and TCP on this port.
         # 4568 For Incremental State Transfer.
         # 4444 For all other State Snapshot Transfer.
-  service:
-    serviceName: galera-svc
-    sessionAffinity: None
-    servicePorts:
-    - name: galera
-      port: 13306
-      targetPort: 3306
-      # https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
+      volumeMounts:
+      - mountPath: /var/lib/mysql
+        name: mysql-data

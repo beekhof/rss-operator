@@ -1,15 +1,19 @@
 #
-# See example/storage.yaml for details on how to set up a Ceph backed storage class
+# The database uses the same storage as the rest of the container so data is
+# not persisted and all modifucations will be lost as soon as the last
+# container stops.
+#
+# Mostly useful for demos and proof-of-concept work. See
+# apps/galera/cluster.yaml for an example backed by a Ceph storage class
 #
 apiVersion: clusterlabs.org/v1alpha1
 kind: ReplicatedStatefulSet
 metadata:
-  name: galera-demo
+  name: galera-transient-demo
   labels:
     kind: galera
 spec:
   replicas: 4
-  chaosLevel: 0
   servicePorts:
   - name: galera
     protocol: TCP
@@ -30,23 +34,6 @@ spec:
         command: ["/check.sh"]
       stop: 
         command: ["/stop.sh"]
-    volumeClaimTemplates:
-    - metadata:
-        name: mysql-data
-      spec:
-        accessModes: [ "ReadWriteOnce" ]
-        storageClassName: my-storage-class
-        resources:
-          requests:
-            storage: 1Gi
-    - metadata:
-        name: mysql-logs
-      spec:
-        accessModes: [ "ReadWriteOnce" ]
-        storageClassName: my-storage-class
-        resources:
-          requests:
-            storage: 1Gi
     containers:
     - name: galera
       image: quay.io/beekhof/galera:latest
@@ -76,8 +63,3 @@ spec:
         # 4567 For Galera Cluster replication traffic, multicast replication uses both UDP transport and TCP on this port.
         # 4568 For Incremental State Transfer.
         # 4444 For all other State Snapshot Transfer.
-      volumeMounts:
-      - mountPath: /var/lib/mysql
-        name: mysql-data
-      - mountPath: /var/log
-        name: mysql-logs

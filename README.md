@@ -47,7 +47,7 @@ See the [Resources and Labels](./doc/user/resource_labels.md) doc for an overvie
 
 ## Getting started
 
-### Deploy replication operator
+### Deploy the replication operator
 
 See [instructions on how to install/uninstall replication operator](./doc/user/install_guide.md) .
 
