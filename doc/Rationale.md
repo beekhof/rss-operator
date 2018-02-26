@@ -27,13 +27,13 @@ It seems apparent that Stateful Sets were originally created for this use
 case, at first blush it looks like pod 0 will always start first and by virtue
 of being the last to stop, will have the most recent copy of the database.
 Unfortunately due to the lack of a feedback mechanism in the scheduler, it is
-trivial to arrange failure scenarios that allow pod 0 to fall behind[1] -
+trivial to arrange failure scenarios that allow pod 0 to [fall behind](https://www.dropbox.com/s/mqsuvbtr3lj5hxb/Stateful%20Set%20Fencing.pdf?dl=0) -
 particularly during scale down events. Additionally, like the single-copy-
 architecture, the current lack of fencing can lead to stalled recovery and an
 inability to scale up or down in bare metal Kubernetes deployment.
 
 More recently, the CoreOS folks successfully showed that some replicated
-applications can be modelled with their Operator pattern.
+applications can be modelled with their [operator pattern](https://coreos.com/blog/introducing-operators.html).
 
 The etcd and Prometheus implementations are based on ephemeral storage,
 requiring periodic backups to (currently) AWS and a full restore after lights-
