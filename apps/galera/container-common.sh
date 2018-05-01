@@ -2,6 +2,81 @@ if [ x${CHAOS_MODULO} = x ]; then
 	export CHAOS_MODULO=1
 fi
 
+# su [options...] [-] [user [args...]]
+#
+#      -c command, --command=command
+#              Pass command to the shell with the -c option.
+#
+#       --session-command=command
+#              Same as -c but do not create a new session (discouraged).
+#
+#       -f, --fast
+#              Pass -f to the shell which may or may not be useful depending on the shell.
+#
+#       -g, --group=group
+#              specify the primary group, this option is allowed for root user only
+#
+#       -G, --supp-group=group
+#              Specify a supplemental group.  This option is available to the root user only.  The first specified supplementary group is also used as a primary group if the option --group is unspecified.
+#
+#       -, -l, --login
+#              Starts the shell as login shell with an environment similar to a real login:
+#
+#                 o      clears all environment variables except for TERM
+#
+#                 o      initializes the environment variables HOME, SHELL, USER, LOGNAME, PATH
+#
+#                 o      changes to the target user's home directory
+#
+#                 o      sets argv[0] of the shell to '-' in order to make the shell a login shell
+#
+#       -m, -p, --preserve-environment
+#              Preserves the whole environment, ie does not set HOME, SHELL, USER nor LOGNAME.  The option is ignored if the option --login is specified.
+#
+#       -s SHELL, --shell=SHELL
+#              Runs the specified shell instead of the default.  The shell to run is selected according to the following rules in order:
+#
+#                 o      the shell specified with --shell
+#
+#                 o      The shell specified in the environment variable SHELL if the --preserve-environment option is used.
+#
+#                 o      the shell listed in the passwd entry of the target user
+#
+#                 o      /bin/sh
+#
+#              If the target user has a restricted shell (i.e. not listed in /etc/shells) the --shell option and the SHELL environment variables are ignored unless the calling user is root.
+#
+#       --help Display help text and exit.
+#
+#       --version
+#              Display version information and exit.
+
+function su() {
+    options=""
+    su_user="root"
+    su_cmd="true"
+    for arg in $*; do
+        case $arg in
+            -c|--command|--session-command) su_cmd="$1"; shift; shift;;
+            -|-l|--login) options="$options --login"; shift;;
+            -m|-p|--preserve-environment) options="$options --preserve-environment"; shift;;
+            -s|--shell|-g|--group) options="$options $arg $1"; shift; shift;;
+            -f|--fast) shift;;
+            -G|--supp-group) shift; shift;;
+            --help|--version) return 0;;
+            *) if [ "$su_cmd" = "true" ]; then su_user=$arg; fi; shift;;
+        esac
+    done
+    # Galera only wants to check if one directory is writable as mysql
+    # In the container we're always mysql, so no need for sudo at all
+    #
+    # Anyone copying this that needs an actual bridge to sudo would want:
+    #
+    #     sudo $options $su_user "$su_cmd"
+    #
+    $su_cmd
+}
+
 function gcomm_from_args() {
 	gcomm="gcomm://"
 
