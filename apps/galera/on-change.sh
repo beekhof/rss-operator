@@ -4,7 +4,7 @@ set -eo pipefail
 
 CFG=/etc/rss.peers
 CFG_BAK=${CFG}.bak
-MY_ID_FILE=/etc/rss.myid
+MY_ID_FILE=/tmp/rss.myid
 HOSTNAME=$(hostname)
 
 while read -ra LINE; do
