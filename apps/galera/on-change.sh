@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-CFG=/etc/rss.peers
+CFG=/tmp/rss.peers
 CFG_BAK=${CFG}.bak
 MY_ID_FILE=/tmp/rss.myid
 HOSTNAME=$(hostname)
