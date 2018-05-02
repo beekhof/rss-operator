@@ -8,5 +8,5 @@ COPY *.sh database.sql peer-finder.go /
 ENV GOPATH /go
 RUN go get k8s.io/apimachinery/pkg/util/sets/
 RUN rm -f /etc/my.cnf.d/auth_gssapi.cnf
-CMD ["go", "run", "/peer-finder.go", "-on-change", "/on-change.sh"]
+ENTRYPOINT ["/bin/go", "run", "/peer-finder.go", "-on-change", "/on-change.sh"]
 USER 25
