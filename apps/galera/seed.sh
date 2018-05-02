@@ -6,6 +6,8 @@
 . ${OCF_FUNCTIONS_DIR}/mysql-common.sh
 . container-common.sh
 
+set -x
+whoami
 OCF_RESKEY_enable_creation=true
 
 load_sql=0
