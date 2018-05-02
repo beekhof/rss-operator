@@ -59,7 +59,8 @@ func CreateCRD(clientset apiextensionsclient.Interface, crdName, rkind, rplural,
 		Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
 			Group:   api.SchemeGroupVersion.Group,
 			Version: api.SchemeGroupVersion.Version,
-			Scope:   apiextensionsv1beta1.NamespaceScoped,
+			// The objects are namespace scoped but CRDs are always cluster scoped
+			Scope: apiextensionsv1beta1.NamespaceScoped,
 			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
 				Plural: rplural,
 				Kind:   rkind,

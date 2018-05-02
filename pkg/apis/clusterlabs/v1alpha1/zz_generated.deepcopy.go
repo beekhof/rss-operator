@@ -334,6 +334,15 @@ func (in *PodPolicy) DeepCopyInto(out *PodPolicy) {
 			(*out)[key] = *newVal
 		}
 	}
+	if in.SecurityContext != nil {
+		in, out := &in.SecurityContext, &out.SecurityContext
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(v1.PodSecurityContext)
+			(*in).DeepCopyInto(*out)
+		}
+	}
 	return
 }
 

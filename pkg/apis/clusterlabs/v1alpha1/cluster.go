@@ -87,6 +87,8 @@ type PodPolicy struct {
 	VolumeClaimTemplates []v1.PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty"`
 
 	Commands map[string]ReplicationCommand `json:"commands"`
+
+	SecurityContext *v1.PodSecurityContext `json:"securityContext"`
 	//./vendor/google.golang.org/genproto/googleapis/devtools/cloudbuild/v1/cloudbuild.pb.go:939:	FileHashes map[string]*FileHashes `protobuf:"bytes,4,rep,name=file_hashes,json=fileHashes" json:"file_hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 }
 

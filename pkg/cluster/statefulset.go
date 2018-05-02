@@ -149,7 +149,6 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	// Prometheus may take quite long to shut down to checkpoint existing data.
 	// Allow up to 10 minutes for clean termination.
 	terminationGracePeriod := int64(600)
-	securityContext := v1.PodSecurityContext{}
 
 	// ReadinessProbe: &v1.Probe{
 	// 	Handler:          v1.Handler{
@@ -288,11 +287,11 @@ func makeStatefulSetSpec(cluster api.ReplicatedStatefulSet, c *Config, ruleConfi
 	podSpec := v1.PodSpec{
 		Volumes:                       volumes,
 		Containers:                    containers,
+		SecurityContext:               cluster.Spec.Pod.SecurityContext,
 		ServiceAccountName:            cluster.Spec.ServiceAccountName,
 		NodeSelector:                  cluster.Spec.NodeSelector,
 		Tolerations:                   cluster.Spec.Tolerations,
 		Affinity:                      cluster.Spec.Affinity,
-		SecurityContext:               &securityContext,
 		TerminationGracePeriodSeconds: &terminationGracePeriod,
 	}
 
