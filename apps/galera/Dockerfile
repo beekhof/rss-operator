@@ -8,6 +8,7 @@ COPY *.sh database.sql peer-finder.go /
 ENV GOPATH /go
 RUN go get k8s.io/apimachinery/pkg/util/sets/
 RUN rm -f /etc/my.cnf.d/auth_gssapi.cnf
+RUN echo "mysql	ALL=(ALL) 	NOPASSWD: ALL" >> /etc/sudoers
 RUN mkdir /var/run/mysql && chown mysql:mysql /var/run/mysql
-ENTRYPOINT ["/bin/go", "run", "/peer-finder.go", "-on-change", "/on-change.sh"]
-USER 27
+CMD ["/bin/go", "run", "/peer-finder.go", "-on-change", "/on-change.sh"]
+USER mysql
