@@ -102,6 +102,16 @@ function handle_result() {
 	exit $1
 }
 
+function handle_failure() {
+	action=$1; shift
+	if [ $1 = 0 ]; then
+		ocf_log info "$action complete."
+	else
+		ocf_log info "$action failed: $1"
+		exit $1
+	fi
+}
+
 # Verbatim from the /usr/lib/ocf/resource.d/heartbeat/galera agent
 
 function detect_last_commit() {
