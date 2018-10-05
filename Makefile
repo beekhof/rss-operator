@@ -14,7 +14,6 @@ DOCKER_REPO_ROOT="/go/src/$(PROJECT)"
 
 GIT_SHA=$(shell git rev-parse --short HEAD || echo GitNotFound)
 export KUBECONFIG=$(HOME)/.kube/config
-export GOPATH=$(HOME)/go
 export GREP=grep --color=never
 
 PKGS=$(shell go list ./cmd/... ./pkg/... | grep -v -e generated -e apis/clusterlabs/v1alpha1)
