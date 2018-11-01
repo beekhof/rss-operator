@@ -41,7 +41,7 @@ out.  Apart from the reliance on AWS for cold starts (possible security and/or
 compliance issues), databases (particularly those in OSP) can grow rather large
 resulting in extended recovery times.
 
-The Replicated Stateful Set Operator is therefor a new operator based on
+The Replicated Stateful Set Operator is therefore a new operator based on
 Stateful Sets and persistent storage. Using Stateful Sets allows us to reuse
 core functionality for much of the upgrade and restart logic (the CoreOS folks
 implemented their own), allowing the operator to focus on figuring out which
