@@ -49,7 +49,8 @@ See the [Resources and Labels](./doc/user/resource_labels.md) doc for an overvie
 
 ### Build the image
 
-The demo uses a CentOS 7 based image which contains a number of scripts that wrap the galera OCF resource agent
+The demo uses a CentOS 7 based image which contains a number of scripts that wrap the galera OCF resource agent.
+
 You will need to create an image from https://github.com/beekhof/galera-container and push it to docker/quay.
 
 Once complete, modify `example/cluster.yaml` to point to the image you just published.
