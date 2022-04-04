@@ -47,6 +47,13 @@ See the [Resources and Labels](./doc/user/resource_labels.md) doc for an overvie
 
 ## Getting started
 
+### Build the image
+
+The demo uses a CentOS 7 based image which contains a number of scripts that wrap the galera OCF resource agent
+You will need to create an image from https://github.com/beekhof/galera-container and push it to docker/quay.
+
+Once complete, modify `example/cluster.yaml` to point to the image you just published.
+
 ### Deploy the replication operator
 
 See [instructions on how to install/uninstall replication operator](./doc/user/install_guide.md) .
